@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Upload, RotateCcw, Check, AlertTriangle, Download } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Calendar, Upload, RotateCcw, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,14 +11,30 @@ import {
   createOpeningBalanceEntries,
   deleteOpeningBalanceEntries,
   getOpeningBalanceEntries,
-  validateOpeningBalances
+  validateOpeningBalances,
 } from '@/services/openingBalanceService';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { useAccountingInit } from '@/hooks/useAccountingInit';
+
+/**
+ * Returns the opening balance contra-account code per plan comptable (ENF-1).
+ * FR PCG   : 890 — Bilan d'ouverture
+ * BE PCMN  : 891 — Bilan d'ouverture (PCMN uses 891)
+ * OHADA    : 11  — Report à nouveau (SYSCOHADA opening equity)
+ * Fallback : 890 (PCG convention)
+ */
+function resolveOpeningBalanceContraAccount(country) {
+  if (country === 'BE') return '891';
+  if (country === 'OHADA') return '11';
+  return '890'; // FR default
+}
 
 const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
   const { user } = useAuth();
   const { activeCompanyId } = useCompanyScope();
   const { accounts, loading: accountsLoading } = useAccounting();
+  const { country: accountingCountry } = useAccountingInit();
+  const openingContraAccount = resolveOpeningBalanceContraAccount(accountingCountry);
   const [openingDate, setOpeningDate] = useState(formatDateInput());
   const [balances, setBalances] = useState({});
   const [saving, setSaving] = useState(false);
@@ -30,9 +46,15 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
   const balanceSheetAccounts = useMemo(() => {
     if (!accounts) return { assets: [], liabilities: [], equity: [] };
 
-    const assets = accounts.filter(a => a.account_type === 'asset').sort((a, b) => a.account_code.localeCompare(b.account_code));
-    const liabilities = accounts.filter(a => a.account_type === 'liability').sort((a, b) => a.account_code.localeCompare(b.account_code));
-    const equity = accounts.filter(a => a.account_type === 'equity').sort((a, b) => a.account_code.localeCompare(b.account_code));
+    const assets = accounts
+      .filter((a) => a.account_type === 'asset')
+      .sort((a, b) => a.account_code.localeCompare(b.account_code));
+    const liabilities = accounts
+      .filter((a) => a.account_type === 'liability')
+      .sort((a, b) => a.account_code.localeCompare(b.account_code));
+    const equity = accounts
+      .filter((a) => a.account_type === 'equity')
+      .sort((a, b) => a.account_code.localeCompare(b.account_code));
 
     return { assets, liabilities, equity };
   }, [accounts]);
@@ -47,8 +69,9 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
 
         // Pre-fill balances from existing entries
         const existingBalances = {};
-        entries.forEach(entry => {
-          if (entry.account_code !== '890') {
+        entries.forEach((entry) => {
+          // Skip the contra/opening balance account (country-aware: 890 PCG, 891 PCMN, 11 OHADA)
+          if (entry.account_code !== openingContraAccount) {
             const amount = entry.debit > 0 ? entry.debit : -entry.credit;
             existingBalances[entry.account_code] = amount;
           }
@@ -59,27 +82,29 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
       }
     };
     loadExisting();
-  }, [user, activeCompanyId]);
+  }, [user, activeCompanyId, openingContraAccount]);
 
   // Calculate totals and validation
   const validation = useMemo(() => {
-    const balanceArray = Object.entries(balances).map(([code, amount]) => {
-      const account = accounts?.find(a => a.account_code === code);
-      return {
-        account_code: code,
-        account_name: account?.account_name || code,
-        amount: parseFloat(amount) || 0,
-        type: account?.account_type || 'asset'
-      };
-    }).filter(b => b.amount !== 0);
+    const balanceArray = Object.entries(balances)
+      .map(([code, amount]) => {
+        const account = accounts?.find((a) => a.account_code === code);
+        return {
+          account_code: code,
+          account_name: account?.account_name || code,
+          amount: parseFloat(amount) || 0,
+          type: account?.account_type || 'asset',
+        };
+      })
+      .filter((b) => b.amount !== 0);
 
     return validateOpeningBalances(balanceArray);
   }, [balances, accounts]);
 
   const handleBalanceChange = (accountCode, value) => {
-    setBalances(prev => ({
+    setBalances((prev) => ({
       ...prev,
-      [accountCode]: value
+      [accountCode]: value,
     }));
     setError(null);
     setSuccess(null);
@@ -87,7 +112,9 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
 
   const handleSave = async () => {
     if (!validation.isBalanced) {
-      setError(`Le bilan n'est pas equilibre. Difference: ${validation.difference.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`);
+      setError(
+        `Le bilan n'est pas equilibre. Difference: ${validation.difference.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
+      );
       return;
     }
 
@@ -98,19 +125,26 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
       // Prepare balances array
       const balanceArray = Object.entries(balances)
         .map(([code, amount]) => {
-          const account = accounts?.find(a => a.account_code === code);
+          const account = accounts?.find((a) => a.account_code === code);
           return {
             account_code: code,
             account_name: account?.account_name || code,
             amount: parseFloat(amount) || 0,
-            type: account?.account_type || 'asset'
+            type: account?.account_type || 'asset',
           };
         })
-        .filter(b => b.amount !== 0);
+        .filter((b) => b.amount !== 0);
 
       // Delete existing and create new
       await deleteOpeningBalanceEntries(user.id, activeCompanyId);
-      const result = await createOpeningBalanceEntries(user.id, openingDate, balanceArray, activeCompanyId);
+      // Pass country code so service uses correct contra-account (ENF-1: 890 FR, 891 BE, 11 OHADA)
+      const result = await createOpeningBalanceEntries(
+        user.id,
+        openingDate,
+        balanceArray,
+        activeCompanyId,
+        accountingCountry || 'FR'
+      );
 
       setSuccess(`${result.entriesCreated} ecritures d'ouverture creees avec succes.`);
       if (onComplete) onComplete(result);
@@ -122,14 +156,14 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
   };
 
   const handleReset = async () => {
-    if (!confirm('Supprimer toutes les ecritures d\'ouverture existantes ?')) return;
+    if (!confirm("Supprimer toutes les ecritures d'ouverture existantes ?")) return;
 
     setSaving(true);
     try {
       await deleteOpeningBalanceEntries(user.id, activeCompanyId);
       setBalances({});
       setExistingEntries([]);
-      setSuccess('Ecritures d\'ouverture supprimees.');
+      setSuccess("Ecritures d'ouverture supprimees.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -145,7 +179,7 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
     reader.onload = (e) => {
       try {
         const text = e.target.result;
-        const lines = text.split('\n').filter(l => l.trim());
+        const lines = text.split('\n').filter((l) => l.trim());
         const newBalances = {};
 
         lines.forEach((line, index) => {
@@ -156,10 +190,10 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
           }
         });
 
-        setBalances(prev => ({ ...prev, ...newBalances }));
+        setBalances((prev) => ({ ...prev, ...newBalances }));
         setSuccess('Import CSV reussi.');
       } catch (err) {
-        setError('Erreur lors de l\'import CSV.');
+        setError("Erreur lors de l'import CSV.");
       }
     };
     reader.readAsText(file);
@@ -172,7 +206,7 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
         {title}
       </h3>
       <div className="space-y-2">
-        {accountList.map(account => (
+        {accountList.map((account) => (
           <div key={account.account_code} className="flex items-center gap-3 bg-gray-800 p-2 rounded">
             <span className="text-sm text-gray-400 w-16">{account.account_code}</span>
             <span className="text-sm text-white flex-1 truncate">{account.account_name}</span>
@@ -228,7 +262,9 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
             <label className="cursor-pointer">
               <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
               <Button variant="outline" size="sm" asChild>
-                <span><Upload className="w-4 h-4 mr-1" /> Importer CSV</span>
+                <span>
+                  <Upload className="w-4 h-4 mr-1" /> Importer CSV
+                </span>
               </Button>
             </label>
 
@@ -239,7 +275,9 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
         </div>
 
         {/* Validation Status */}
-        <div className={`p-3 rounded-lg flex items-center gap-3 ${validation.isBalanced ? 'bg-green-500/10 border border-green-500/30' : 'bg-yellow-500/10 border border-yellow-500/30'}`}>
+        <div
+          className={`p-3 rounded-lg flex items-center gap-3 ${validation.isBalanced ? 'bg-green-500/10 border border-green-500/30' : 'bg-yellow-500/10 border border-yellow-500/30'}`}
+        >
           {validation.isBalanced ? (
             <Check className="w-5 h-5 text-green-400" />
           ) : (
@@ -250,17 +288,23 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
               {validation.isBalanced ? 'Bilan equilibre' : 'Bilan non equilibre'}
             </div>
             <div className="text-xs text-gray-400">
-              Actif: {validation.totalAssets.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency} | Passif: {validation.totalLiabilitiesEquity.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
-              {!validation.isBalanced && ` | Difference: ${validation.difference.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`}
+              Actif:{' '}
+              {validation.totalAssets.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+              {currency} | Passif:{' '}
+              {validation.totalLiabilitiesEquity.toLocaleString('fr-FR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{' '}
+              {currency}
+              {!validation.isBalanced &&
+                ` | Difference: ${validation.difference.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`}
             </div>
           </div>
         </div>
 
         {/* Error/Success Messages */}
         {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
-            {error}
-          </div>
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{error}</div>
         )}
         {success && (
           <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm">
@@ -275,7 +319,11 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
           </div>
           <div className="space-y-6">
             {renderAccountSection('PASSIF', balanceSheetAccounts.liabilities, <span className="text-red-400">P</span>)}
-            {renderAccountSection('CAPITAUX PROPRES', balanceSheetAccounts.equity, <span className="text-purple-400">C</span>)}
+            {renderAccountSection(
+              'CAPITAUX PROPRES',
+              balanceSheetAccounts.equity,
+              <span className="text-purple-400">C</span>
+            )}
           </div>
         </div>
 
@@ -286,7 +334,7 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
             disabled={saving || !validation.isBalanced}
             className="bg-orange-500 hover:bg-orange-600"
           >
-            {saving ? 'Enregistrement...' : 'Valider les soldes d\'ouverture'}
+            {saving ? 'Enregistrement...' : "Valider les soldes d'ouverture"}
           </Button>
         </div>
       </CardContent>

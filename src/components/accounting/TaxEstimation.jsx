@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,43 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatCurrency } from '@/utils/calculations';
 import { estimateTax, DEFAULT_TAX_BRACKETS } from '@/utils/accountingCalculations';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
+import { useAccountingInit } from '@/hooks/useAccountingInit';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import { supabase } from '@/lib/supabase';
+
+/**
+ * Build country-aware initial tax brackets for the custom simulator.
+ * Priority: DB tax_rules (corporate_tax type) → DEFAULT_TAX_BRACKETS.
+ * ENF-1: no hardcoded rates — fetched from tax_rules table in DB.
+ */
+function useCorporateTaxBrackets(country) {
+  const { data: dbRules } = useSupabaseQuery(
+    async () => {
+      if (!supabase || !country) return [];
+      const { data, error } = await supabase
+        .from('tax_rules')
+        .select('*')
+        .eq('country_code', country)
+        .eq('tax_type', 'corporate_tax')
+        .order('min_amount', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    { deps: [country], defaultData: [], enabled: !!country }
+  );
+
+  return useMemo(() => {
+    if (dbRules && dbRules.length > 0) {
+      return dbRules.map((rule, i) => ({
+        min: rule.min_amount ?? 0,
+        max: rule.max_amount ?? (i === dbRules.length - 1 ? Infinity : (dbRules[i + 1]?.min_amount ?? Infinity)),
+        rate: rule.rate ?? 0,
+        label: rule.name || rule.description || `Tranche ${i + 1}`,
+      }));
+    }
+    return DEFAULT_TAX_BRACKETS;
+  }, [dbRules]);
+}
 
 const COLORS = ['#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'];
 
@@ -19,7 +56,7 @@ const TAX_PANEL_INFO = {
     dataSource: 'Valeur `netIncome` issue des aggregats comptables SQL (`useAccountingData`).',
     formula: 'Benefice imposable = Resultat net comptable retenu pour la fiscalite',
     calculationMethod:
-      "Le montant provient du compte de resultat; s il est negatif ou nul, l assiette fiscale est ramenee a 0.",
+      'Le montant provient du compte de resultat; s il est negatif ou nul, l assiette fiscale est ramenee a 0.',
   },
   estimatedTax: {
     title: 'Impot estime',
@@ -31,56 +68,57 @@ const TAX_PANEL_INFO = {
   },
   netAfterTax: {
     title: 'Revenu net apres impot',
-    definition: "Montant restant apres deduction de l impot estime.",
+    definition: 'Montant restant apres deduction de l impot estime.',
     dataSource: 'Valeurs `netIncome` et `taxEstimate.totalTax` du composant.',
     formula: 'Net apres impot = max(Benefice imposable - Impot estime, 0)',
-    calculationMethod:
-      'Le composant soustrait le total d impot au benefice et borne le resultat a zero.',
+    calculationMethod: 'Le composant soustrait le total d impot au benefice et borne le resultat a zero.',
   },
   bracketDetail: {
     title: 'Detail par tranche',
-    definition: "Ventilation de l impot calcule par tranche fiscale.",
+    definition: 'Ventilation de l impot calcule par tranche fiscale.',
     dataSource: 'Tableau `taxEstimate.details` retourne par `estimateTax`.',
     formula: 'Impot tranche = Base taxable tranche x taux tranche',
-    calculationMethod:
-      'Chaque ligne affiche la base de tranche, le taux et le montant d impot correspondant.',
-    notes: "Le mode personnalisation permet d editer les bornes et taux avant recalcul.",
+    calculationMethod: 'Chaque ligne affiche la base de tranche, le taux et le montant d impot correspondant.',
+    notes: 'Le mode personnalisation permet d editer les bornes et taux avant recalcul.',
   },
   bracketDistribution: {
     title: 'Repartition par tranche',
-    definition: "Part relative de chaque tranche dans l impot total.",
+    definition: 'Part relative de chaque tranche dans l impot total.',
     dataSource: 'Donnees derivees de `taxEstimate.details` (tax > 0).',
     formula: 'Part tranche = Impot tranche / Impot total',
-    calculationMethod:
-      'Le donut affiche les montants d impot par tranche pour visualiser la concentration fiscale.',
+    calculationMethod: 'Le donut affiche les montants d impot par tranche pour visualiser la concentration fiscale.',
   },
   quarterlySchedule: {
     title: 'Echeancier de paiement trimestriel',
-    definition: "Projection de paiement trimestriel de l impot annuel estime.",
+    definition: 'Projection de paiement trimestriel de l impot annuel estime.',
     dataSource: 'Valeur `taxEstimate.quarterlyPayment` derivee du calcul fiscal.',
     formula: 'Paiement trimestriel = Impot total / 4',
-    calculationMethod:
-      'Le composant repartit le total annuel en quatre acomptes trimestriels avec dates d echeance.',
+    calculationMethod: 'Le composant repartit le total annuel en quatre acomptes trimestriels avec dates d echeance.',
   },
 };
 
 const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExportPDF, onExportHTML, currency }) => {
-  const [brackets, setBrackets] = useState(DEFAULT_TAX_BRACKETS);
+  const { country } = useAccountingInit();
+  // Load country-aware corporate tax brackets from DB (ENF-1: no hardcoded rates)
+  const defaultBrackets = useCorporateTaxBrackets(country);
+  const [brackets, setBrackets] = useState(null); // null = use defaultBrackets (lazy init)
   const [customMode, setCustomMode] = useState(false);
+  // Use DB-loaded brackets as the effective brackets; local state overrides only in custom mode
+  const effectiveBrackets = brackets ?? defaultBrackets;
 
-  const taxEstimate = customMode ? estimateTax(netIncome > 0 ? netIncome : 0, brackets) : initialEstimate;
+  const taxEstimate = customMode ? estimateTax(netIncome > 0 ? netIncome : 0, effectiveBrackets) : initialEstimate;
   const effectiveRate = (taxEstimate?.effectiveRate || 0) * 100;
 
   const updateBracket = (index, field, value) => {
-    const updated = [...brackets];
+    // Initialize local brackets from effective (DB-loaded) brackets on first edit
+    const base = brackets ?? defaultBrackets;
+    const updated = [...base];
     updated[index] = { ...updated[index], [field]: field === 'label' ? value : parseFloat(value) || 0 };
     setBrackets(updated);
   };
 
   // Donut chart data from bracket details
-  const donutData = (taxEstimate?.details || [])
-    .filter(d => d.tax > 0)
-    .map(d => ({ name: d.label, value: d.tax }));
+  const donutData = (taxEstimate?.details || []).filter((d) => d.tax > 0).map((d) => ({ name: d.label, value: d.tax }));
 
   // Quarterly payment schedule
   const quarterly = taxEstimate?.quarterlyPayment || 0;
@@ -101,7 +139,8 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
           </h2>
           {period && (
             <p className="text-sm text-gray-400">
-              Du {new Date(period.startDate).toLocaleDateString('fr-FR')} au {new Date(period.endDate).toLocaleDateString('fr-FR')}
+              Du {new Date(period.startDate).toLocaleDateString('fr-FR')} au{' '}
+              {new Date(period.endDate).toLocaleDateString('fr-FR')}
             </p>
           )}
         </div>
@@ -186,7 +225,10 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setCustomMode(!customMode)}
+                onClick={() => {
+                  if (customMode) setBrackets(null); // reset to DB brackets
+                  setCustomMode(!customMode);
+                }}
                 className="text-xs text-gray-400 hover:text-gray-200"
               >
                 {customMode ? 'Tranches par defaut' : 'Personnaliser'}
@@ -207,7 +249,9 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
                     <div className="flex-1">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm text-gray-300">{detail.label}</span>
-                        <span className="font-mono text-sm text-white font-medium">{formatCurrency(detail.tax, currency)}</span>
+                        <span className="font-mono text-sm text-white font-medium">
+                          {formatCurrency(detail.tax, currency)}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-gray-700 rounded-full h-1">
@@ -215,7 +259,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
                             className="h-1 rounded-full"
                             style={{
                               width: `${Math.min(pct, 100)}%`,
-                              backgroundColor: COLORS[i % COLORS.length]
+                              backgroundColor: COLORS[i % COLORS.length],
                             }}
                           />
                         </div>
@@ -239,7 +283,9 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
             {taxEstimate?.details?.length > 0 && (
               <div className="flex justify-between items-center pt-3 mt-2 border-t border-gray-700">
                 <span className="text-sm font-semibold text-gray-300">Total impot</span>
-                <span className="font-mono text-sm font-bold text-orange-400">{formatCurrency(taxEstimate?.totalTax || 0, currency)}</span>
+                <span className="font-mono text-sm font-bold text-orange-400">
+                  {formatCurrency(taxEstimate?.totalTax || 0, currency)}
+                </span>
               </div>
             )}
           </CardContent>
@@ -260,8 +306,10 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
                   <PieChart>
                     <Pie
                       data={donutData}
-                      cx="50%" cy="50%"
-                      innerRadius={50} outerRadius={75}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={75}
                       paddingAngle={3}
                       dataKey="value"
                     >
@@ -270,7 +318,12 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
+                      contentStyle={{
+                        backgroundColor: '#111827',
+                        borderColor: '#374151',
+                        borderRadius: '8px',
+                        color: '#fff',
+                      }}
                       formatter={(value) => formatCurrency(value, currency)}
                     />
                   </PieChart>
@@ -317,7 +370,9 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
           </div>
           <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-700">
             <span className="text-sm text-gray-400">Total annuel</span>
-            <span className="font-mono text-sm font-bold text-orange-400">{formatCurrency(taxEstimate?.totalTax || 0, currency)}</span>
+            <span className="font-mono text-sm font-bold text-orange-400">
+              {formatCurrency(taxEstimate?.totalTax || 0, currency)}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -329,29 +384,44 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
             <CardTitle className="text-sm text-gray-400">Tranches d'imposition personnalisees</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {brackets.map((bracket, i) => (
+            {effectiveBrackets.map((bracket, i) => (
               <div key={i} className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
                 <div className="space-y-1">
                   <Label className="text-xs text-gray-500">De</Label>
-                  <Input type="number" value={bracket.min} onChange={e => updateBracket(i, 'min', e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-xs h-8" />
+                  <Input
+                    type="number"
+                    value={bracket.min}
+                    onChange={(e) => updateBracket(i, 'min', e.target.value)}
+                    className="bg-gray-800 border-gray-700 text-xs h-8"
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-gray-500">A</Label>
-                  <Input type="number" value={bracket.max === Infinity ? '' : bracket.max}
-                    onChange={e => updateBracket(i, 'max', e.target.value || Infinity)}
-                    placeholder="∞" className="bg-gray-800 border-gray-700 text-xs h-8" />
+                  <Input
+                    type="number"
+                    value={bracket.max === Infinity ? '' : bracket.max}
+                    onChange={(e) => updateBracket(i, 'max', e.target.value || Infinity)}
+                    placeholder="∞"
+                    className="bg-gray-800 border-gray-700 text-xs h-8"
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-gray-500">Taux (%)</Label>
-                  <Input type="number" step="0.01" value={(bracket.rate * 100).toFixed(2)}
-                    onChange={e => updateBracket(i, 'rate', parseFloat(e.target.value) / 100)}
-                    className="bg-gray-800 border-gray-700 text-xs h-8" />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={(bracket.rate * 100).toFixed(2)}
+                    onChange={(e) => updateBracket(i, 'rate', parseFloat(e.target.value) / 100)}
+                    className="bg-gray-800 border-gray-700 text-xs h-8"
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-gray-500">Libelle</Label>
-                  <Input value={bracket.label} onChange={e => updateBracket(i, 'label', e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-xs h-8" />
+                  <Input
+                    value={bracket.label}
+                    onChange={(e) => updateBracket(i, 'label', e.target.value)}
+                    className="bg-gray-800 border-gray-700 text-xs h-8"
+                  />
                 </div>
               </div>
             ))}

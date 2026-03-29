@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileDown, BookOpen, AlertTriangle } from 'lucide-react';
@@ -51,15 +51,10 @@ const AccountTable = ({ accounts, currency, showType = false }) => {
         </thead>
         <tbody>
           {accounts.map((a, i) => (
-            <tr
-              key={a.account_code || i}
-              className="border-b border-gray-800/30 hover:bg-gray-800/20"
-            >
+            <tr key={a.account_code || i} className="border-b border-gray-800/30 hover:bg-gray-800/20">
               <td className="py-1.5 pr-4 font-mono text-gray-300 text-xs">{a.account_code}</td>
               <td className="py-1.5 pr-6 text-gray-200">{a.account_name || a.name || '-'}</td>
-              {showType && (
-                <td className="py-1.5 pr-4 text-gray-400 text-xs capitalize">{a.account_type}</td>
-              )}
+              {showType && <td className="py-1.5 pr-4 text-gray-400 text-xs capitalize">{a.account_type}</td>}
               <td className="py-1.5 pl-4 text-right font-mono text-gray-100 whitespace-nowrap">
                 {formatCurrency(a.balance || 0, currency)}
               </td>
@@ -71,6 +66,32 @@ const AccountTable = ({ accounts, currency, showType = false }) => {
   );
 };
 
+/**
+ * Returns country-specific TVA account prefixes (ENF-1: codes from plan comptable, not hardcoded).
+ * BE (PCMN): TVA collectée = 451x, TVA déductible = 411x TVA portion
+ * FR (PCG):  TVA collectée = 4457, 443x; TVA déductible = 4456, 445x
+ * OHADA (SYSCOHADA): TVA collectée = 443x; TVA déductible = 445x
+ */
+function resolveTvaPrefixes(country) {
+  if (country === 'BE') {
+    return {
+      collectee: ['451', '4510', '4511', '4512', '4513'],
+      deductible: ['411', '4110', '4112', '4113', '4116'],
+    };
+  }
+  if (country === 'OHADA') {
+    return {
+      collectee: ['443', '4431', '4432', '4433'],
+      deductible: ['445', '4452', '4453'],
+    };
+  }
+  // FR (PCG) — default
+  return {
+    collectee: ['443', '4431', '4432', '4433', '4457'],
+    deductible: ['445', '4452', '4456'],
+  };
+}
+
 const FinancialAnnexes = ({
   trialBalance,
   cumulativeTrialBalance,
@@ -81,6 +102,9 @@ const FinancialAnnexes = ({
   period,
   onExportPDF,
 }) => {
+  const country = companyInfo?.country || 'FR';
+  const tvaPrefixes = resolveTvaPrefixes(country);
+
   const notes = useMemo(() => {
     const tb = trialBalance || [];
     // Balance sheet accounts (classes 1-5) use CUMULATIVE data (all entries up to endDate)
@@ -96,10 +120,7 @@ const FinancialAnnexes = ({
     // Note 4: Creances et dettes — cumulative
     const creances = cumTB.filter(
       (t) =>
-        t.account_code &&
-        t.account_code.startsWith('4') &&
-        t.account_type === 'asset' &&
-        Math.abs(t.balance) >= 0.01
+        t.account_code && t.account_code.startsWith('4') && t.account_type === 'asset' && Math.abs(t.balance) >= 0.01
     );
     const dettes = cumTB.filter(
       (t) =>
@@ -113,24 +134,20 @@ const FinancialAnnexes = ({
     const tresorerie = groupByClass(cumTB, '5', 'Tresorerie');
 
     // Note 6: Chiffre d'affaires (comptes 70x) — period
-    const ca = tb.filter(
-      (t) => t.account_code && t.account_code.startsWith('70') && Math.abs(t.balance) >= 0.01
-    );
+    const ca = tb.filter((t) => t.account_code && t.account_code.startsWith('70') && Math.abs(t.balance) >= 0.01);
     const totalCA = ca.reduce((s, a) => s + (a.balance || 0), 0);
 
     // Note 7: Charges d'exploitation (comptes 60x-65x) — period
     const chargesPrefixes = ['60', '61', '62', '63', '64', '65'];
     const charges = tb.filter(
-      (t) =>
-        t.account_code &&
-        chargesPrefixes.some((p) => t.account_code.startsWith(p)) &&
-        Math.abs(t.balance) >= 0.01
+      (t) => t.account_code && chargesPrefixes.some((p) => t.account_code.startsWith(p)) && Math.abs(t.balance) >= 0.01
     );
     const totalCharges = charges.reduce((s, a) => s + (a.balance || 0), 0);
 
     // Note 8: TVA — cumulative (balance sheet accounts)
-    const tvaCollectee = sumByPrefixes(cumTB, ['443', '4431', '4432', '4433', '4457']);
-    const tvaDeductible = sumByPrefixes(cumTB, ['445', '4452', '4456']);
+    // Prefixes are country-aware (ENF-1: no hardcoded FR-only codes)
+    const tvaCollectee = sumByPrefixes(cumTB, tvaPrefixes.collectee);
+    const tvaDeductible = sumByPrefixes(cumTB, tvaPrefixes.deductible);
 
     return {
       immobilisations,
@@ -145,17 +162,16 @@ const FinancialAnnexes = ({
       tvaCollectee,
       tvaDeductible,
     };
-  }, [trialBalance, cumulativeTrialBalance]);
+  }, [trialBalance, cumulativeTrialBalance, tvaPrefixes]);
 
-  const hasTB = (trialBalance && trialBalance.length > 0) || (cumulativeTrialBalance && cumulativeTrialBalance.length > 0);
+  const hasTB =
+    (trialBalance && trialBalance.length > 0) || (cumulativeTrialBalance && cumulativeTrialBalance.length > 0);
   if (!hasTB) {
     return (
       <Card className="bg-gray-900/50 border border-gray-800">
         <CardContent className="p-8 text-center">
           <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-100 mb-2">
-            Donnees insuffisantes pour les annexes
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-100 mb-2">Donnees insuffisantes pour les annexes</h3>
           <p className="text-sm text-gray-400">
             Importez votre plan comptable et creez des ecritures pour generer les notes aux etats financiers.
           </p>
@@ -164,11 +180,12 @@ const FinancialAnnexes = ({
     );
   }
 
-  const planName = companyInfo?.country === 'OHADA'
-    ? 'SYSCOHADA Revise'
-    : companyInfo?.country === 'BE'
-      ? 'PCMN Belge'
-      : 'PCG Francais';
+  const planName =
+    companyInfo?.country === 'OHADA'
+      ? 'SYSCOHADA Revise'
+      : companyInfo?.country === 'BE'
+        ? 'PCMN Belge'
+        : 'PCG Francais';
 
   const netIncome = incomeStatement?.netIncome || balanceSheet?.netIncome || 0;
 
@@ -187,8 +204,7 @@ const FinancialAnnexes = ({
                   {period?.startDate && period?.endDate && (
                     <span>
                       {' '}
-                      — Du{' '}
-                      {new Date(period.startDate).toLocaleDateString('fr-FR')} au{' '}
+                      — Du {new Date(period.startDate).toLocaleDateString('fr-FR')} au{' '}
                       {new Date(period.endDate).toLocaleDateString('fr-FR')}
                     </span>
                   )}
@@ -275,14 +291,22 @@ const FinancialAnnexes = ({
               <h4 className="text-sm font-medium text-blue-400 mb-2">Creances (comptes actif classe 4)</h4>
               <AccountTable accounts={notes.creances} currency={currency} />
               <p className="text-sm font-semibold text-gray-100 mt-2 max-w-2xl text-right">
-                Total creances : {formatCurrency(notes.creances.reduce((s, a) => s + (a.balance || 0), 0), currency)}
+                Total creances :{' '}
+                {formatCurrency(
+                  notes.creances.reduce((s, a) => s + (a.balance || 0), 0),
+                  currency
+                )}
               </p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-red-400 mb-2">Dettes (comptes passif classe 4)</h4>
               <AccountTable accounts={notes.dettes} currency={currency} />
               <p className="text-sm font-semibold text-gray-100 mt-2 max-w-2xl text-right">
-                Total dettes : {formatCurrency(notes.dettes.reduce((s, a) => s + (a.balance || 0), 0), currency)}
+                Total dettes :{' '}
+                {formatCurrency(
+                  notes.dettes.reduce((s, a) => s + (a.balance || 0), 0),
+                  currency
+                )}
               </p>
             </div>
           </div>

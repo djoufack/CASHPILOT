@@ -15,6 +15,31 @@ import { getGlobalAccountingPlanAccounts } from '@/services/referenceDataService
 import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { useToast } from '@/components/ui/use-toast';
+import { useAccountingInit } from '@/hooks/useAccountingInit';
+
+/**
+ * Country-specific accounting plan labels and region hints (ENF-1: no hardcoded BE-only preset).
+ */
+const COUNTRY_PLAN_LABELS = {
+  BE: {
+    button: 'Plan comptable belge (PCMN)',
+    title: 'Plan Comptable Général Belge (PCMN)',
+    hint: 'PCMN',
+    regionHint: 'belgium',
+  },
+  FR: {
+    button: 'Plan comptable français (PCG)',
+    title: 'Plan Comptable Général Français (PCG)',
+    hint: 'PCG',
+    regionHint: 'france',
+  },
+  OHADA: {
+    button: 'Plan comptable OHADA (SYSCOHADA)',
+    title: 'Système Comptable OHADA Révisé (SYSCOHADA)',
+    hint: 'SYSCOHADA',
+    regionHint: 'ohada',
+  },
+};
 
 const TYPE_COLORS = {
   asset: 'bg-blue-500/20 text-blue-400',
@@ -28,6 +53,9 @@ const ChartOfAccounts = () => {
   const { t } = useTranslation();
   const { accounts, fetchAccounts, createAccount, bulkCreateAccounts, deleteAccount, loading } = useAccounting();
   const { toast } = useToast();
+  const { country: accountingCountry } = useAccountingInit();
+  const presetCountry = accountingCountry || 'BE';
+  const planConfig = COUNTRY_PLAN_LABELS[presetCountry] || COUNTRY_PLAN_LABELS['BE'];
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showPresetConfirm, setShowPresetConfirm] = useState(false);
@@ -83,20 +111,21 @@ const ChartOfAccounts = () => {
   const handleLoadPreset = async () => {
     setPresetLoading(true);
     try {
-      const presetAccounts = await getGlobalAccountingPlanAccounts('BE');
+      const presetAccounts = await getGlobalAccountingPlanAccounts(presetCountry);
       const validation = validateChartOfAccountsImport(presetAccounts, {
         existingAccounts: accounts,
-        regionHint: 'belgium',
+        regionHint: planConfig.regionHint,
       });
       if (!validation.canImport) {
         throw new Error(
-          validation.blockingIssues[0]?.message || 'Le plan comptable belge Supabase a échoué au contrôle de cohérence'
+          validation.blockingIssues[0]?.message ||
+            `Le plan comptable ${planConfig.hint} Supabase a échoué au contrôle de cohérence`
         );
       }
       await bulkCreateAccounts(presetAccounts);
       toast({
         title: 'Plan comptable chargé',
-        description: `${presetAccounts.length} comptes de référence ont été appliqués à la société active.`,
+        description: `${presetAccounts.length} comptes de référence (${planConfig.hint}) ont été appliqués à la société active.`,
       });
       setShowPresetConfirm(false);
     } catch (err) {
@@ -105,7 +134,7 @@ const ChartOfAccounts = () => {
         title: 'Chargement impossible',
         description:
           err?.message ||
-          'Le plan comptable belge de référence est introuvable ou indisponible pour la société active.',
+          `Le plan comptable ${planConfig.hint} de référence est introuvable ou indisponible pour la société active.`,
         variant: 'destructive',
       });
     } finally {
@@ -192,7 +221,7 @@ const ChartOfAccounts = () => {
             onClick={() => setShowPresetConfirm(true)}
             className="border-gray-700 text-gray-300 hover:text-white hover:border-purple-500"
           >
-            <BookOpen className="w-4 h-4 mr-2" /> Plan comptable belge
+            <BookOpen className="w-4 h-4 mr-2" /> {planConfig.button}
           </Button>
           <Button
             variant="outline"
@@ -333,44 +362,15 @@ const ChartOfAccounts = () => {
           <DialogHeader>
             <DialogTitle className="text-gradient flex items-center gap-2">
               <BookOpen className="w-5 h-5" />
-              Plan Comptable Général Belge
+              {planConfig.title}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-gray-300 text-sm">
-              Vous allez charger le <strong>Plan Comptable Général Belge 2021</strong> contenant{' '}
-              <strong>993 comptes</strong> répartis en 7 classes :
+              Vous allez charger le plan de référence <strong>{planConfig.hint}</strong> depuis la table{' '}
+              <code className="text-xs bg-gray-700 px-1 rounded">accounting_plan_accounts</code>. Les comptes sont
+              filtrés par pays de la société active (<strong>{presetCountry}</strong>).
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-2 rounded">
-                <Badge className="bg-purple-500/20 text-purple-400 text-[10px]">Classe 1</Badge>
-                <span className="text-gray-300">Capitaux</span>
-              </div>
-              <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-2 rounded">
-                <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">Classe 2</Badge>
-                <span className="text-gray-300">Immobilisations</span>
-              </div>
-              <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-2 rounded">
-                <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">Classe 3</Badge>
-                <span className="text-gray-300">Stocks</span>
-              </div>
-              <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-2 rounded">
-                <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">Classe 4</Badge>
-                <span className="text-gray-300">Tiers</span>
-              </div>
-              <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-2 rounded">
-                <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">Classe 5</Badge>
-                <span className="text-gray-300">Trésorerie</span>
-              </div>
-              <div className="flex items-center gap-2 bg-orange-500/10 px-3 py-2 rounded">
-                <Badge className="bg-orange-500/20 text-orange-400 text-[10px]">Classe 6</Badge>
-                <span className="text-gray-300">Charges</span>
-              </div>
-              <div className="flex items-center gap-2 bg-green-500/10 px-3 py-2 rounded">
-                <Badge className="bg-green-500/20 text-green-400 text-[10px]">Classe 7</Badge>
-                <span className="text-gray-300">Produits</span>
-              </div>
-            </div>
             <p className="text-gray-400 text-xs">
               Les comptes existants avec le même code seront mis à jour. Les nouveaux comptes seront ajoutés.
             </p>
@@ -391,7 +391,7 @@ const ChartOfAccounts = () => {
                 ) : (
                   <>
                     <BookOpen className="w-4 h-4 mr-2" />
-                    Charger les 993 comptes
+                    Charger le plan {planConfig.hint}
                   </>
                 )}
               </Button>
