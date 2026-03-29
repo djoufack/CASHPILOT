@@ -13,7 +13,7 @@ CREATE INDEX IF NOT EXISTS idx_accounting_audit_log_company_id
 UPDATE public.accounting_audit_log aal
 SET company_id = ae.company_id
 FROM public.accounting_entries ae
-WHERE ae.id::text = aal.source_id
+WHERE ae.id = aal.source_id::uuid
   AND aal.company_id IS NULL;
 
 -- RLS : s'assurer que les utilisateurs ne voient que leurs propres logs
