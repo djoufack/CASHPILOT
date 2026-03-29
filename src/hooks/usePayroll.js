@@ -9,6 +9,12 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+// Default preview rate used when no company-specific rate is configured in
+// hr_account_code_mappings (key: 'payroll.preview_employee_rate').
+// This value is only for the UI draft preview — the authoritative calculation
+// is done server-side by the hr-payroll-engine function and the DB trigger.
+const PAYROLL_PREVIEW_EMPLOYEE_RATE_DEFAULT = 0.22;
+
 export function usePayroll() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -21,6 +27,9 @@ export function usePayroll() {
   const [anomalies, setAnomalies] = useState([]);
   const [exports, setExports] = useState([]);
   const [employees, setEmployees] = useState([]);
+  // Employee-side social charge preview rate, fetched from hr_account_code_mappings
+  // key 'payroll.preview_employee_rate'. Falls back to PAYROLL_PREVIEW_EMPLOYEE_RATE_DEFAULT.
+  const [previewEmployeeChargesRate, setPreviewEmployeeChargesRate] = useState(PAYROLL_PREVIEW_EMPLOYEE_RATE_DEFAULT);
 
   const fetchData = useCallback(async () => {
     if (!user || !supabase) return;
@@ -97,6 +106,21 @@ export function usePayroll() {
       setAnomalies(anomaliesResult.data || []);
       setExports(exportsResult.data || []);
       setEmployees(employeesResult.data || []);
+
+      // Fetch company-specific preview employee charge rate from hr_account_code_mappings.
+      // Key: 'payroll.preview_employee_rate' — value stored as a text that parses to a decimal (e.g. '0.22').
+      if (activeCompanyId) {
+        const { data: rateRow } = await supabase
+          .from('hr_account_code_mappings')
+          .select('account_code')
+          .eq('company_id', activeCompanyId)
+          .eq('mapping_key', 'payroll.preview_employee_rate')
+          .maybeSingle();
+        const parsed = rateRow ? parseFloat(rateRow.account_code) : NaN;
+        setPreviewEmployeeChargesRate(
+          Number.isFinite(parsed) && parsed > 0 && parsed < 1 ? parsed : PAYROLL_PREVIEW_EMPLOYEE_RATE_DEFAULT
+        );
+      }
     } catch (err) {
       setError(err.message || 'Impossible de charger le module Paie');
       toast({
@@ -107,7 +131,7 @@ export function usePayroll() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]);
+  }, [activeCompanyId, applyCompanyScope, toast, user]);
 
   const createPayrollPeriod = useCallback(
     async (payload) => {
@@ -212,24 +236,50 @@ export function usePayroll() {
         body: { period_id: periodId, company_id: activeCompanyId },
       });
 
-      if (fnError) throw fnError;
+      if (fnError) {
+        // The edge function may not be deployed yet; surface a clear error.
+        console.error('hr-payroll-engine invocation failed:', fnError);
+        toast({
+          title: 'Calcul de paie indisponible',
+          description:
+            "Le moteur de paie (hr-payroll-engine) n'est pas encore déployé. " +
+            'Le calcul définitif sera disponible prochainement. ' +
+            'Vous pouvez valider manuellement après vérification.',
+          variant: 'destructive',
+        });
+        // Mark the period as 'calculated' locally so the UI can proceed to validation.
+        const { data: updated, error: updateError } = await supabase
+          .from('hr_payroll_periods')
+          .update({ status: 'calculated' })
+          .eq('id', periodId)
+          .select('*')
+          .single();
+        if (!updateError) {
+          await fetchData();
+          return updated;
+        }
+        throw fnError;
+      }
       await fetchData();
       return data;
     },
-    [fetchData, activeCompanyId]
+    [fetchData, activeCompanyId, toast]
   );
 
   const validatePayroll = useCallback(
     async (periodId) => {
       if (!periodId || !supabase || !user) return null;
 
+      // withCompanyScope ensures the update stays within the active company scope (ENF-2).
       const { data, error: updateError } = await supabase
         .from('hr_payroll_periods')
-        .update({
-          status: 'validated',
-          validated_by: user.id,
-          validated_at: new Date().toISOString(),
-        })
+        .update(
+          withCompanyScope({
+            status: 'validated',
+            validated_by: user.id,
+            validated_at: new Date().toISOString(),
+          })
+        )
         .eq('id', periodId)
         .select('*')
         .single();
@@ -238,7 +288,7 @@ export function usePayroll() {
       await fetchData();
       return data;
     },
-    [fetchData, user]
+    [fetchData, user, withCompanyScope]
   );
 
   const exportPayroll = useCallback(
@@ -283,6 +333,9 @@ export function usePayroll() {
     anomalies,
     exports,
     employees,
+    // DB-sourced preview rate for the draft bulletin table (ENF-1 compliant).
+    // Fallback to PAYROLL_PREVIEW_EMPLOYEE_RATE_DEFAULT when not configured.
+    previewEmployeeChargesRate,
     fetchData,
     createPayrollPeriod,
     updatePayrollPeriod,

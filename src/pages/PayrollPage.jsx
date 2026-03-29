@@ -266,6 +266,9 @@ const CalculTab = ({
   variableItems,
   anomalies,
   currency,
+  // DB-sourced employee social charge preview rate (ENF-1: no hardcoded rate).
+  // Comes from hr_account_code_mappings key 'payroll.preview_employee_rate'.
+  previewEmployeeChargesRate,
   onCalculate,
   onValidate,
   onAddVariableItem,
@@ -298,7 +301,9 @@ const CalculTab = ({
       (employees || []).map((e) => {
         const ct = e.contracts?.find((c) => c.status === 'active') || e.contracts?.[0];
         const gross = Number(ct?.monthly_salary || 0);
-        const charges = gross * 0.22;
+        // Use DB-sourced rate (ENF-1: no hardcoded social charge rate).
+        const effectiveRate = Number(previewEmployeeChargesRate) || 0;
+        const charges = gross * effectiveRate;
         const extras = pVI
           .filter((v) => v.employee_id === e.id)
           .reduce((s, v) => s + Number(v.amount || 0) * Number(v.quantity || 1), 0);
@@ -309,10 +314,10 @@ const CalculTab = ({
           charges,
           extras,
           totalGross: gross + extras,
-          totalNet: gross - charges + extras * 0.78,
+          totalNet: gross - charges + extras * (1 - effectiveRate),
         };
       }),
-    [employees, pVI]
+    [employees, pVI, previewEmployeeChargesRate]
   );
 
   const totals = useMemo(
@@ -1215,6 +1220,7 @@ const PayrollPage = () => {
     variableItems,
     anomalies,
     employees,
+    previewEmployeeChargesRate,
     fetchData,
     createPayrollPeriod,
     addVariableItem,
@@ -1338,6 +1344,7 @@ const PayrollPage = () => {
                 variableItems={variableItems}
                 anomalies={anomalies}
                 currency={currency}
+                previewEmployeeChargesRate={previewEmployeeChargesRate}
                 onCalculate={calculatePayroll}
                 onValidate={validatePayroll}
                 onAddVariableItem={addVariableItem}
