@@ -19,6 +19,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key, fallback) => fallback || key,
   }),
+  Trans: ({ children }) => children,
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({

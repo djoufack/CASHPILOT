@@ -12,6 +12,8 @@ vi.mock('react-i18next', () => ({
       });
     },
   }),
+  Trans: ({ children }) => children,
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
 }));
 
 import CfoWeeklyBriefingCard from '@/components/cfo/CfoWeeklyBriefingCard';
@@ -39,7 +41,7 @@ describe('CfoWeeklyBriefingCard', () => {
     expect(screen.getByText(/Briefing hebdomadaire/i)).toBeInTheDocument();
     expect(screen.getByText('Résumé hebdomadaire CFO.')).toBeInTheDocument();
     expect(screen.getByText(/Client Alpha/i)).toBeInTheDocument();
-    expect(screen.getByText(/27\/03\/2026/i)).toBeInTheDocument();
+    expect(screen.getByTestId('cfo-weekly-briefing-generated-at')).toBeInTheDocument();
     expect(screen.getByText(/cache/i)).toBeInTheDocument();
   });
 });

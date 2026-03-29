@@ -5,6 +5,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key) => key,
   }),
+  Trans: ({ children }) => children,
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
 }));
 
 vi.mock('framer-motion', () => ({

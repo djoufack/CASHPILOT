@@ -15,6 +15,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key, fallback) => fallback || _key,
   }),
+  Trans: ({ children }) => children,
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
 }));
 
 vi.mock('@/components/intercompany/InterCompanyLinksList', () => ({
