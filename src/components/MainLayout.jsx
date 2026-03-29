@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
-import TopNavBar from './TopNavBar';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import MobileMenu from './MobileMenu';
 import OnboardingBanner from './onboarding/OnboardingBanner';
 import { useTranslation } from 'react-i18next';
 import { useObligationNotifications } from '@/hooks/useObligationNotifications';
 import { useNotifications } from '@/hooks/useNotifications';
 import BottomNavBar from './BottomNavBar';
-import QuickCreateButton from './QuickCreateButton';
 import { Menu, User, Bell } from 'lucide-react';
+
+const TopNavBar = lazy(() => import('./TopNavBar'));
+const MobileMenu = lazy(() => import('./MobileMenu'));
+const QuickCreateButton = lazy(() => import('./QuickCreateButton'));
 
 const MainLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -110,17 +111,23 @@ const MainLayout = () => {
       </div>
 
       {/* Desktop Top Navigation Bar */}
-      <TopNavBar
-        isCollapsed={isCollapsed}
-        mobileMenuOpen={isProfileMenuOpen}
-        onMobileMenuClose={() => setIsProfileMenuOpen(false)}
-      />
+      <Suspense fallback={null}>
+        <TopNavBar
+          isCollapsed={isCollapsed}
+          mobileMenuOpen={isProfileMenuOpen}
+          onMobileMenuClose={() => setIsProfileMenuOpen(false)}
+        />
+      </Suspense>
 
       {/* Mobile Menu Overlay */}
-      <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <Suspense fallback={null}>
+        <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      </Suspense>
 
       {/* Quick Create FAB + Sheet */}
-      <QuickCreateButton isOpen={quickCreateOpen} onOpenChange={setQuickCreateOpen} />
+      <Suspense fallback={null}>
+        <QuickCreateButton isOpen={quickCreateOpen} onOpenChange={setQuickCreateOpen} />
+      </Suspense>
 
       <main
         id="main-content"
