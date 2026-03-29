@@ -79,7 +79,6 @@ async function safeDeleteByIds(client, table, ids) {
 
 async function waitForCondition(checkFn, timeoutMs = 15000, intervalMs = 500) {
   const startedAt = Date.now();
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const value = await checkFn();
     if (value) {
@@ -88,7 +87,6 @@ async function waitForCondition(checkFn, timeoutMs = 15000, intervalMs = 500) {
     if (Date.now() - startedAt > timeoutMs) {
       throw new Error(`Timeout while waiting for condition (${timeoutMs}ms).`);
     }
-    // eslint-disable-next-line no-await-in-loop
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 }
@@ -170,31 +168,22 @@ async function runOnboardingCheck(page, baseUrl, runId) {
 
   let onboardingReached = false;
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    // eslint-disable-next-line no-await-in-loop
     await dismissInterferingOverlays(page);
-    // eslint-disable-next-line no-await-in-loop
     if (await onboardingVisible()) {
       onboardingReached = true;
       break;
     }
 
     const resumeButton = page.getByRole('button', { name: /reprendre|resume/i }).first();
-    // eslint-disable-next-line no-await-in-loop
     if (await resumeButton.isVisible().catch(() => false)) {
-      // eslint-disable-next-line no-await-in-loop
       await resumeButton.click().catch(() => {});
     } else {
-      // eslint-disable-next-line no-await-in-loop
       await page.goto(`${baseUrl}/app/onboarding`, { waitUntil: 'domcontentloaded' });
     }
 
-    // eslint-disable-next-line no-await-in-loop
     await page.waitForTimeout(900);
-    // eslint-disable-next-line no-await-in-loop
     await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
-    // eslint-disable-next-line no-await-in-loop
     await dismissInterferingOverlays(page);
-    // eslint-disable-next-line no-await-in-loop
     if (await onboardingVisible()) {
       onboardingReached = true;
       break;

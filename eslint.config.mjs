@@ -61,6 +61,7 @@ export default [
 		languageOptions: {
 			globals: {
 				...globals.browser,
+				...globals.node,
 				describe: 'readonly',
 				it: 'readonly',
 				expect: 'readonly',

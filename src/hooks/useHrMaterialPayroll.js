@@ -114,7 +114,7 @@ export function useHrMaterialPayroll() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const calculatePayrollPeriod = useCallback(
     async (payrollPeriodId, incremental = false) => {
@@ -130,7 +130,7 @@ export function useHrMaterialPayroll() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const exportPayrollCsv = useCallback(
     async (payrollPeriodId) => {
@@ -173,7 +173,7 @@ export function useHrMaterialPayroll() {
       return csvData || '';
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   useEffect(() => {
     fetchData();

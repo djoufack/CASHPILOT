@@ -85,7 +85,7 @@ export function useHrMaterialAssets() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const createMaterialAsset = useCallback(
     async (payload) => {
@@ -119,7 +119,7 @@ export function useHrMaterialAssets() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   useEffect(() => {
     fetchData();

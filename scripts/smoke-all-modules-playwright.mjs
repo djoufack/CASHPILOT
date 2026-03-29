@@ -307,7 +307,6 @@ async function main() {
     });
 
     for (const route of PUBLIC_ROUTES) {
-      // eslint-disable-next-line no-await-in-loop
       summary.results.push(await testRoute(publicPage, route, runtime, 'public'));
     }
     await publicContext.close();
@@ -333,7 +332,6 @@ async function main() {
     await authPage.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
 
     for (const route of AUTH_ROUTES) {
-      // eslint-disable-next-line no-await-in-loop
       summary.results.push(await testRoute(authPage, route, runtime, 'auth'));
     }
     await authContext.close();

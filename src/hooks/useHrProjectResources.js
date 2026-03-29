@@ -360,7 +360,7 @@ export function useHrProjectResources() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const createSupplierFromPortfolioCompany = useCallback(
     async ({ providerCompanyId, providerCompanyName }) => {
@@ -433,7 +433,7 @@ export function useHrProjectResources() {
       return { supplier: insertResult.data, created: true };
     },
     [applyCompanyScope, fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const createCompensation = useCallback(
     async (payload) => {
@@ -463,7 +463,7 @@ export function useHrProjectResources() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const updateCompensationStatus = useCallback(
     async (compensationId, nextStatus) => {
@@ -486,7 +486,7 @@ export function useHrProjectResources() {
       return data;
     },
     [fetchData, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const assignTaskMember = useCallback(
     async ({ taskId, memberId }) => {
@@ -512,7 +512,7 @@ export function useHrProjectResources() {
       return data;
     },
     [fetchData, members]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   useEffect(() => {
     fetchData();

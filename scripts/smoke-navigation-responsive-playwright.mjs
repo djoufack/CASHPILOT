@@ -204,7 +204,6 @@ async function main() {
   try {
     const results = [];
     for (const viewport of VIEWPORTS) {
-      // eslint-disable-next-line no-await-in-loop
       results.push(await runViewport(browser, viewport));
     }
 

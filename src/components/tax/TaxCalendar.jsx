@@ -151,7 +151,6 @@ const TaxCalendar = ({ declarations }) => {
 
   // Check which deadlines have a matching submitted declaration
   const _filedRefs = useMemo(() => {
-    // eslint-disable-line no-unused-vars
     if (!declarations) return new Set();
     return new Set(
       declarations

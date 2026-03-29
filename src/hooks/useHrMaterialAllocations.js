@@ -177,7 +177,7 @@ export function useHrMaterialAllocations() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const createSupplierFromPortfolioCompany = useCallback(
     async ({ providerCompanyId, providerCompanyName }) => {
@@ -250,7 +250,7 @@ export function useHrMaterialAllocations() {
       return { supplier: insertResult.data, created: true };
     },
     [applyCompanyScope, fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   useEffect(() => {
     fetchData();
