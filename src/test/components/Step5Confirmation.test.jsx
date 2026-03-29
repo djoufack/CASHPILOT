@@ -26,6 +26,8 @@ vi.mock('react-i18next', () => ({
       return key;
     },
   }),
+  Trans: ({ children }) => children,
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
 }));
 
 vi.mock('@/components/ui/button', () => ({

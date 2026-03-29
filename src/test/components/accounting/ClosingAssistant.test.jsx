@@ -17,6 +17,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key, fallback) => (typeof fallback === 'string' && fallback.length > 0 ? fallback : key),
   }),
+  Trans: ({ children }) => children,
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
 }));
 
 import ClosingAssistant from '@/components/accounting/ClosingAssistant';
