@@ -137,7 +137,9 @@ export const useSuppliers = () => {
   const updateSupplier = async (id, supplierData) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('suppliers').update(supplierData).eq('id', id).select().single();
+      let query = supabase.from('suppliers').update(supplierData).eq('id', id);
+      query = applyCompanyScope(query);
+      const { data, error } = await query.select().single();
 
       if (error) throw error;
 
@@ -166,7 +168,9 @@ export const useSuppliers = () => {
   const deleteSupplier = async (id) => {
     setLoading(true);
     try {
-      const { error } = await supabase.from('suppliers').delete().eq('id', id);
+      let query = supabase.from('suppliers').delete().eq('id', id);
+      query = applyCompanyScope(query);
+      const { error } = await query;
 
       if (error) throw error;
 

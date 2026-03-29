@@ -116,7 +116,9 @@ export const useSupplierInvoices = (supplierId) => {
 
   const deleteInvoice = async (id) => {
     try {
-      const { error } = await supabase.from('supplier_invoices').delete().eq('id', id);
+      let query = supabase.from('supplier_invoices').delete().eq('id', id);
+      query = applyCompanyScope(query);
+      const { error } = await query;
       if (error) throw error;
       setInvoices(invoices.filter((i) => i.id !== id));
       toast({ title: 'Success', description: 'Invoice deleted' });
@@ -127,12 +129,9 @@ export const useSupplierInvoices = (supplierId) => {
 
   const updateInvoice = async (id, invoiceData) => {
     try {
-      const { data, error } = await supabase
-        .from('supplier_invoices')
-        .update(invoiceData)
-        .eq('id', id)
-        .select()
-        .single();
+      let query = supabase.from('supplier_invoices').update(invoiceData).eq('id', id);
+      query = applyCompanyScope(query);
+      const { data, error } = await query.select().single();
 
       if (error) throw error;
 
@@ -147,12 +146,9 @@ export const useSupplierInvoices = (supplierId) => {
 
   const updateStatus = async (id, status) => {
     try {
-      const { error } = await supabase
-        .from('supplier_invoices')
-        .update({ payment_status: status })
-        .eq('id', id)
-        .select()
-        .single();
+      let query = supabase.from('supplier_invoices').update({ payment_status: status }).eq('id', id);
+      query = applyCompanyScope(query);
+      const { error } = await query.select().single();
 
       if (error) throw error;
 
@@ -181,7 +177,9 @@ export const useSupplierInvoices = (supplierId) => {
         payload.approved_by = null;
       }
 
-      const { error } = await supabase.from('supplier_invoices').update(payload).eq('id', id);
+      let query = supabase.from('supplier_invoices').update(payload).eq('id', id);
+      query = applyCompanyScope(query);
+      const { error } = await query;
 
       if (error) throw error;
 
