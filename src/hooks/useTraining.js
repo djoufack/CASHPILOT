@@ -32,9 +32,12 @@ export function useTraining() {
         )
         .order('created_at', { ascending: false });
 
+      // FIX-14: inclure la jointure sur recommended_training_id pour afficher la formation recommandee dans le gap analysis
       let skillAssessmentsQuery = supabase
         .from('hr_skill_assessments')
-        .select('*, hr_employees!employee_id(id, first_name, last_name, full_name)')
+        .select(
+          '*, hr_employees!employee_id(id, first_name, last_name, full_name), hr_training_catalog!recommended_training_id(id, title)'
+        )
         .order('assessed_at', { ascending: false });
 
       let employeesQuery = supabase
@@ -233,6 +236,7 @@ export function useTraining() {
       const requiredLevel = Number(payload.required_level) || 0;
       const targetLevel = Number(payload.target_level) || 0;
 
+      // FIX-14: inclure recommended_training_id dans l'insert pour persister la formation recommandee
       const row = withCompanyScope({
         employee_id: payload.employee_id,
         skill_name: payload.skill_name,
@@ -246,12 +250,15 @@ export function useTraining() {
         assessed_at: payload.assessed_at || new Date().toISOString(),
         next_assessment_date: payload.next_assessment_date || null,
         notes: payload.notes || null,
+        recommended_training_id: payload.recommended_training_id || null,
       });
 
       const { data, error: insertError } = await supabase
         .from('hr_skill_assessments')
         .insert([row])
-        .select('*, hr_employees!employee_id(id, first_name, last_name, full_name)')
+        .select(
+          '*, hr_employees!employee_id(id, first_name, last_name, full_name), hr_training_catalog!recommended_training_id(id, title)'
+        )
         .single();
 
       if (insertError) throw insertError;
