@@ -4,10 +4,7 @@ import { Button } from '@/components/ui/button';
 import { FileDown, BookOpen, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 import { useAccountingTaxonomy } from '@/hooks/useAccountingTaxonomy';
-<<<<<<< Updated upstream
 import { formatDate } from '@/utils/dateLocale';
-=======
->>>>>>> Stashed changes
 
 /**
  * Groups trial balance entries by account class prefix.
@@ -114,15 +111,7 @@ const FinancialAnnexes = ({
   // NOT from hardcoded arrays. The hook uses the company country to select
   // the correct regional plan (france / belgium / ohada).
   // See: BUGS/fix13-financial-annexes-bugs.md
-<<<<<<< Updated upstream
   const { caAccountPrefixes, chargesAccountPrefixes, loading: taxonomyLoading } = useAccountingTaxonomy(country);
-=======
-  const {
-    caAccountPrefixes,
-    chargesAccountPrefixes,
-    loading: taxonomyLoading,
-  } = useAccountingTaxonomy(country);
->>>>>>> Stashed changes
 
   const notes = useMemo(() => {
     // Wait until taxonomy prefixes are loaded from DB before computing notes
@@ -168,23 +157,13 @@ const FinancialAnnexes = ({
     // semantic_role: 'sales_revenue' | 'operating_revenue' — region-aware (FR/BE/OHADA).
     const ca = tb.filter(
       (t) =>
-<<<<<<< Updated upstream
         t.account_code && caAccountPrefixes.some((p) => t.account_code.startsWith(p)) && Math.abs(t.balance) >= 0.01
-=======
-        t.account_code &&
-        caAccountPrefixes.some((p) => t.account_code.startsWith(p)) &&
-        Math.abs(t.balance) >= 0.01
->>>>>>> Stashed changes
     );
     const totalCA = ca.reduce((s, a) => s + (a.balance || 0), 0);
 
     // Note 7: Charges d'exploitation — period
     // ENF-1 FIX: prefixes sourced from accounting_account_taxonomy via useAccountingTaxonomy.
-<<<<<<< Updated upstream
     // semantic_role: 'operating_cash_expense' | 'supplier_expense' | 'direct_cost_expense'.
-=======
-    // semantic_role: 'operating_cash_expense' | 'supplier_expense' | 'direct_cost_expense' — region-aware.
->>>>>>> Stashed changes
     const charges = tb.filter(
       (t) =>
         t.account_code &&
