@@ -1,12 +1,13 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 
 export const useBarcodeScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedData, setScannedData] = useState(null);
   const scannerRef = useRef(null);
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const startScanning = async (elementId) => {
@@ -16,23 +17,27 @@ export const useBarcodeScanner = () => {
       scannerRef.current = html5QrCode;
 
       await html5QrCode.start(
-        { facingMode: "environment" },
+        { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText, decodedResult) => {
           setScannedData({ text: decodedText, format: decodedResult.result.format?.formatName || 'Unknown' });
-          toast({ title: 'Barcode Detected', description: decodedText });
+          toast({ title: t('common.success'), description: decodedText });
           // Optional: Stop scanning after one success
           // html5QrCode.stop();
           // setIsScanning(false);
         },
-        (errorMessage) => {
+        (_errorMessage) => {
           // parse error, ignore mostly
         }
       );
     } catch (err) {
-      console.error("Error starting scanner", err);
+      console.error('Error starting scanner', err);
       setIsScanning(false);
-      toast({ title: 'Error', description: 'Could not access camera.', variant: 'destructive' });
+      toast({
+        title: t('hooks.barcodeScanner.permissionDenied'),
+        description: t('hooks.barcodeScanner.permissionDeniedDesc'),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -43,7 +48,7 @@ export const useBarcodeScanner = () => {
         scannerRef.current.clear();
         setIsScanning(false);
       } catch (err) {
-        console.error("Failed to stop scanner", err);
+        console.error('Failed to stop scanner', err);
       }
     }
   };

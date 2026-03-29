@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
@@ -8,6 +9,7 @@ import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 export function useAbsences() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   // --- Leave requests (with employee join) ---
@@ -120,10 +122,10 @@ export function useAbsences() {
 
       if (error) throw error;
       setLeaveRequests((prev) => [data, ...prev]);
-      toast({ title: 'Demande creee', description: 'La demande de conge a ete enregistree.' });
+      toast({ title: t('hooks.absences.requestCreated'), description: t('hooks.absences.requestCreatedDesc') });
       return data;
     },
-    [setLeaveRequests, toast, user, withCompanyScope]
+    [setLeaveRequests, t, toast, user, withCompanyScope]
   );
   const updateLeaveRequest = useCallback(
     async (id, payload) => {
@@ -143,10 +145,10 @@ export function useAbsences() {
 
       if (error) throw error;
       setLeaveRequests((prev) => prev.map((r) => (r.id === id ? data : r)));
-      toast({ title: 'Demande mise a jour' });
+      toast({ title: t('hooks.absences.requestUpdated') });
       return data;
     },
-    [setLeaveRequests, toast, withCompanyScope]
+    [setLeaveRequests, t, toast, withCompanyScope]
   );
   const approveLeaveRequest = useCallback(
     async (id) => {
@@ -170,10 +172,10 @@ export function useAbsences() {
 
       if (error) throw error;
       setLeaveRequests((prev) => prev.map((r) => (r.id === id ? data : r)));
-      toast({ title: 'Demande approuvee', description: 'Le conge a ete approuve.' });
+      toast({ title: t('hooks.absences.requestApproved'), description: t('hooks.absences.requestApprovedDesc') });
       return data;
     },
-    [setLeaveRequests, toast, user, withCompanyScope]
+    [setLeaveRequests, t, toast, user, withCompanyScope]
   );
   const rejectLeaveRequest = useCallback(
     async (id) => {
@@ -193,10 +195,10 @@ export function useAbsences() {
 
       if (error) throw error;
       setLeaveRequests((prev) => prev.map((r) => (r.id === id ? data : r)));
-      toast({ title: 'Demande rejetee', description: 'Le conge a ete refuse.' });
+      toast({ title: t('hooks.absences.requestRejected'), description: t('hooks.absences.requestRejectedDesc') });
       return data;
     },
-    [setLeaveRequests, toast, withCompanyScope]
+    [setLeaveRequests, t, toast, withCompanyScope]
   );
   const cancelLeaveRequest = useCallback(
     async (id) => {
@@ -216,10 +218,10 @@ export function useAbsences() {
 
       if (error) throw error;
       setLeaveRequests((prev) => prev.map((r) => (r.id === id ? data : r)));
-      toast({ title: 'Demande annulee' });
+      toast({ title: t('hooks.absences.requestCancelled') });
       return data;
     },
-    [setLeaveRequests, toast, withCompanyScope]
+    [setLeaveRequests, t, toast, withCompanyScope]
   );
   // --- Leave balances from SQL function (replaces client-side computation) ---
   const {

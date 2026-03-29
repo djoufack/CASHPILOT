@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
@@ -10,50 +11,57 @@ export const useProducts = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { logAction } = useAuditLog();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchProducts = useCallback(async ({ page, pageSize } = {}) => {
-    if (!user || !supabase) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const usePagination = page != null && pageSize != null;
-      let query = supabase
-        .from('products')
-        .select('*, category:product_categories(id, name), supplier:suppliers(id, company_name)', usePagination ? { count: 'exact' } : undefined)
-        .order('product_name', { ascending: true });
+  const fetchProducts = useCallback(
+    async ({ page, pageSize } = {}) => {
+      if (!user || !supabase) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const usePagination = page != null && pageSize != null;
+        let query = supabase
+          .from('products')
+          .select(
+            '*, category:product_categories(id, name), supplier:suppliers(id, company_name)',
+            usePagination ? { count: 'exact' } : undefined
+          )
+          .order('product_name', { ascending: true });
 
-      query = applyCompanyScope(query);
+        query = applyCompanyScope(query);
 
-      if (usePagination) {
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize - 1;
-        query = query.range(from, to);
+        if (usePagination) {
+          const from = (page - 1) * pageSize;
+          const to = from + pageSize - 1;
+          query = query.range(from, to);
+        }
+
+        const { data, error, count } = await query;
+
+        if (error) throw error;
+        setProducts(data || []);
+        if (usePagination && count != null) {
+          setTotalCount(count);
+        }
+      } catch (err) {
+        if (err.code === '42P17' || err.code === '42501') {
+          console.warn('RLS policy error fetching products:', err.message);
+          setProducts([]);
+          return;
+        }
+        setError(err.message);
+        toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
+      } finally {
+        setLoading(false);
       }
-
-      const { data, error, count } = await query;
-
-      if (error) throw error;
-      setProducts(data || []);
-      if (usePagination && count != null) {
-        setTotalCount(count);
-      }
-    } catch (err) {
-      if (err.code === '42P17' || err.code === '42501') {
-        console.warn('RLS policy error fetching products:', err.message);
-        setProducts([]);
-        return;
-      }
-      setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  }, [applyCompanyScope, toast, user]);
+    },
+    [applyCompanyScope, t, toast, user]
+  );
 
   const createProduct = async (productData) => {
     if (!user || !supabase) return;
@@ -69,12 +77,12 @@ export const useProducts = () => {
 
       logAction('create', 'product', null, data);
 
-      setProducts(prev => [data, ...prev]);
-      toast({ title: "Succès", description: "Produit créé avec succès." });
+      setProducts((prev) => [data, ...prev]);
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.products.created') });
       return data;
     } catch (err) {
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -94,15 +102,15 @@ export const useProducts = () => {
 
       if (error) throw error;
 
-      const oldProduct = products.find(p => p.id === id);
+      const oldProduct = products.find((p) => p.id === id);
       logAction('update', 'product', oldProduct || null, data);
 
-      setProducts(prev => prev.map(p => p.id === id ? data : p));
-      toast({ title: "Succès", description: "Produit mis à jour." });
+      setProducts((prev) => prev.map((p) => (p.id === id ? data : p)));
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.products.updated') });
       return data;
     } catch (err) {
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -113,21 +121,18 @@ export const useProducts = () => {
     if (!supabase) return;
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('products')
-        .update({ is_active: false })
-        .eq('id', id);
+      const { error } = await supabase.from('products').update({ is_active: false }).eq('id', id);
 
       if (error) throw error;
 
-      const deletedProduct = products.find(p => p.id === id);
+      const deletedProduct = products.find((p) => p.id === id);
       logAction('delete', 'product', deletedProduct || { id }, null);
 
-      setProducts(prev => prev.filter(p => p.id !== id));
-      toast({ title: "Succès", description: "Produit supprimé." });
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.products.deleted') });
     } catch (err) {
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -140,19 +145,21 @@ export const useProducts = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .insert([{
-          ...withCompanyScope({}),
-          user_id: user.id,
-          product_name: supplierProduct.product_name,
-          sku: supplierProduct.sku || null,
-          purchase_price: supplierProduct.unit_price || 0,
-          unit_price: 0,
-          unit: supplierProduct.unit || 'pièce',
-          supplier_id: supplierProduct.supplier_id,
-          stock_quantity: 0,
-          min_stock_level: supplierProduct.min_stock_level || 5,
-          is_active: true
-        }])
+        .insert([
+          {
+            ...withCompanyScope({}),
+            user_id: user.id,
+            product_name: supplierProduct.product_name,
+            sku: supplierProduct.sku || null,
+            purchase_price: supplierProduct.unit_price || 0,
+            unit_price: 0,
+            unit: supplierProduct.unit || 'pièce',
+            supplier_id: supplierProduct.supplier_id,
+            stock_quantity: 0,
+            min_stock_level: supplierProduct.min_stock_level || 5,
+            is_active: true,
+          },
+        ])
         .select('*, category:product_categories(id, name), supplier:suppliers(id, company_name)')
         .single();
 
@@ -160,12 +167,12 @@ export const useProducts = () => {
 
       logAction('create', 'product', null, data);
 
-      setProducts(prev => [data, ...prev]);
-      toast({ title: "Succès", description: `"${supplierProduct.product_name}" importé dans votre stock.` });
+      setProducts((prev) => [data, ...prev]);
+      toast({ title: 'Succès', description: `"${supplierProduct.product_name}" importé dans votre stock.` });
       return data;
     } catch (err) {
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -185,7 +192,7 @@ export const useProducts = () => {
     createProduct,
     updateProduct,
     deleteProduct,
-    importFromSupplier
+    importFromSupplier,
   };
 };
 
@@ -193,6 +200,7 @@ export const useProductCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
@@ -200,10 +208,7 @@ export const useProductCategories = () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
-      let query = supabase
-        .from('product_categories')
-        .select('*')
-        .order('name', { ascending: true });
+      let query = supabase.from('product_categories').select('*').order('name', { ascending: true });
 
       query = applyCompanyScope(query);
 
@@ -228,11 +233,11 @@ export const useProductCategories = () => {
         .single();
 
       if (error) throw error;
-      setCategories(prev => [...prev, data]);
-      toast({ title: "Succès", description: "Catégorie créée." });
+      setCategories((prev) => [...prev, data]);
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.products.categoryCreated') });
       return data;
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     }
   };
@@ -248,11 +253,11 @@ export const useProductCategories = () => {
         .single();
 
       if (error) throw error;
-      setCategories(prev => prev.map(c => c.id === id ? data : c));
-      toast({ title: "Succès", description: "Catégorie mise à jour." });
+      setCategories((prev) => prev.map((c) => (c.id === id ? data : c)));
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.products.categoryUpdated') });
       return data;
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     }
   };
@@ -260,15 +265,12 @@ export const useProductCategories = () => {
   const deleteCategory = async (id) => {
     if (!supabase) return;
     try {
-      const { error } = await supabase
-        .from('product_categories')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('product_categories').delete().eq('id', id);
 
       if (error) throw error;
-      setCategories(prev => prev.filter(c => c.id !== id));
+      setCategories((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     }
   };
 

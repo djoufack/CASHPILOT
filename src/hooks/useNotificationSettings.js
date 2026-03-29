@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 
 const DEFAULT_PREFERENCES = {
@@ -11,14 +11,14 @@ const DEFAULT_PREFERENCES = {
     completedTasks: false,
     comments: true,
     projectUpdates: true,
-    reminders: true
+    reminders: true,
   },
   push: {
     enabled: true,
     newTasks: true,
-    comments: true
+    comments: true,
   },
-  frequency: 'immediate'
+  frequency: 'immediate',
 };
 
 // Map between frontend nested structure and flat DB columns
@@ -32,7 +32,7 @@ const toDbFormat = (prefs) => ({
   push_enabled: prefs.push?.enabled ?? true,
   push_new_tasks: prefs.push?.newTasks ?? true,
   push_comments: prefs.push?.comments ?? true,
-  frequency: prefs.frequency || 'immediate'
+  frequency: prefs.frequency || 'immediate',
 });
 
 const fromDbFormat = (row) => ({
@@ -42,14 +42,14 @@ const fromDbFormat = (row) => ({
     completedTasks: row.email_completed_tasks,
     comments: row.email_comments,
     projectUpdates: row.email_project_updates,
-    reminders: row.email_reminders
+    reminders: row.email_reminders,
   },
   push: {
     enabled: row.push_enabled,
     newTasks: row.push_new_tasks,
-    comments: row.push_comments
+    comments: row.push_comments,
   },
-  frequency: row.frequency
+  frequency: row.frequency,
 });
 
 export const useNotificationSettings = () => {
@@ -57,6 +57,7 @@ export const useNotificationSettings = () => {
   const [loading, setLoading] = useState(false);
   const [dbRecord, setDbRecord] = useState(null);
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -67,10 +68,7 @@ export const useNotificationSettings = () => {
     if (!supabase) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('notification_preferences')
-        .select('*')
-        .maybeSingle();
+      const { data, error } = await supabase.from('notification_preferences').select('*').maybeSingle();
 
       if (error) throw error;
 
@@ -101,19 +99,18 @@ export const useNotificationSettings = () => {
         if (error) throw error;
         setDbRecord(data);
       } else {
-        const { data, error } = await supabase
-          .from('notification_preferences')
-          .insert([payload])
-          .select()
-          .single();
+        const { data, error } = await supabase.from('notification_preferences').insert([payload]).select().single();
         if (error) throw error;
         setDbRecord(data);
       }
 
       setPreferences(newPrefs);
-      toast({ title: "Préférences sauvegardées", description: "Vos paramètres de notification ont été mis à jour." });
+      toast({
+        title: t('hooks.notificationSettings.settingsSaved'),
+        description: t('hooks.notificationSettings.settingsSavedDesc'),
+      });
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -127,6 +124,6 @@ export const useNotificationSettings = () => {
     preferences,
     loading,
     updatePreferences,
-    resetToDefault
+    resetToDefault,
   };
 };

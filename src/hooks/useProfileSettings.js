@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 
 export const useProfileSettings = () => {
@@ -13,6 +14,7 @@ export const useProfileSettings = () => {
 
   const [debugLogs, setDebugLogs] = useState([]);
 
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const addLog = useCallback((message, type = 'info', data = null) => {
@@ -45,15 +47,11 @@ export const useProfileSettings = () => {
     } catch (err) {
       addLog('Fetch exception', 'error', err);
       setError(err.message);
-      toast({
-        title: 'Erreur chargement profil',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [addLog, toast, user]);
+  }, [addLog, t, toast, user]);
 
   useEffect(() => {
     if (user) {
@@ -170,20 +168,15 @@ export const useProfileSettings = () => {
       }
 
       toast({
-        title: 'Succès',
-        description: 'Avatar mis à jour avec succès',
-        className: 'bg-green-600 border-none text-white',
+        title: t('hooks.profileSettings.avatarUploaded'),
+        description: t('hooks.profileSettings.avatarUploadedDesc'),
       });
 
       return publicUrl;
     } catch (err) {
       console.error('Avatar update error:', err);
       addLog('Avatar update failed', 'error', err);
-      toast({
-        title: 'Erreur Upload',
-        description: err.message || "Erreur lors de l'upload",
-        variant: 'destructive',
-      });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       return null;
     } finally {
       setUploading(false);
@@ -210,11 +203,11 @@ export const useProfileSettings = () => {
         }
       }
 
-      toast({ title: 'Supprimé', description: 'Avatar supprimé.' });
+      toast({ title: t('common.deleted'), description: t('hooks.profileSettings.avatarDeletedDesc') });
       addLog('Avatar removed', 'success');
     } catch (err) {
       addLog('Error removing avatar', 'error', err);
-      toast({ title: 'Erreur', description: "Impossible de supprimer l'avatar.", variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('hooks.profileSettings.deleteError'), variant: 'destructive' });
     } finally {
       setUploading(false);
     }
@@ -232,11 +225,11 @@ export const useProfileSettings = () => {
       if (dbError) throw dbError;
 
       setProfile((prev) => ({ ...prev, signature_url: null }));
-      toast({ title: 'Supprimé', description: 'Signature supprimée.' });
+      toast({ title: t('common.deleted'), description: t('hooks.profileSettings.avatarDeletedDesc') });
       addLog('Signature removed', 'success');
     } catch (err) {
       addLog('Error removing signature', 'error', err);
-      toast({ title: 'Erreur', description: 'Impossible de supprimer la signature.', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('hooks.profileSettings.deleteError'), variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -275,7 +268,7 @@ export const useProfileSettings = () => {
         } catch (sigErr) {
           addLog('Signature upload failed', 'warn', sigErr);
           toast({
-            title: 'Avertissement',
+            title: t('common.error'),
             description: `Signature: ${sigErr.message}`,
             variant: 'destructive',
           });
@@ -315,9 +308,8 @@ export const useProfileSettings = () => {
       }
 
       toast({
-        title: 'Succès',
-        description: 'Profil mis à jour avec succès.',
-        className: 'bg-green-600 border-none text-white',
+        title: t('hooks.profileSettings.profileSaved'),
+        description: t('hooks.profileSettings.profileSavedDesc'),
       });
 
       return true;
@@ -326,11 +318,7 @@ export const useProfileSettings = () => {
       setError(err.message);
       addLog('Save operation failed', 'error', err.message);
 
-      toast({
-        title: 'Erreur de sauvegarde',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       return false;
     } finally {
       setSaving(false);

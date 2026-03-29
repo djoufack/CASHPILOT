@@ -57,7 +57,8 @@
     "reloadPage": "Recharger la page",
     "unexpectedError": "Une erreur inattendue s'est produite.",
     "backToHome": "Retour à l'accueil",
-    "goToDashboard": "Aller au tableau de bord"
+    "goToDashboard": "Aller au tableau de bord",
+    "deleted": "Supprimé"
   },
   "aiChat": {
     "title": "Assistant IA",
@@ -5317,6 +5318,199 @@
       "standard": "Standard",
       "premium": "Premium",
       "critical": "Critique"
+    }
+  },
+  "hooks": {
+    "absences": {
+      "requestCreated": "Demande créée",
+      "requestCreatedDesc": "La demande de congé a été enregistrée.",
+      "requestUpdated": "Demande mise à jour",
+      "requestApproved": "Demande approuvée",
+      "requestApprovedDesc": "Le congé a été approuvé.",
+      "requestRejected": "Demande rejetée",
+      "requestRejectedDesc": "Le congé a été refusé.",
+      "requestCancelled": "Demande annulée"
+    },
+    "fixedAssets": {
+      "fetchError": "Erreur de chargement des immobilisations",
+      "assetCreated": "Immobilisation créée",
+      "assetUpdated": "Immobilisation mise à jour",
+      "assetDeleted": "Immobilisation supprimée",
+      "depreciationPosted": "Dotation comptabilisée"
+    },
+    "accounting": {
+      "success": "Succès",
+      "accountCreated": "Compte créé avec succès",
+      "accountCreatedWithWarnings": "Compte créé avec {{count}} avertissement(s) à vérifier",
+      "accountUpdated": "Compte mis à jour avec succès",
+      "accountDeleted": "Compte supprimé",
+      "entryCreated": "Écriture créée",
+      "entryUpdated": "Écriture mise à jour",
+      "entryDeleted": "Écriture supprimée",
+      "mappingCreated": "Mapping créé",
+      "mappingUpdated": "Mapping mis à jour",
+      "mappingDeleted": "Mapping supprimé",
+      "mappingsImported": "{{count}} mappings importés",
+      "taxRateCreated": "Taux de TVA créé",
+      "taxRateUpdated": "Taux de TVA mis à jour",
+      "taxRateDeleted": "Taux de TVA supprimé",
+      "fetchError": "Erreur de chargement de la comptabilité",
+      "createError": "Erreur de création",
+      "updateError": "Erreur de mise à jour",
+      "deleteError": "Erreur de suppression",
+      "importError": "Erreur d'import"
+    },
+    "billing": {
+      "settingsSaved": "Paramètres enregistrés",
+      "settingsSavedDesc": "Vos paramètres de facturation ont été mis à jour.",
+      "saveError": "Erreur lors de la sauvegarde",
+      "paymentIntegrationInfo": "Pour intégrer un prestataire de paiement, veuillez contacter le support."
+    },
+    "paymentTerms": {
+      "termCreated": "Condition de paiement créée",
+      "termUpdated": "Condition de paiement mise à jour",
+      "termDeleted": "Condition de paiement supprimée",
+      "fetchError": "Erreur de chargement",
+      "createError": "Erreur de création",
+      "updateError": "Erreur de mise à jour",
+      "deleteError": "Erreur de suppression"
+    },
+    "products": {
+      "created": "Produit créé",
+      "updated": "Produit mis à jour",
+      "deleted": "Produit supprimé",
+      "imported": "Produit importé : {{name}}",
+      "importError": "Erreur d'import produit",
+      "fetchError": "Erreur de chargement des produits",
+      "createError": "Erreur de création",
+      "updateError": "Erreur de mise à jour",
+      "deleteError": "Erreur de suppression",
+      "categoryCreated": "Catégorie créée",
+      "categoryUpdated": "Catégorie mise à jour",
+      "categoryDeleted": "Catégorie supprimée"
+    },
+    "services": {
+      "created": "Service créé",
+      "updated": "Service mis à jour",
+      "deleted": "Service supprimé",
+      "fetchError": "Erreur de chargement des services",
+      "createError": "Erreur de création",
+      "updateError": "Erreur de mise à jour",
+      "deleteError": "Erreur de suppression",
+      "categoryCreated": "Catégorie créée",
+      "categoryUpdated": "Catégorie mise à jour",
+      "categoryDeleted": "Catégorie supprimée"
+    },
+    "expenses": {
+      "created": "Dépense créée",
+      "updated": "Dépense mise à jour",
+      "deleted": "Dépense supprimée",
+      "fetchError": "Erreur de chargement des dépenses",
+      "noCompany": "Aucune société active sélectionnée",
+      "createError": "Erreur de création",
+      "updateError": "Erreur de mise à jour",
+      "deleteError": "Erreur de suppression"
+    },
+    "profileSettings": {
+      "avatarDeleted": "Avatar supprimé",
+      "avatarDeletedDesc": "Votre avatar a été supprimé.",
+      "avatarUploaded": "Avatar mis à jour",
+      "avatarUploadedDesc": "Votre avatar a été mis à jour.",
+      "profileSaved": "Profil enregistré",
+      "profileSavedDesc": "Vos informations ont été mises à jour.",
+      "saveError": "Erreur lors de la sauvegarde",
+      "uploadError": "Erreur lors de l'upload de l'avatar",
+      "deleteError": "Erreur lors de la suppression de l'avatar"
+    },
+    "teamSettings": {
+      "inviteSent": "Invitation envoyée",
+      "inviteSentDesc": "Invitation envoyée à {{email}}",
+      "memberUpdated": "Membre mis à jour",
+      "memberUpdatedDesc": "Le rôle du membre a été modifié.",
+      "memberDeleted": "Membre supprimé",
+      "memberDeletedDesc": "L'utilisateur a été retiré de l'équipe.",
+      "inviteError": "Erreur d'invitation",
+      "updateError": "Erreur de mise à jour",
+      "deleteError": "Erreur de suppression"
+    },
+    "stockHistory": {
+      "stockUpdated": "Stock mis à jour",
+      "stockUpdatedDesc": "Niveau de stock ajusté avec succès.",
+      "updateError": "Erreur de mise à jour du stock"
+    },
+    "supplierInvoices": {
+      "fetchError": "Erreur de chargement des factures",
+      "created": "Facture enregistrée",
+      "createdDesc": "La facture fournisseur a été enregistrée avec succès.",
+      "deleted": "Facture supprimée",
+      "updated": "Facture mise à jour",
+      "updatedDesc": "La facture a été mise à jour avec succès.",
+      "paymentStatusUpdated": "Statut de paiement mis à jour",
+      "approvalStatusUpdated": "Statut d'approbation mis à jour",
+      "createError": "Erreur de création",
+      "deleteError": "Erreur de suppression",
+      "updateError": "Erreur de mise à jour"
+    },
+    "users": {
+      "fetchError": "Erreur de chargement des utilisateurs"
+    },
+    "pushNotifications": {
+      "subscribed": "Notifications activées",
+      "subscribedDesc": "Les notifications push sont maintenant activées.",
+      "subscribeError": "Erreur d'activation des notifications",
+      "subscribeErrorDesc": "Impossible d'activer les notifications push.",
+      "unsubscribed": "Notifications désactivées",
+      "unsubscribedDesc": "Les notifications push sont maintenant désactivées."
+    },
+    "offline": {
+      "onlineTitle": "Connexion rétablie",
+      "onlineDesc": "Vous êtes à nouveau en ligne. Synchronisation en cours...",
+      "offlineTitle": "Connexion perdue",
+      "offlineDesc": "Vous êtes hors ligne. Les modifications seront synchronisées à la reconnexion.",
+      "syncError": "Erreur de synchronisation"
+    },
+    "notificationSettings": {
+      "settingsSaved": "Préférences enregistrées",
+      "settingsSavedDesc": "Vos préférences de notification ont été mises à jour.",
+      "saveError": "Erreur lors de la sauvegarde"
+    },
+    "biometric": {
+      "registered": "Authentification biométrique activée",
+      "registeredDesc": "La connexion biométrique est maintenant disponible.",
+      "registerError": "Erreur d'enregistrement biométrique"
+    },
+    "invoiceUpload": {
+      "uploadSuccess": "Facture téléchargée",
+      "uploadSuccessDesc": "La facture a été téléchargée et analysée avec succès.",
+      "uploadFailed": "Échec du téléchargement",
+      "downloadFailed": "Échec du téléchargement du fichier",
+      "deleted": "Facture supprimée",
+      "error": "Erreur"
+    },
+    "taxFiling": {
+      "noCompany": "Aucune société active sélectionnée",
+      "declarationCreated": "Déclaration créée",
+      "declarationDeleted": "Déclaration supprimée",
+      "declarationSubmitted": "Déclaration soumise avec succès",
+      "computeVatError": "Erreur de calcul TVA",
+      "computeCorporateTaxError": "Erreur de calcul IS",
+      "createError": "Erreur de création de la déclaration",
+      "updateError": "Erreur de mise à jour de la déclaration",
+      "deleteError": "Erreur de suppression de la déclaration",
+      "submitError": "Erreur de soumission de la déclaration"
+    },
+    "barcodeScanner": {
+      "permissionDenied": "Permission refusée",
+      "permissionDeniedDesc": "L'accès à la caméra est nécessaire pour scanner les codes-barres.",
+      "scanError": "Erreur de scan"
+    },
+    "accountingInit": {
+      "initialized": "Comptabilité initialisée",
+      "initializedDesc": "{{accounts}} comptes, {{mappings}} mappings, {{taxRates}} taux TVA",
+      "autoEnabled": "Initialisation automatique activée",
+      "autoDisabled": "Initialisation automatique désactivée",
+      "initError": "Erreur d'initialisation de la comptabilité",
+      "autoToggleError": "Erreur de mise à jour du paramètre"
     }
   }
 }

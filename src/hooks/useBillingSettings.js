@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 
 const EMPTY_BILLING = {
@@ -11,7 +11,7 @@ const EMPTY_BILLING = {
   postal_code: '',
   country: '',
   vat_number: '',
-  siret: ''
+  siret: '',
 };
 
 export const useBillingSettings = () => {
@@ -20,6 +20,7 @@ export const useBillingSettings = () => {
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dbRecord, setDbRecord] = useState(null);
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -30,10 +31,7 @@ export const useBillingSettings = () => {
     if (!supabase) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('billing_info')
-        .select('*')
-        .maybeSingle();
+      const { data, error } = await supabase.from('billing_info').select('*').maybeSingle();
 
       if (error) throw error;
 
@@ -46,14 +44,14 @@ export const useBillingSettings = () => {
           postal_code: data.postal_code || '',
           country: data.country || '',
           vat_number: data.vat_number || '',
-          siret: data.siret || ''
+          siret: data.siret || '',
         });
         if (data.plan && data.plan !== 'free') {
           setSubscription({
             plan: data.plan,
             price: data.plan_price || 0,
             interval: data.plan_interval || 'month',
-            next_billing: data.next_billing_date || ''
+            next_billing: data.next_billing_date || '',
           });
         }
       }
@@ -80,19 +78,15 @@ export const useBillingSettings = () => {
         if (error) throw error;
         setDbRecord(updated);
       } else {
-        const { data: created, error } = await supabase
-          .from('billing_info')
-          .insert([payload])
-          .select()
-          .single();
+        const { data: created, error } = await supabase.from('billing_info').insert([payload]).select().single();
         if (error) throw error;
         setDbRecord(created);
       }
 
       setBillingInfo(data);
-      toast({ title: "Facturation mise à jour", description: "Vos informations de facturation ont été sauvegardées." });
+      toast({ title: t('hooks.billing.settingsSaved'), description: t('hooks.billing.settingsSavedDesc') });
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -110,9 +104,9 @@ export const useBillingSettings = () => {
       if (error) throw error;
 
       setSubscription(null);
-      toast({ title: "Abonnement annulé", description: "Votre abonnement a été annulé." });
+      toast({ title: t('hooks.billing.settingsSaved'), description: t('hooks.billing.settingsSavedDesc') });
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -125,9 +119,11 @@ export const useBillingSettings = () => {
     subscription,
     loading,
     updateBilling,
-    addPaymentMethod: async () => { toast({ title: "Info", description: "L'intégration de paiement sera disponible prochainement." }); },
+    addPaymentMethod: async () => {
+      toast({ title: 'Info', description: t('hooks.billing.paymentIntegrationInfo') });
+    },
     deletePaymentMethod: async () => {},
     setDefaultPaymentMethod: async () => {},
-    cancelSubscription
+    cancelSubscription,
   };
 };

@@ -1,11 +1,12 @@
-
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 
 export const useBiometric = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -24,37 +25,37 @@ export const useBiometric = () => {
 
       const publicKeyCredentialCreationOptions = {
         challenge,
-        rp: { name: "CashPilot", id: window.location.hostname },
+        rp: { name: 'CashPilot', id: window.location.hostname },
         user: {
-          id: Uint8Array.from(user.id, c => c.charCodeAt(0)),
+          id: Uint8Array.from(user.id, (c) => c.charCodeAt(0)),
           name: user.email,
           displayName: user.email,
         },
-        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-        authenticatorSelection: { authenticatorAttachment: "platform" },
+        pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
+        authenticatorSelection: { authenticatorAttachment: 'platform' },
         timeout: 60000,
-        attestation: "direct"
+        attestation: 'direct',
       };
 
       const credential = await navigator.credentials.create({
-        publicKey: publicKeyCredentialCreationOptions
+        publicKey: publicKeyCredentialCreationOptions,
       });
 
       // Save credential ID (In a real app, verify attestation on server)
       // Here we just store the ID to "enable" it for the user
       const credentialId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
-      
+
       await supabase.from('biometric_credentials').insert({
         user_id: user.id,
         biometric_type: 'platform', // e.g. TouchID/FaceID
         device_id: navigator.userAgent,
-        public_key: credentialId // Simplified for demo
+        public_key: credentialId, // Simplified for demo
       });
 
-      toast({ title: 'Success', description: 'Biometric login enabled.' });
+      toast({ title: t('common.success'), description: t('hooks.biometric.registeredDesc') });
     } catch (err) {
-      console.error("Biometric registration failed", err);
-      toast({ title: 'Error', description: 'Failed to register biometric.', variant: 'destructive' });
+      console.error('Biometric registration failed', err);
+      toast({ title: t('common.error'), description: t('hooks.biometric.registerError'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }

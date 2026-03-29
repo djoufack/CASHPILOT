@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -9,6 +10,7 @@ import { triggerWebhook } from '@/utils/webhookTrigger';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 
 export const useExpenses = () => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
@@ -44,48 +46,51 @@ export const useExpenses = () => {
     { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
   );
 
-  const fetchExpenses = useCallback(async ({ page, pageSize } = {}) => {
-    if (!user) return;
-    if (!supabase) {
-      console.warn('Supabase not configured');
-      return;
-    }
-    setLoading(true);
-    try {
-      const usePagination = page != null && pageSize != null;
-      let query = supabase
-        .from('expenses')
-        .select('*, supplier:suppliers(id, company_name)', usePagination ? { count: 'exact' } : undefined)
-        .order('expense_date', { ascending: false });
-
-      query = applyCompanyScope(query);
-      if (usePagination) {
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize - 1;
-        query = query.range(from, to);
+  const fetchExpenses = useCallback(
+    async ({ page, pageSize } = {}) => {
+      if (!user) return;
+      if (!supabase) {
+        console.warn('Supabase not configured');
+        return;
       }
+      setLoading(true);
+      try {
+        const usePagination = page != null && pageSize != null;
+        let query = supabase
+          .from('expenses')
+          .select('*, supplier:suppliers(id, company_name)', usePagination ? { count: 'exact' } : undefined)
+          .order('expense_date', { ascending: false });
 
-      const { data, error, count } = await query;
+        query = applyCompanyScope(query);
+        if (usePagination) {
+          const from = (page - 1) * pageSize;
+          const to = from + pageSize - 1;
+          query = query.range(from, to);
+        }
 
-      if (error) throw error;
-      setExpenses(data || []);
-      if (usePagination && count != null) {
-        setTotalCount(count);
+        const { data, error, count } = await query;
+
+        if (error) throw error;
+        setExpenses(data || []);
+        if (usePagination && count != null) {
+          setTotalCount(count);
+        }
+      } catch (err) {
+        console.warn('Error fetching expenses:', err.message);
+        setExpenses([]);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.warn('Error fetching expenses:', err.message);
-      setExpenses([]);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [applyCompanyScope, user, setLoading, setExpenses, setError]);
+    },
+    [applyCompanyScope, user, setLoading, setExpenses, setError]
+  );
 
   const createExpense = async (expenseData) => {
     if (!user) return;
     if (!supabase) throw new Error('Supabase not configured');
     if (!activeCompanyId) {
-      toast({ title: 'Error', description: 'No active company selected', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('hooks.expenses.noCompany'), variant: 'destructive' });
       return null;
     }
     setLoading(true);
@@ -98,11 +103,7 @@ export const useExpenses = () => {
       });
       delete payload.date;
 
-      const { data, error } = await supabase
-        .from('expenses')
-        .insert([payload])
-        .select()
-        .single();
+      const { data, error } = await supabase.from('expenses').insert([payload]).select().single();
 
       if (error) throw error;
 
@@ -119,11 +120,7 @@ export const useExpenses = () => {
       return data;
     } catch (err) {
       setError(err.message);
-      toast({
-        title: 'Error creating expense',
-        description: err.message,
-        variant: 'destructive'
-      });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -141,26 +138,21 @@ export const useExpenses = () => {
       }
       delete normalizedUpdates.date;
 
-      const { data, error } = await supabase
-        .from('expenses')
-        .update(normalizedUpdates)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data, error } = await supabase.from('expenses').update(normalizedUpdates).eq('id', id).select().single();
       if (error) throw error;
       logAction('update', 'expense', null, data);
-      setExpenses(prev => prev.map(e => e.id === id ? data : e));
+      setExpenses((prev) => prev.map((e) => (e.id === id ? data : e)));
       void triggerWebhook('expense.updated', {
         id: data.id,
         company_id: data.company_id,
         amount: data.amount,
         expense_date: data.expense_date,
       });
-      toast({ title: 'Dépense mise à jour' });
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.expenses.updated') });
       return data;
     } catch (err) {
       setError(err.message);
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -175,12 +167,12 @@ export const useExpenses = () => {
       const { error } = await supabase.from('expenses').delete().eq('id', id);
       if (error) throw error;
       logAction('delete', 'expense', { id }, null);
-      setExpenses(prev => prev.filter(e => e.id !== id));
+      setExpenses((prev) => prev.filter((e) => e.id !== id));
       void triggerWebhook('expense.deleted', { id });
-      toast({ title: 'Dépense supprimée' });
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.expenses.deleted') });
     } catch (err) {
       setError(err.message);
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -195,6 +187,6 @@ export const useExpenses = () => {
     fetchExpenses,
     createExpense,
     updateExpense,
-    deleteExpense
+    deleteExpense,
   };
 };

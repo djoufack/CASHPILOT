@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
@@ -9,6 +10,7 @@ export const useTeamSettings = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
@@ -56,9 +58,12 @@ export const useTeamSettings = () => {
       if (error) throw error;
 
       setMembers([...members, data]);
-      toast({ title: 'Invitation envoyée', description: `Invitation envoyée à ${email}` });
+      toast({
+        title: t('hooks.teamSettings.inviteSent'),
+        description: t('hooks.teamSettings.inviteSentDesc', { email }),
+      });
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -75,9 +80,9 @@ export const useTeamSettings = () => {
       if (error) throw error;
 
       setMembers((prev) => prev.map((m) => (m.id === id ? data : m)));
-      toast({ title: 'Membre mis à jour', description: 'Le rôle du membre a été modifié.' });
+      toast({ title: t('hooks.teamSettings.memberUpdated'), description: t('hooks.teamSettings.memberUpdatedDesc') });
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     }
   };
 
@@ -92,9 +97,9 @@ export const useTeamSettings = () => {
       if (error) throw error;
 
       setMembers((prev) => prev.filter((m) => m.id !== id));
-      toast({ title: 'Membre supprimé', description: "L'utilisateur a été retiré de l'équipe." });
+      toast({ title: t('hooks.teamSettings.memberDeleted'), description: t('hooks.teamSettings.memberDeletedDesc') });
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     }
   };
 

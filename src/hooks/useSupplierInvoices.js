@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
@@ -9,6 +10,7 @@ import { linkLineItemsToProducts } from '@/services/supplierInvoiceLineItemLinki
 export const useSupplierInvoices = (supplierId) => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
@@ -30,15 +32,11 @@ export const useSupplierInvoices = (supplierId) => {
       if (error) throw error;
       setInvoices(data || []);
     } catch (err) {
-      toast({
-        title: 'Error fetching invoices',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast({ title: t('hooks.supplierInvoices.fetchError'), description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, supplierId, toast]);
+  }, [applyCompanyScope, supplierId, t, toast]);
 
   const uploadInvoice = async (file) => {
     try {
@@ -97,7 +95,7 @@ export const useSupplierInvoices = (supplierId) => {
       if (error) throw error;
 
       setInvoices([data, ...invoices]);
-      toast({ title: 'Success', description: 'Invoice recorded successfully' });
+      toast({ title: t('common.success'), description: t('hooks.supplierInvoices.createdDesc') });
 
       if ((data?.approval_status || 'pending') === 'pending') {
         notifyPendingSupplierApproval({ invoiceId: data.id, action: 'pending_created' }).catch((notifyError) => {
@@ -107,7 +105,7 @@ export const useSupplierInvoices = (supplierId) => {
 
       return data;
     } catch (err) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -121,9 +119,9 @@ export const useSupplierInvoices = (supplierId) => {
       const { error } = await query;
       if (error) throw error;
       setInvoices(invoices.filter((i) => i.id !== id));
-      toast({ title: 'Success', description: 'Invoice deleted' });
+      toast({ title: t('common.success'), description: t('hooks.supplierInvoices.deleted') });
     } catch (err) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     }
   };
 
@@ -136,10 +134,10 @@ export const useSupplierInvoices = (supplierId) => {
       if (error) throw error;
 
       setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? data : invoice)));
-      toast({ title: 'Updated', description: 'Invoice updated successfully' });
+      toast({ title: t('hooks.supplierInvoices.updated'), description: t('hooks.supplierInvoices.updatedDesc') });
       return data;
     } catch (err) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     }
   };
@@ -153,9 +151,9 @@ export const useSupplierInvoices = (supplierId) => {
       if (error) throw error;
 
       setInvoices(invoices.map((i) => (i.id === id ? { ...i, payment_status: status } : i)));
-      toast({ title: 'Updated', description: 'Payment status updated' });
+      toast({ title: t('hooks.supplierInvoices.paymentStatusUpdated') });
     } catch (err) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     }
   };
 
@@ -184,7 +182,7 @@ export const useSupplierInvoices = (supplierId) => {
       if (error) throw error;
 
       setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? { ...invoice, ...payload } : invoice)));
-      toast({ title: 'Updated', description: 'Approval status updated' });
+      toast({ title: t('hooks.supplierInvoices.approvalStatusUpdated') });
 
       if (approvalStatus === 'pending') {
         notifyPendingSupplierApproval({ invoiceId: id, action: 'pending_updated' }).catch((notifyError) => {
@@ -192,7 +190,7 @@ export const useSupplierInvoices = (supplierId) => {
         });
       }
     } catch (err) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     }
   };
 

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 
@@ -8,6 +9,7 @@ export const useStockHistory = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
@@ -93,11 +95,11 @@ export const useStockHistory = () => {
         ]);
       }
 
-      toast({ title: 'Stock mis à jour', description: 'Niveau de stock ajusté avec succès.' });
+      toast({ title: t('hooks.stockHistory.stockUpdated'), description: t('hooks.stockHistory.stockUpdatedDesc') });
       return true;
     } catch (err) {
       setError(err.message);
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       return false;
     } finally {
       setLoading(false);
