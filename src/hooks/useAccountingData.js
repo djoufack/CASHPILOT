@@ -105,6 +105,17 @@ export const useAccountingData = (startDate, endDate) => {
         p_end_date: period.endDate,
       };
 
+      // Prefetch accounting settings to resolve the correct region for f_financial_diagnostic
+      // (BUG-001 fix: region must be derived from the company's country, not hardcoded to 'belgium')
+      const settingsPrefetch = await supabase
+        .from('user_accounting_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const prefetchedCountry = settingsPrefetch?.data?.country ?? null;
+      const resolvedRegion =
+        prefetchedCountry === 'BE' ? 'belgium' : prefetchedCountry === 'OHADA' ? 'ohada' : 'france';
+
       const results = await Promise.allSettled([
         invoicesQuery,
         expensesQuery,
@@ -132,7 +143,7 @@ export const useAccountingData = (startDate, endDate) => {
           includeUnassigned: true,
         }),
         entriesQuery,
-        supabase.from('user_accounting_settings').select('*').eq('user_id', user.id).maybeSingle(),
+        Promise.resolve(settingsPrefetch),
 
         supabase.rpc('f_trial_balance', rpcParams),
         supabase.rpc('f_trial_balance', { ...rpcParams, p_start_date: null }),
@@ -142,7 +153,7 @@ export const useAccountingData = (startDate, endDate) => {
           p_company_id: activeCompanyId || null,
           p_end_date: period.endDate,
         }),
-        supabase.rpc('f_financial_diagnostic', { ...rpcParams, p_region: 'belgium' }),
+        supabase.rpc('f_financial_diagnostic', { ...rpcParams, p_region: resolvedRegion }),
         supabase.rpc('f_vat_summary', rpcParams),
         supabase.rpc('f_vat_breakdown', rpcParams),
         supabase.rpc('f_monthly_chart_data', rpcParams),
