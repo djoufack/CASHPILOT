@@ -1318,6 +1318,15 @@ const LandingPage = () => {
                   {copy.footer.links.support}
                 </a>
                 <a
+                  href="/status"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavigate('/status');
+                  }}
+                >
+                  {copy.footer.links.status}
+                </a>
+                <a
                   href="/privacy"
                   onClick={(e) => {
                     e.preventDefault();

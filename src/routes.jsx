@@ -105,6 +105,7 @@ const GedHubPage = lazyRetry(() => import('./pages/GedHubPage'));
 const PrivacyPage = lazyRetry(() => import('./pages/PrivacyPage'));
 const LegalPage = lazyRetry(() => import('./pages/LegalPage'));
 const NotFoundPage = lazyRetry(() => import('./pages/NotFoundPage'));
+const StatusPage = lazyRetry(() => import('./pages/StatusPage'));
 
 // Game Changer Features — Wave 1
 const CfoPage = lazyRetry(() => import('./pages/CfoPage'));
@@ -182,6 +183,7 @@ const AppRoutes = () => {
       <Route path="/quote-sign/:token" element={page(QuoteSignPage)} />
       <Route path="/payment-success" element={page(PaymentSuccessPage)} />
       <Route path="/shared/:token" element={page(SharedSnapshotPage)} />
+      <Route path="/status" element={page(StatusPage)} />
 
       {/* ──────────── Legacy /dashboard redirect (BUG #9) ─────────────── */}
       <Route path="/dashboard" element={<Navigate to="/app" replace />} />

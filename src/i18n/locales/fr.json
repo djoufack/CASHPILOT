@@ -3994,6 +3994,35 @@
       "noInvoices": "Aucune facture pour ce client."
     }
   },
+  "status": {
+    "pageTitle": "Statut du service",
+    "metaDescription": "État en temps réel des systèmes CashPilot",
+    "checking": "Vérification en cours…",
+    "allOperational": "Tous les systèmes opérationnels",
+    "partialOutage": "Perturbation partielle",
+    "majorOutage": "Panne majeure",
+    "refresh": "Actualiser",
+    "lastChecked": "Dernière vérification : il y a {{seconds}} s",
+    "autoRefresh": "Actualisation automatique toutes les {{seconds}} s",
+    "backToApp": "Retour à l'accueil",
+    "components": {
+      "title": "Composants",
+      "webapp": "Application Web",
+      "api": "API v1",
+      "database": "Base de données",
+      "mcp": "Serveur MCP"
+    },
+    "states": {
+      "operational": "Opérationnel",
+      "degraded": "Dégradé",
+      "down": "Hors ligne",
+      "checking": "Vérification…"
+    },
+    "incidents": {
+      "title": "Historique des incidents",
+      "none": "Aucun incident récent — tous les systèmes fonctionnent normalement."
+    }
+  },
   "cookies": {
     "banner": {
       "title": "Cookies et suivi d'erreurs",

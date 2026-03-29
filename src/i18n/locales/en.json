@@ -4007,6 +4007,35 @@
       "noInvoices": "No invoices for this client."
     }
   },
+  "status": {
+    "pageTitle": "Service Status",
+    "metaDescription": "Real-time status of CashPilot systems",
+    "checking": "Checking status…",
+    "allOperational": "All systems operational",
+    "partialOutage": "Partial outage",
+    "majorOutage": "Major outage",
+    "refresh": "Refresh",
+    "lastChecked": "Last checked: {{seconds}}s ago",
+    "autoRefresh": "Auto-refreshes every {{seconds}}s",
+    "backToApp": "Back to homepage",
+    "components": {
+      "title": "Components",
+      "webapp": "Web Application",
+      "api": "API v1",
+      "database": "Database",
+      "mcp": "MCP Server"
+    },
+    "states": {
+      "operational": "Operational",
+      "degraded": "Degraded",
+      "down": "Offline",
+      "checking": "Checking…"
+    },
+    "incidents": {
+      "title": "Incident History",
+      "none": "No recent incidents — all systems are functioning normally."
+    }
+  },
   "cookies": {
     "banner": {
       "title": "Cookies & error tracking",

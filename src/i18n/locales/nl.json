@@ -3999,6 +3999,35 @@
     "description": "Er is een fout opgetreden bij het laden van deze pagina. De rest van de applicatie is nog beschikbaar.",
     "retry": "Opnieuw proberen"
   },
+  "status": {
+    "pageTitle": "Servicestatus",
+    "metaDescription": "Realtime status van CashPilot-systemen",
+    "checking": "Status controleren…",
+    "allOperational": "Alle systemen operationeel",
+    "partialOutage": "Gedeeltelijke storing",
+    "majorOutage": "Grote storing",
+    "refresh": "Vernieuwen",
+    "lastChecked": "Laatste controle: {{seconds}}s geleden",
+    "autoRefresh": "Automatisch vernieuwen elke {{seconds}}s",
+    "backToApp": "Terug naar startpagina",
+    "components": {
+      "title": "Componenten",
+      "webapp": "Webapplicatie",
+      "api": "API v1",
+      "database": "Database",
+      "mcp": "MCP Server"
+    },
+    "states": {
+      "operational": "Operationeel",
+      "degraded": "Verminderd",
+      "down": "Offline",
+      "checking": "Controleren…"
+    },
+    "incidents": {
+      "title": "Incidentgeschiedenis",
+      "none": "Geen recente incidenten — alle systemen functioneren normaal."
+    }
+  },
   "cookies": {
     "banner": {
       "title": "Cookies en foutopsporing",
