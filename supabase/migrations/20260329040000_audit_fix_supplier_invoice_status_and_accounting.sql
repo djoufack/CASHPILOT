@@ -42,7 +42,7 @@ DECLARE
   v_total_ttc NUMERIC;
 BEGIN
   FOR si IN
-    SELECT si.*
+    SELECT *
     FROM supplier_invoices si
     WHERE si.status = 'received'
       AND NOT EXISTS (
@@ -143,7 +143,7 @@ DECLARE
   v_total_ttc NUMERIC;
 BEGIN
   FOR si IN
-    SELECT si.*
+    SELECT *
     FROM supplier_invoices si
     WHERE si.payment_status = 'paid'
       AND NOT EXISTS (
