@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileDown, BookOpen, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
+import { useAccountingTaxonomy } from '@/hooks/useAccountingTaxonomy';
 import { formatDate } from '@/utils/dateLocale';
 
 /**
@@ -106,19 +107,35 @@ const FinancialAnnexes = ({
   const country = companyInfo?.country || 'FR';
   const tvaPrefixes = resolveTvaPrefixes(country);
 
+  // ENF-1 FIX: Revenue and expense prefixes come from the DB (accounting_account_taxonomy),
+  // NOT from hardcoded arrays. The hook uses the company country to select
+  // the correct regional plan (france / belgium / ohada).
+  // See: BUGS/fix13-financial-annexes-bugs.md
+  const { caAccountPrefixes, chargesAccountPrefixes, loading: taxonomyLoading } = useAccountingTaxonomy(country);
+
   const notes = useMemo(() => {
+    // Wait until taxonomy prefixes are loaded from DB before computing notes
+    if (!caAccountPrefixes || !chargesAccountPrefixes) {
+      return null;
+    }
+
     const tb = trialBalance || [];
     // Balance sheet accounts (classes 1-5) use CUMULATIVE data (all entries up to endDate)
     // Income statement accounts (classes 6-7) use PERIOD data (current year only)
     const cumTB = cumulativeTrialBalance || tb;
 
     // Note 2: Immobilisations (classe 2) — cumulative
+    // ENF-1 WONTFIX: prefix '2' is the structural backbone of ALL accounting plans
+    // (PCG, PCMN, SYSCOHADA). It is a fundamental chart-of-accounts invariant,
+    // not a configurable business value. See BUGS/fix13-financial-annexes-bugs.md.
     const immobilisations = groupByClass(cumTB, '2', 'Immobilisations');
 
     // Note 3: Stocks (classe 3) — cumulative
+    // ENF-1 WONTFIX: prefix '3' is universal across all three plans.
     const stocks = groupByClass(cumTB, '3', 'Stocks et en-cours');
 
     // Note 4: Creances et dettes — cumulative
+    // ENF-1 WONTFIX: prefix '4' (comptes de tiers) is universal across all three plans.
     const creances = cumTB.filter(
       (t) =>
         t.account_code && t.account_code.startsWith('4') && t.account_type === 'asset' && Math.abs(t.balance) >= 0.01
@@ -132,16 +149,26 @@ const FinancialAnnexes = ({
     );
 
     // Note 5: Tresorerie (classe 5) — cumulative
+    // ENF-1 WONTFIX: prefix '5' is universal across all three plans.
     const tresorerie = groupByClass(cumTB, '5', 'Tresorerie');
 
-    // Note 6: Chiffre d'affaires (comptes 70x) — period
-    const ca = tb.filter((t) => t.account_code && t.account_code.startsWith('70') && Math.abs(t.balance) >= 0.01);
+    // Note 6: Chiffre d'affaires — period
+    // ENF-1 FIX: prefixes sourced from accounting_account_taxonomy via useAccountingTaxonomy.
+    // semantic_role: 'sales_revenue' | 'operating_revenue' — region-aware (FR/BE/OHADA).
+    const ca = tb.filter(
+      (t) =>
+        t.account_code && caAccountPrefixes.some((p) => t.account_code.startsWith(p)) && Math.abs(t.balance) >= 0.01
+    );
     const totalCA = ca.reduce((s, a) => s + (a.balance || 0), 0);
 
-    // Note 7: Charges d'exploitation (comptes 60x-65x) — period
-    const chargesPrefixes = ['60', '61', '62', '63', '64', '65'];
+    // Note 7: Charges d'exploitation — period
+    // ENF-1 FIX: prefixes sourced from accounting_account_taxonomy via useAccountingTaxonomy.
+    // semantic_role: 'operating_cash_expense' | 'supplier_expense' | 'direct_cost_expense'.
     const charges = tb.filter(
-      (t) => t.account_code && chargesPrefixes.some((p) => t.account_code.startsWith(p)) && Math.abs(t.balance) >= 0.01
+      (t) =>
+        t.account_code &&
+        chargesAccountPrefixes.some((p) => t.account_code.startsWith(p)) &&
+        Math.abs(t.balance) >= 0.01
     );
     const totalCharges = charges.reduce((s, a) => s + (a.balance || 0), 0);
 
@@ -163,7 +190,7 @@ const FinancialAnnexes = ({
       tvaCollectee,
       tvaDeductible,
     };
-  }, [trialBalance, cumulativeTrialBalance, tvaPrefixes]);
+  }, [trialBalance, cumulativeTrialBalance, tvaPrefixes, caAccountPrefixes, chargesAccountPrefixes]);
 
   const hasTB =
     (trialBalance && trialBalance.length > 0) || (cumulativeTrialBalance && cumulativeTrialBalance.length > 0);
@@ -176,6 +203,20 @@ const FinancialAnnexes = ({
           <p className="text-sm text-gray-400">
             Importez votre plan comptable et creez des ecritures pour generer les notes aux etats financiers.
           </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // While taxonomy prefixes are loading from DB, show a skeleton state
+  if (taxonomyLoading || !notes) {
+    return (
+      <Card className="bg-gray-900/50 border border-gray-800">
+        <CardContent className="p-8 text-center">
+          <div className="animate-pulse space-y-3">
+            <div className="h-4 bg-gray-700/50 rounded w-1/3 mx-auto" />
+            <div className="h-3 bg-gray-700/30 rounded w-1/2 mx-auto" />
+          </div>
         </CardContent>
       </Card>
     );
