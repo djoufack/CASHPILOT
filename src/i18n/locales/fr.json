@@ -5318,5 +5318,161 @@
       "premium": "Premium",
       "critical": "Critique"
     }
+  },
+  "recruitment": {
+    "pageTitle": "Recrutement ATS",
+    "helmetTitle": "Recrutement ATS | CashPilot",
+    "pageSubtitle": "Gérez vos postes, candidatures et entretiens en un seul endroit.",
+    "loading": "Chargement du module ATS...",
+    "kpi": {
+      "openPositions": "Postes ouverts",
+      "candidates": "Candidats",
+      "inPipeline": "En pipeline",
+      "hired": "Embauchés"
+    },
+    "tabs": {
+      "positions": "Postes ouverts",
+      "pipeline": "Pipeline",
+      "candidates": "Candidats",
+      "interviews": "Entretiens"
+    },
+    "pipeline": {
+      "title": "Pipeline de recrutement",
+      "total_one": "{{count}} candidature au total",
+      "total_other": "{{count}} candidatures au total",
+      "noApplication": "Aucune candidature",
+      "backward": "Reculer",
+      "forward": "Avancer"
+    },
+    "stages": {
+      "new": "Nouveau",
+      "screening": "Screening",
+      "interview": "Entretien",
+      "technical_test": "Test technique",
+      "offer": "Offre",
+      "hired": "Embauché"
+    },
+    "positionStatus": {
+      "open": "Ouvert",
+      "closed": "Fermé",
+      "draft": "Brouillon",
+      "on_hold": "En pause"
+    },
+    "interviewType": {
+      "phone": "Téléphone",
+      "video": "Vidéo",
+      "onsite": "Sur site",
+      "technical": "Technique"
+    },
+    "interviewStatus": {
+      "scheduled": "Planifié",
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "no_show": "Absent"
+    },
+    "employmentType": {
+      "full_time": "Temps plein",
+      "part_time": "Temps partiel",
+      "contract": "CDD",
+      "internship": "Stage",
+      "freelance": "Freelance"
+    },
+    "candidateSource": {
+      "website": "Site web",
+      "linkedin": "LinkedIn",
+      "referral": "Cooptation",
+      "job_board": "Job board",
+      "agency": "Cabinet",
+      "other": "Autre"
+    },
+    "positions": {
+      "searchPlaceholder": "Rechercher un poste...",
+      "btnApply": "Candidater",
+      "btnNew": "Nouveau poste",
+      "noPositions": "Aucun poste trouvé",
+      "candidateCount_one": "{{count}} candidat",
+      "candidateCount_other": "{{count}} candidats",
+      "createdAt": "Créé le {{date}}"
+    },
+    "candidates": {
+      "searchPlaceholder": "Rechercher un candidat...",
+      "btnNew": "Nouveau candidat",
+      "noCandidates": "Aucun candidat trouvé",
+      "colName": "Nom",
+      "colEmail": "Email",
+      "colPhone": "Téléphone",
+      "colSource": "Source",
+      "colApplications": "Candidatures",
+      "colAdded": "Ajouté",
+      "unknownCandidate": "Inconnu",
+      "unknownPosition": "Poste non défini"
+    },
+    "interviews": {
+      "searchPlaceholder": "Rechercher un entretien...",
+      "btnSchedule": "Planifier entretien",
+      "noInterviews": "Aucun entretien planifié",
+      "interviewer": "Interviewer :",
+      "unknownCandidate": "Candidat inconnu",
+      "unknownPosition": "Poste non défini"
+    },
+    "dialogs": {
+      "newPosition": {
+        "title": "Nouveau poste",
+        "labelTitle": "Titre du poste *",
+        "placeholderTitle": "Développeur Full-Stack",
+        "labelDepartment": "Département",
+        "labelLocation": "Localisation",
+        "placeholderLocation": "Paris",
+        "labelSalaryMin": "Salaire min",
+        "labelSalaryMax": "Salaire max",
+        "labelEmploymentType": "Type de contrat",
+        "labelStatus": "Statut",
+        "labelDescription": "Description",
+        "placeholderDescription": "Description du poste...",
+        "btnCancel": "Annuler",
+        "btnCreate": "Créer"
+      },
+      "newCandidate": {
+        "title": "Nouveau candidat",
+        "labelFirstName": "Prénom *",
+        "labelLastName": "Nom *",
+        "labelEmail": "Email",
+        "labelPhone": "Téléphone",
+        "labelSource": "Source",
+        "labelNotes": "Notes",
+        "btnCancel": "Annuler",
+        "btnAdd": "Ajouter"
+      },
+      "newApplication": {
+        "title": "Nouvelle candidature",
+        "labelCandidate": "Candidat *",
+        "placeholderCandidate": "Sélectionner un candidat",
+        "labelPosition": "Poste *",
+        "placeholderPosition": "Sélectionner un poste",
+        "btnCancel": "Annuler",
+        "btnApply": "Candidater"
+      },
+      "scheduleInterview": {
+        "title": "Planifier un entretien",
+        "labelApplication": "Candidature *",
+        "placeholderApplication": "Sélectionner une candidature",
+        "labelType": "Type *",
+        "labelDateTime": "Date et heure *",
+        "labelNotes": "Notes",
+        "btnCancel": "Annuler",
+        "btnSchedule": "Planifier"
+      }
+    },
+    "toast": {
+      "positionCreated": "Poste créé",
+      "positionUpdated": "Poste mis à jour",
+      "candidateAdded": "Candidat ajouté",
+      "applicationCreated": "Candidature créée",
+      "applicationMoved": "Candidature déplacée",
+      "interviewScheduled": "Entretien planifié",
+      "onboardingPlanCreated": "Plan d'onboarding créé",
+      "taskUpdated": "Tâche mise à jour",
+      "error": "Erreur"
+    }
   }
 }

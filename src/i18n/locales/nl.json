@@ -6270,5 +6270,161 @@
       "premium": "Premium",
       "critical": "Kritisch"
     }
+  },
+  "recruitment": {
+    "pageTitle": "Werving ATS",
+    "helmetTitle": "Werving ATS | CashPilot",
+    "pageSubtitle": "Beheer uw vacatures, sollicitaties en sollicitatiegesprekken op één plek.",
+    "loading": "ATS-module laden...",
+    "kpi": {
+      "openPositions": "Open vacatures",
+      "candidates": "Kandidaten",
+      "inPipeline": "In pipeline",
+      "hired": "Aangenomen"
+    },
+    "tabs": {
+      "positions": "Open vacatures",
+      "pipeline": "Pipeline",
+      "candidates": "Kandidaten",
+      "interviews": "Sollicitatiegesprekken"
+    },
+    "pipeline": {
+      "title": "Wervingspipeline",
+      "total_one": "{{count}} sollicitatie in totaal",
+      "total_other": "{{count}} sollicitaties in totaal",
+      "noApplication": "Geen sollicitatie",
+      "backward": "Terug",
+      "forward": "Vooruit"
+    },
+    "stages": {
+      "new": "Nieuw",
+      "screening": "Screening",
+      "interview": "Gesprek",
+      "technical_test": "Technische test",
+      "offer": "Aanbod",
+      "hired": "Aangenomen"
+    },
+    "positionStatus": {
+      "open": "Open",
+      "closed": "Gesloten",
+      "draft": "Concept",
+      "on_hold": "In de wacht"
+    },
+    "interviewType": {
+      "phone": "Telefoon",
+      "video": "Video",
+      "onsite": "Op locatie",
+      "technical": "Technisch"
+    },
+    "interviewStatus": {
+      "scheduled": "Gepland",
+      "completed": "Voltooid",
+      "cancelled": "Geannuleerd",
+      "no_show": "Niet verschenen"
+    },
+    "employmentType": {
+      "full_time": "Voltijd",
+      "part_time": "Deeltijd",
+      "contract": "Contract",
+      "internship": "Stage",
+      "freelance": "Freelance"
+    },
+    "candidateSource": {
+      "website": "Website",
+      "linkedin": "LinkedIn",
+      "referral": "Verwijzing",
+      "job_board": "Vacaturesite",
+      "agency": "Bureau",
+      "other": "Overig"
+    },
+    "positions": {
+      "searchPlaceholder": "Zoek een vacature...",
+      "btnApply": "Solliciteren",
+      "btnNew": "Nieuwe vacature",
+      "noPositions": "Geen vacature gevonden",
+      "candidateCount_one": "{{count}} kandidaat",
+      "candidateCount_other": "{{count}} kandidaten",
+      "createdAt": "Aangemaakt op {{date}}"
+    },
+    "candidates": {
+      "searchPlaceholder": "Zoek een kandidaat...",
+      "btnNew": "Nieuwe kandidaat",
+      "noCandidates": "Geen kandidaat gevonden",
+      "colName": "Naam",
+      "colEmail": "E-mail",
+      "colPhone": "Telefoon",
+      "colSource": "Bron",
+      "colApplications": "Sollicitaties",
+      "colAdded": "Toegevoegd",
+      "unknownCandidate": "Onbekend",
+      "unknownPosition": "Vacature niet gedefinieerd"
+    },
+    "interviews": {
+      "searchPlaceholder": "Zoek een gesprek...",
+      "btnSchedule": "Gesprek plannen",
+      "noInterviews": "Geen gesprek gepland",
+      "interviewer": "Interviewer:",
+      "unknownCandidate": "Onbekende kandidaat",
+      "unknownPosition": "Vacature niet gedefinieerd"
+    },
+    "dialogs": {
+      "newPosition": {
+        "title": "Nieuwe vacature",
+        "labelTitle": "Functietitel *",
+        "placeholderTitle": "Full-Stack Developer",
+        "labelDepartment": "Afdeling",
+        "labelLocation": "Locatie",
+        "placeholderLocation": "Amsterdam",
+        "labelSalaryMin": "Min. salaris",
+        "labelSalaryMax": "Max. salaris",
+        "labelEmploymentType": "Contracttype",
+        "labelStatus": "Status",
+        "labelDescription": "Beschrijving",
+        "placeholderDescription": "Functieomschrijving...",
+        "btnCancel": "Annuleren",
+        "btnCreate": "Aanmaken"
+      },
+      "newCandidate": {
+        "title": "Nieuwe kandidaat",
+        "labelFirstName": "Voornaam *",
+        "labelLastName": "Achternaam *",
+        "labelEmail": "E-mail",
+        "labelPhone": "Telefoon",
+        "labelSource": "Bron",
+        "labelNotes": "Notities",
+        "btnCancel": "Annuleren",
+        "btnAdd": "Toevoegen"
+      },
+      "newApplication": {
+        "title": "Nieuwe sollicitatie",
+        "labelCandidate": "Kandidaat *",
+        "placeholderCandidate": "Selecteer een kandidaat",
+        "labelPosition": "Vacature *",
+        "placeholderPosition": "Selecteer een vacature",
+        "btnCancel": "Annuleren",
+        "btnApply": "Solliciteren"
+      },
+      "scheduleInterview": {
+        "title": "Gesprek plannen",
+        "labelApplication": "Sollicitatie *",
+        "placeholderApplication": "Selecteer een sollicitatie",
+        "labelType": "Type *",
+        "labelDateTime": "Datum en tijd *",
+        "labelNotes": "Notities",
+        "btnCancel": "Annuleren",
+        "btnSchedule": "Plannen"
+      }
+    },
+    "toast": {
+      "positionCreated": "Vacature aangemaakt",
+      "positionUpdated": "Vacature bijgewerkt",
+      "candidateAdded": "Kandidaat toegevoegd",
+      "applicationCreated": "Sollicitatie aangemaakt",
+      "applicationMoved": "Sollicitatie verplaatst",
+      "interviewScheduled": "Gesprek gepland",
+      "onboardingPlanCreated": "Onboardingplan aangemaakt",
+      "taskUpdated": "Taak bijgewerkt",
+      "error": "Fout"
+    }
   }
 }

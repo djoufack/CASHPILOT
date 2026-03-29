@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import {
   Briefcase,
   ChevronLeft,
@@ -56,38 +57,36 @@ const normalize = (s = '') =>
     .toLowerCase()
     .trim();
 
-const PIPELINE_STAGES = [
-  { key: 'new', label: 'Nouveau', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-  { key: 'screening', label: 'Screening', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
-  { key: 'interview', label: 'Entretien', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-  { key: 'technical_test', label: 'Test technique', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
-  { key: 'offer', label: 'Offre', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-  { key: 'hired', label: 'Embauché', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
-];
+const PIPELINE_STAGE_KEYS = ['new', 'screening', 'interview', 'technical_test', 'offer', 'hired'];
 
-const STAGE_ORDER = PIPELINE_STAGES.map((s) => s.key);
-
-const _getStageConfig = (key) => PIPELINE_STAGES.find((s) => s.key === key) || PIPELINE_STAGES[0];
-
-const POSITION_STATUS_MAP = {
-  open: { label: 'Ouvert', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-  closed: { label: 'Fermé', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
-  draft: { label: 'Brouillon', cls: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
-  on_hold: { label: 'En pause', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+const PIPELINE_STAGE_COLORS = {
+  new: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  screening: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  interview: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  technical_test: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+  offer: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  hired: 'bg-green-500/20 text-green-300 border-green-500/30',
 };
 
-const INTERVIEW_TYPE_MAP = {
-  phone: { label: 'Téléphone', icon: Phone },
-  video: { label: 'Vidéo', icon: Video },
-  onsite: { label: 'Sur site', icon: MapPin },
-  technical: { label: 'Technique', icon: FileText },
+const POSITION_STATUS_CLS = {
+  open: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  closed: 'bg-red-500/20 text-red-300 border-red-500/30',
+  draft: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+  on_hold: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
 };
 
-const INTERVIEW_STATUS_MAP = {
-  scheduled: { label: 'Planifié', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-  completed: { label: 'Terminé', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-  cancelled: { label: 'Annulé', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
-  no_show: { label: 'Absent', cls: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
+const INTERVIEW_TYPE_ICONS = {
+  phone: Phone,
+  video: Video,
+  onsite: MapPin,
+  technical: FileText,
+};
+
+const INTERVIEW_STATUS_CLS = {
+  scheduled: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  completed: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  cancelled: 'bg-red-500/20 text-red-300 border-red-500/30',
+  no_show: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
 };
 
 const RatingStars = ({ rating, max = 5 }) => (
@@ -126,6 +125,7 @@ const defaultCandidateForm = {
 /* ---------- Main component ---------- */
 
 const RecruitmentPage = () => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const {
     positions,
@@ -213,8 +213,8 @@ const RecruitmentPage = () => {
 
   const pipelineByStage = useMemo(() => {
     const map = {};
-    PIPELINE_STAGES.forEach((s) => {
-      map[s.key] = [];
+    PIPELINE_STAGE_KEYS.forEach((key) => {
+      map[key] = [];
     });
     (applications || []).forEach((app) => {
       const stage = app.status || 'new';
@@ -236,9 +236,9 @@ const RecruitmentPage = () => {
       setPositionDialog(false);
       setPositionForm(defaultPositionForm);
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('recruitment.toast.error'), description: err.message, variant: 'destructive' });
     }
-  }, [positionForm, createPosition, toast]);
+  }, [positionForm, createPosition, toast, t]);
 
   const handleCreateCandidate = useCallback(async () => {
     try {
@@ -246,9 +246,9 @@ const RecruitmentPage = () => {
       setCandidateDialog(false);
       setCandidateForm(defaultCandidateForm);
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('recruitment.toast.error'), description: err.message, variant: 'destructive' });
     }
-  }, [candidateForm, createCandidate, toast]);
+  }, [candidateForm, createCandidate, toast, t]);
 
   const handleApply = useCallback(async () => {
     try {
@@ -256,24 +256,24 @@ const RecruitmentPage = () => {
       setApplyDialog(false);
       setApplyForm({ candidate_id: '', position_id: '' });
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('recruitment.toast.error'), description: err.message, variant: 'destructive' });
     }
-  }, [applyForm, createApplication, toast]);
+  }, [applyForm, createApplication, toast, t]);
 
   const handleMoveApp = useCallback(
     async (appId, direction) => {
       const app = applications.find((a) => a.id === appId);
       if (!app) return;
-      const currentIdx = STAGE_ORDER.indexOf(app.status || 'new');
+      const currentIdx = PIPELINE_STAGE_KEYS.indexOf(app.status || 'new');
       const nextIdx = direction === 'forward' ? currentIdx + 1 : currentIdx - 1;
-      if (nextIdx < 0 || nextIdx >= STAGE_ORDER.length) return;
+      if (nextIdx < 0 || nextIdx >= PIPELINE_STAGE_KEYS.length) return;
       try {
-        await moveApplication(appId, STAGE_ORDER[nextIdx]);
+        await moveApplication(appId, PIPELINE_STAGE_KEYS[nextIdx]);
       } catch (err) {
-        toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+        toast({ title: t('recruitment.toast.error'), description: err.message, variant: 'destructive' });
       }
     },
-    [applications, moveApplication, toast]
+    [applications, moveApplication, toast, t]
   );
 
   const handleScheduleInterview = useCallback(async () => {
@@ -287,9 +287,9 @@ const RecruitmentPage = () => {
       setInterviewDialog(false);
       setInterviewForm({ application_id: '', interview_type: 'video', scheduled_at: '', notes: '' });
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('recruitment.toast.error'), description: err.message, variant: 'destructive' });
     }
-  }, [interviewForm, scheduleInterview, toast]);
+  }, [interviewForm, scheduleInterview, toast, t]);
 
   /* ---------- TAB 1 : Postes ouverts ---------- */
 
@@ -299,7 +299,7 @@ const RecruitmentPage = () => {
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <Input
-            placeholder="Rechercher un poste..."
+            placeholder={t('recruitment.positions.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
@@ -313,14 +313,14 @@ const RecruitmentPage = () => {
             }}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            <UserPlus className="w-4 h-4 mr-1.5" /> Candidater
+            <UserPlus className="w-4 h-4 mr-1.5" /> {t('recruitment.positions.btnApply')}
           </Button>
           <Button
             size="sm"
             onClick={() => setPositionDialog(true)}
             className="bg-orange-500 hover:bg-orange-600 text-white"
           >
-            <Plus className="w-4 h-4 mr-1.5" /> Nouveau poste
+            <Plus className="w-4 h-4 mr-1.5" /> {t('recruitment.positions.btnNew')}
           </Button>
         </div>
       </div>
@@ -328,19 +328,20 @@ const RecruitmentPage = () => {
       {filteredPositions.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>Aucun poste trouvé</p>
+          <p>{t('recruitment.positions.noPositions')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredPositions.map((pos) => {
-            const st = POSITION_STATUS_MAP[pos.status] || POSITION_STATUS_MAP.draft;
+            const stCls = POSITION_STATUS_CLS[pos.status] || POSITION_STATUS_CLS.draft;
+            const stLabel = t(`recruitment.positionStatus.${pos.status}`, { defaultValue: pos.status });
             const count = positionCandidateCounts[pos.id] || 0;
             return (
               <Card key={pos.id} className="bg-white/5 border-white/10 hover:border-orange-500/30 transition-colors">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-base text-white leading-snug">{pos.title}</CardTitle>
-                    <Badge className={`shrink-0 text-xs border ${st.cls}`}>{st.label}</Badge>
+                    <Badge className={`shrink-0 text-xs border ${stCls}`}>{stLabel}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -356,7 +357,7 @@ const RecruitmentPage = () => {
                   )}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500 flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5" /> {count} candidat{count !== 1 ? 's' : ''}
+                      <Users className="w-3.5 h-3.5" /> {t('recruitment.positions.candidateCount', { count })}
                     </span>
                     {(pos.salary_min || pos.salary_max) && (
                       <span className="text-orange-400 font-medium">
@@ -367,18 +368,12 @@ const RecruitmentPage = () => {
                   </div>
                   {pos.employment_type && (
                     <span className="inline-block text-xs text-gray-500 bg-white/5 border border-white/10 rounded px-2 py-0.5">
-                      {pos.employment_type === 'full_time'
-                        ? 'Temps plein'
-                        : pos.employment_type === 'part_time'
-                          ? 'Temps partiel'
-                          : pos.employment_type === 'contract'
-                            ? 'CDD'
-                            : pos.employment_type === 'internship'
-                              ? 'Stage'
-                              : pos.employment_type}
+                      {t(`recruitment.employmentType.${pos.employment_type}`, { defaultValue: pos.employment_type })}
                     </span>
                   )}
-                  <p className="text-xs text-gray-600">Créé le {formatDate(pos.created_at)}</p>
+                  <p className="text-xs text-gray-600">
+                    {t('recruitment.positions.createdAt', { date: formatDate(pos.created_at) })}
+                  </p>
                 </CardContent>
               </Card>
             );
@@ -393,27 +388,29 @@ const RecruitmentPage = () => {
   const renderPipeline = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Pipeline de recrutement</h3>
+        <h3 className="text-lg font-semibold text-white">{t('recruitment.pipeline.title')}</h3>
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Kanban className="w-4 h-4" />
-          {applications.length} candidature{applications.length !== 1 ? 's' : ''} au total
+          {t('recruitment.pipeline.total', { count: applications.length })}
         </div>
       </div>
 
       <div className="flex gap-3 overflow-x-auto pb-4 -mx-2 px-2">
-        {PIPELINE_STAGES.map((stage) => {
-          const stageApps = pipelineByStage[stage.key] || [];
-          const stageIdx = STAGE_ORDER.indexOf(stage.key);
+        {PIPELINE_STAGE_KEYS.map((stageKey) => {
+          const stageApps = pipelineByStage[stageKey] || [];
+          const stageIdx = PIPELINE_STAGE_KEYS.indexOf(stageKey);
+          const stageColor = PIPELINE_STAGE_COLORS[stageKey];
+          const stageLabel = t(`recruitment.stages.${stageKey}`);
           return (
             <div
-              key={stage.key}
+              key={stageKey}
               className="flex-shrink-0 w-72 rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur"
             >
               {/* column header */}
               <div className="flex items-center justify-between p-3 border-b border-white/10">
                 <div className="flex items-center gap-2">
-                  <span className={`inline-block w-2.5 h-2.5 rounded-full ${stage.color.split(' ')[0]}`} />
-                  <span className="text-sm font-medium text-white">{stage.label}</span>
+                  <span className={`inline-block w-2.5 h-2.5 rounded-full ${stageColor.split(' ')[0]}`} />
+                  <span className="text-sm font-medium text-white">{stageLabel}</span>
                 </div>
                 <span className="text-xs text-gray-500 bg-white/5 rounded-full px-2 py-0.5">{stageApps.length}</span>
               </div>
@@ -421,7 +418,7 @@ const RecruitmentPage = () => {
               {/* cards */}
               <div className="p-2 space-y-2 max-h-[520px] overflow-y-auto">
                 {stageApps.length === 0 ? (
-                  <p className="text-xs text-gray-600 text-center py-6">Aucune candidature</p>
+                  <p className="text-xs text-gray-600 text-center py-6">{t('recruitment.pipeline.noApplication')}</p>
                 ) : (
                   stageApps.map((app) => {
                     const cand = app.candidate;
@@ -434,10 +431,10 @@ const RecruitmentPage = () => {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="text-sm font-medium text-white">
-                              {cand?.first_name || ''} {cand?.last_name || 'Inconnu'}
+                              {cand?.first_name || ''} {cand?.last_name || t('recruitment.candidates.unknownCandidate')}
                             </p>
                             <p className="text-xs text-gray-400 truncate max-w-[180px]">
-                              {pos?.title || 'Poste non défini'}
+                              {pos?.title || t('recruitment.candidates.unknownPosition')}
                             </p>
                           </div>
                           {app.ai_score != null && (
@@ -454,7 +451,7 @@ const RecruitmentPage = () => {
                             className="h-7 px-2 text-gray-400 hover:text-white disabled:opacity-30"
                             disabled={stageIdx === 0}
                             onClick={() => handleMoveApp(app.id, 'backward')}
-                            title="Reculer"
+                            title={t('recruitment.pipeline.backward')}
                           >
                             <ChevronLeft className="w-4 h-4" />
                           </Button>
@@ -465,9 +462,9 @@ const RecruitmentPage = () => {
                             variant="ghost"
                             size="sm"
                             className="h-7 px-2 text-gray-400 hover:text-white disabled:opacity-30"
-                            disabled={stageIdx === STAGE_ORDER.length - 1}
+                            disabled={stageIdx === PIPELINE_STAGE_KEYS.length - 1}
                             onClick={() => handleMoveApp(app.id, 'forward')}
-                            title="Avancer"
+                            title={t('recruitment.pipeline.forward')}
                           >
                             <ChevronRight className="w-4 h-4" />
                           </Button>
@@ -492,7 +489,7 @@ const RecruitmentPage = () => {
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <Input
-            placeholder="Rechercher un candidat..."
+            placeholder={t('recruitment.candidates.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
@@ -503,14 +500,14 @@ const RecruitmentPage = () => {
           onClick={() => setCandidateDialog(true)}
           className="bg-orange-500 hover:bg-orange-600 text-white"
         >
-          <Plus className="w-4 h-4 mr-1.5" /> Nouveau candidat
+          <Plus className="w-4 h-4 mr-1.5" /> {t('recruitment.candidates.btnNew')}
         </Button>
       </div>
 
       {filteredCandidates.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>Aucun candidat trouvé</p>
+          <p>{t('recruitment.candidates.noCandidates')}</p>
         </div>
       ) : (
         <Card className="bg-white/5 border-white/10">
@@ -519,12 +516,12 @@ const RecruitmentPage = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/10 text-left text-gray-400">
-                    <th className="px-4 py-3 font-medium">Nom</th>
-                    <th className="px-4 py-3 font-medium">Email</th>
-                    <th className="px-4 py-3 font-medium">Téléphone</th>
-                    <th className="px-4 py-3 font-medium">Source</th>
-                    <th className="px-4 py-3 font-medium text-center">Candidatures</th>
-                    <th className="px-4 py-3 font-medium">Ajouté</th>
+                    <th className="px-4 py-3 font-medium">{t('recruitment.candidates.colName')}</th>
+                    <th className="px-4 py-3 font-medium">{t('recruitment.candidates.colEmail')}</th>
+                    <th className="px-4 py-3 font-medium">{t('recruitment.candidates.colPhone')}</th>
+                    <th className="px-4 py-3 font-medium">{t('recruitment.candidates.colSource')}</th>
+                    <th className="px-4 py-3 font-medium text-center">{t('recruitment.candidates.colApplications')}</th>
+                    <th className="px-4 py-3 font-medium">{t('recruitment.candidates.colAdded')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -566,7 +563,7 @@ const RecruitmentPage = () => {
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <Input
-            placeholder="Rechercher un entretien..."
+            placeholder={t('recruitment.interviews.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
@@ -577,23 +574,24 @@ const RecruitmentPage = () => {
           onClick={() => setInterviewDialog(true)}
           className="bg-orange-500 hover:bg-orange-600 text-white"
         >
-          <Plus className="w-4 h-4 mr-1.5" /> Planifier entretien
+          <Plus className="w-4 h-4 mr-1.5" /> {t('recruitment.interviews.btnSchedule')}
         </Button>
       </div>
 
       {filteredInterviews.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <Calendar className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>Aucun entretien planifié</p>
+          <p>{t('recruitment.interviews.noInterviews')}</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filteredInterviews.map((iv) => {
             const cand = iv.application?.candidate;
             const pos = iv.application?.position;
-            const typeConf = INTERVIEW_TYPE_MAP[iv.interview_type] || INTERVIEW_TYPE_MAP.video;
-            const statusConf = INTERVIEW_STATUS_MAP[iv.status] || INTERVIEW_STATUS_MAP.scheduled;
-            const TypeIcon = typeConf.icon;
+            const TypeIcon = INTERVIEW_TYPE_ICONS[iv.interview_type] || INTERVIEW_TYPE_ICONS.video;
+            const typeLabel = t(`recruitment.interviewType.${iv.interview_type}`, { defaultValue: iv.interview_type });
+            const statusLabel = t(`recruitment.interviewStatus.${iv.status}`, { defaultValue: iv.status });
+            const statusCls = INTERVIEW_STATUS_CLS[iv.status] || INTERVIEW_STATUS_CLS.scheduled;
             return (
               <Card key={iv.id} className="bg-white/5 border-white/10 hover:border-orange-500/30 transition-colors">
                 <CardContent className="p-4">
@@ -604,27 +602,29 @@ const RecruitmentPage = () => {
                       </div>
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-white">
-                          {cand?.first_name || ''} {cand?.last_name || 'Candidat inconnu'}
+                          {cand?.first_name || ''} {cand?.last_name || t('recruitment.interviews.unknownCandidate')}
                         </p>
-                        <p className="text-xs text-gray-400">{pos?.title || 'Poste non défini'}</p>
+                        <p className="text-xs text-gray-400">
+                          {pos?.title || t('recruitment.interviews.unknownPosition')}
+                        </p>
                         <div className="flex items-center gap-3 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" /> {formatDateTime(iv.scheduled_at)}
                           </span>
                           <span className="flex items-center gap-1">
-                            <TypeIcon className="w-3 h-3" /> {typeConf.label}
+                            <TypeIcon className="w-3 h-3" /> {typeLabel}
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <RatingStars rating={iv.rating} />
-                      <Badge className={`text-xs border ${statusConf.cls}`}>{statusConf.label}</Badge>
+                      <Badge className={`text-xs border ${statusCls}`}>{statusLabel}</Badge>
                     </div>
                   </div>
                   {iv.interviewer && (
                     <p className="mt-2 text-xs text-gray-500">
-                      Interviewer :{' '}
+                      {t('recruitment.interviews.interviewer')}{' '}
                       {iv.interviewer.full_name ||
                         `${iv.interviewer.first_name || ''} ${iv.interviewer.last_name || ''}`}
                     </p>
@@ -654,7 +654,7 @@ const RecruitmentPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
-        <div className="animate-pulse text-gray-400">Chargement du module ATS...</div>
+        <div className="animate-pulse text-gray-400">{t('recruitment.loading')}</div>
       </div>
     );
   }
@@ -662,17 +662,15 @@ const RecruitmentPage = () => {
   return (
     <div className="min-h-screen bg-[#0a0e1a]">
       <Helmet>
-        <title>Recrutement ATS | CashPilot</title>
+        <title>{t('recruitment.helmetTitle')}</title>
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">Recrutement ATS</h1>
-            <p className="text-sm text-gray-400 mt-1">
-              Gérez vos postes, candidatures et entretiens en un seul endroit.
-            </p>
+            <h1 className="text-2xl font-bold text-white">{t('recruitment.pageTitle')}</h1>
+            <p className="text-sm text-gray-400 mt-1">{t('recruitment.pageSubtitle')}</p>
           </div>
         </div>
 
@@ -680,7 +678,7 @@ const RecruitmentPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400">Postes ouverts</CardTitle>
+              <CardTitle className="text-sm text-gray-400">{t('recruitment.kpi.openPositions')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-white">{stats.openPositions}</p>
@@ -688,7 +686,7 @@ const RecruitmentPage = () => {
           </Card>
           <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400">Candidats</CardTitle>
+              <CardTitle className="text-sm text-gray-400">{t('recruitment.kpi.candidates')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-white">{stats.totalCandidates}</p>
@@ -696,7 +694,7 @@ const RecruitmentPage = () => {
           </Card>
           <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400">En pipeline</CardTitle>
+              <CardTitle className="text-sm text-gray-400">{t('recruitment.kpi.inPipeline')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-orange-400">{stats.inPipeline}</p>
@@ -704,7 +702,7 @@ const RecruitmentPage = () => {
           </Card>
           <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400">Embauchés</CardTitle>
+              <CardTitle className="text-sm text-gray-400">{t('recruitment.kpi.hired')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-emerald-400">{stats.hired}</p>
@@ -716,17 +714,17 @@ const RecruitmentPage = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-[#10192d]/95 p-2">
             {[
-              { key: 'positions', label: 'Postes ouverts', icon: Briefcase },
-              { key: 'pipeline', label: 'Pipeline', icon: Kanban },
-              { key: 'candidates', label: 'Candidats', icon: Users },
-              { key: 'interviews', label: 'Entretiens', icon: Calendar },
-            ].map(({ key, label, icon: Icon }) => (
+              { key: 'positions', icon: Briefcase },
+              { key: 'pipeline', icon: Kanban },
+              { key: 'candidates', icon: Users },
+              { key: 'interviews', icon: Calendar },
+            ].map(({ key, icon: Icon }) => (
               <TabsTrigger
                 key={key}
                 value={key}
                 className="min-w-max shrink-0 rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white data-[state=active]:border-orange-400/30 data-[state=active]:bg-orange-500/12 data-[state=active]:text-orange-300 data-[state=active]:shadow-[inset_0_0_0_1px_rgba(251,146,60,0.12)]"
               >
-                <Icon className="w-4 h-4 mr-1.5" /> {label}
+                <Icon className="w-4 h-4 mr-1.5" /> {t(`recruitment.tabs.${key}`)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -744,21 +742,21 @@ const RecruitmentPage = () => {
       <Dialog open={positionDialog} onOpenChange={setPositionDialog}>
         <DialogContent className="sm:max-w-lg bg-[#0f1528] border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>Nouveau poste</DialogTitle>
+            <DialogTitle>{t('recruitment.dialogs.newPosition.title')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-gray-300">Titre du poste *</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.newPosition.labelTitle')}</Label>
               <Input
                 value={positionForm.title}
                 onChange={(e) => setPositionForm((f) => ({ ...f, title: e.target.value }))}
                 className="bg-white/5 border-white/10 text-white mt-1"
-                placeholder="Développeur Full-Stack"
+                placeholder={t('recruitment.dialogs.newPosition.placeholderTitle')}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-gray-300">Département</Label>
+                <Label className="text-gray-300">{t('recruitment.dialogs.newPosition.labelDepartment')}</Label>
                 <Input
                   value={positionForm.department}
                   onChange={(e) => setPositionForm((f) => ({ ...f, department: e.target.value }))}
@@ -767,18 +765,18 @@ const RecruitmentPage = () => {
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Localisation</Label>
+                <Label className="text-gray-300">{t('recruitment.dialogs.newPosition.labelLocation')}</Label>
                 <Input
                   value={positionForm.location}
                   onChange={(e) => setPositionForm((f) => ({ ...f, location: e.target.value }))}
                   className="bg-white/5 border-white/10 text-white mt-1"
-                  placeholder="Paris"
+                  placeholder={t('recruitment.dialogs.newPosition.placeholderLocation')}
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-gray-300">Salaire min</Label>
+                <Label className="text-gray-300">{t('recruitment.dialogs.newPosition.labelSalaryMin')}</Label>
                 <Input
                   type="number"
                   value={positionForm.salary_min}
@@ -788,7 +786,7 @@ const RecruitmentPage = () => {
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Salaire max</Label>
+                <Label className="text-gray-300">{t('recruitment.dialogs.newPosition.labelSalaryMax')}</Label>
                 <Input
                   type="number"
                   value={positionForm.salary_max}
@@ -800,7 +798,7 @@ const RecruitmentPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-gray-300">Type de contrat</Label>
+                <Label className="text-gray-300">{t('recruitment.dialogs.newPosition.labelEmploymentType')}</Label>
                 <Select
                   value={positionForm.employment_type}
                   onValueChange={(v) => setPositionForm((f) => ({ ...f, employment_type: v }))}
@@ -809,16 +807,16 @@ const RecruitmentPage = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="full_time">Temps plein</SelectItem>
-                    <SelectItem value="part_time">Temps partiel</SelectItem>
-                    <SelectItem value="contract">CDD</SelectItem>
-                    <SelectItem value="internship">Stage</SelectItem>
-                    <SelectItem value="freelance">Freelance</SelectItem>
+                    <SelectItem value="full_time">{t('recruitment.employmentType.full_time')}</SelectItem>
+                    <SelectItem value="part_time">{t('recruitment.employmentType.part_time')}</SelectItem>
+                    <SelectItem value="contract">{t('recruitment.employmentType.contract')}</SelectItem>
+                    <SelectItem value="internship">{t('recruitment.employmentType.internship')}</SelectItem>
+                    <SelectItem value="freelance">{t('recruitment.employmentType.freelance')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-gray-300">Statut</Label>
+                <Label className="text-gray-300">{t('recruitment.dialogs.newPosition.labelStatus')}</Label>
                 <Select
                   value={positionForm.status}
                   onValueChange={(v) => setPositionForm((f) => ({ ...f, status: v }))}
@@ -827,35 +825,35 @@ const RecruitmentPage = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="open">Ouvert</SelectItem>
-                    <SelectItem value="draft">Brouillon</SelectItem>
-                    <SelectItem value="on_hold">En pause</SelectItem>
-                    <SelectItem value="closed">Fermé</SelectItem>
+                    <SelectItem value="open">{t('recruitment.positionStatus.open')}</SelectItem>
+                    <SelectItem value="draft">{t('recruitment.positionStatus.draft')}</SelectItem>
+                    <SelectItem value="on_hold">{t('recruitment.positionStatus.on_hold')}</SelectItem>
+                    <SelectItem value="closed">{t('recruitment.positionStatus.closed')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div>
-              <Label className="text-gray-300">Description</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.newPosition.labelDescription')}</Label>
               <Textarea
                 value={positionForm.description}
                 onChange={(e) => setPositionForm((f) => ({ ...f, description: e.target.value }))}
                 className="bg-white/5 border-white/10 text-white mt-1"
                 rows={3}
-                placeholder="Description du poste..."
+                placeholder={t('recruitment.dialogs.newPosition.placeholderDescription')}
               />
             </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={() => setPositionDialog(false)} className="text-gray-400">
-              Annuler
+              {t('recruitment.dialogs.newPosition.btnCancel')}
             </Button>
             <Button
               onClick={handleCreatePosition}
               disabled={!positionForm.title.trim()}
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
-              Créer
+              {t('recruitment.dialogs.newPosition.btnCreate')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -865,12 +863,12 @@ const RecruitmentPage = () => {
       <Dialog open={candidateDialog} onOpenChange={setCandidateDialog}>
         <DialogContent className="sm:max-w-md bg-[#0f1528] border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>Nouveau candidat</DialogTitle>
+            <DialogTitle>{t('recruitment.dialogs.newCandidate.title')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-gray-300">Prénom *</Label>
+                <Label className="text-gray-300">{t('recruitment.dialogs.newCandidate.labelFirstName')}</Label>
                 <Input
                   value={candidateForm.first_name}
                   onChange={(e) => setCandidateForm((f) => ({ ...f, first_name: e.target.value }))}
@@ -878,7 +876,7 @@ const RecruitmentPage = () => {
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Nom *</Label>
+                <Label className="text-gray-300">{t('recruitment.dialogs.newCandidate.labelLastName')}</Label>
                 <Input
                   value={candidateForm.last_name}
                   onChange={(e) => setCandidateForm((f) => ({ ...f, last_name: e.target.value }))}
@@ -887,7 +885,7 @@ const RecruitmentPage = () => {
               </div>
             </div>
             <div>
-              <Label className="text-gray-300">Email</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.newCandidate.labelEmail')}</Label>
               <Input
                 type="email"
                 value={candidateForm.email}
@@ -896,7 +894,7 @@ const RecruitmentPage = () => {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Téléphone</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.newCandidate.labelPhone')}</Label>
               <Input
                 value={candidateForm.phone}
                 onChange={(e) => setCandidateForm((f) => ({ ...f, phone: e.target.value }))}
@@ -904,7 +902,7 @@ const RecruitmentPage = () => {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Source</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.newCandidate.labelSource')}</Label>
               <Select
                 value={candidateForm.source}
                 onValueChange={(v) => setCandidateForm((f) => ({ ...f, source: v }))}
@@ -913,17 +911,17 @@ const RecruitmentPage = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="website">Site web</SelectItem>
-                  <SelectItem value="linkedin">LinkedIn</SelectItem>
-                  <SelectItem value="referral">Cooptation</SelectItem>
-                  <SelectItem value="job_board">Job board</SelectItem>
-                  <SelectItem value="agency">Cabinet</SelectItem>
-                  <SelectItem value="other">Autre</SelectItem>
+                  <SelectItem value="website">{t('recruitment.candidateSource.website')}</SelectItem>
+                  <SelectItem value="linkedin">{t('recruitment.candidateSource.linkedin')}</SelectItem>
+                  <SelectItem value="referral">{t('recruitment.candidateSource.referral')}</SelectItem>
+                  <SelectItem value="job_board">{t('recruitment.candidateSource.job_board')}</SelectItem>
+                  <SelectItem value="agency">{t('recruitment.candidateSource.agency')}</SelectItem>
+                  <SelectItem value="other">{t('recruitment.candidateSource.other')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-gray-300">Notes</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.newCandidate.labelNotes')}</Label>
               <Textarea
                 value={candidateForm.notes}
                 onChange={(e) => setCandidateForm((f) => ({ ...f, notes: e.target.value }))}
@@ -934,14 +932,14 @@ const RecruitmentPage = () => {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={() => setCandidateDialog(false)} className="text-gray-400">
-              Annuler
+              {t('recruitment.dialogs.newCandidate.btnCancel')}
             </Button>
             <Button
               onClick={handleCreateCandidate}
               disabled={!candidateForm.first_name.trim() || !candidateForm.last_name.trim()}
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
-              Ajouter
+              {t('recruitment.dialogs.newCandidate.btnAdd')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -951,17 +949,17 @@ const RecruitmentPage = () => {
       <Dialog open={applyDialog} onOpenChange={setApplyDialog}>
         <DialogContent className="sm:max-w-md bg-[#0f1528] border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>Nouvelle candidature</DialogTitle>
+            <DialogTitle>{t('recruitment.dialogs.newApplication.title')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-gray-300">Candidat *</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.newApplication.labelCandidate')}</Label>
               <Select
                 value={applyForm.candidate_id}
                 onValueChange={(v) => setApplyForm((f) => ({ ...f, candidate_id: v }))}
               >
                 <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
-                  <SelectValue placeholder="Sélectionner un candidat" />
+                  <SelectValue placeholder={t('recruitment.dialogs.newApplication.placeholderCandidate')} />
                 </SelectTrigger>
                 <SelectContent>
                   {candidates.map((c) => (
@@ -973,13 +971,13 @@ const RecruitmentPage = () => {
               </Select>
             </div>
             <div>
-              <Label className="text-gray-300">Poste *</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.newApplication.labelPosition')}</Label>
               <Select
                 value={applyForm.position_id}
                 onValueChange={(v) => setApplyForm((f) => ({ ...f, position_id: v }))}
               >
                 <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
-                  <SelectValue placeholder="Sélectionner un poste" />
+                  <SelectValue placeholder={t('recruitment.dialogs.newApplication.placeholderPosition')} />
                 </SelectTrigger>
                 <SelectContent>
                   {positions
@@ -995,14 +993,14 @@ const RecruitmentPage = () => {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={() => setApplyDialog(false)} className="text-gray-400">
-              Annuler
+              {t('recruitment.dialogs.newApplication.btnCancel')}
             </Button>
             <Button
               onClick={handleApply}
               disabled={!applyForm.candidate_id || !applyForm.position_id}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
-              Candidater
+              {t('recruitment.dialogs.newApplication.btnApply')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1012,17 +1010,17 @@ const RecruitmentPage = () => {
       <Dialog open={interviewDialog} onOpenChange={setInterviewDialog}>
         <DialogContent className="sm:max-w-md bg-[#0f1528] border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>Planifier un entretien</DialogTitle>
+            <DialogTitle>{t('recruitment.dialogs.scheduleInterview.title')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-gray-300">Candidature *</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.scheduleInterview.labelApplication')}</Label>
               <Select
                 value={interviewForm.application_id}
                 onValueChange={(v) => setInterviewForm((f) => ({ ...f, application_id: v }))}
               >
                 <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
-                  <SelectValue placeholder="Sélectionner une candidature" />
+                  <SelectValue placeholder={t('recruitment.dialogs.scheduleInterview.placeholderApplication')} />
                 </SelectTrigger>
                 <SelectContent>
                   {applications.map((app) => (
@@ -1035,7 +1033,7 @@ const RecruitmentPage = () => {
               </Select>
             </div>
             <div>
-              <Label className="text-gray-300">Type *</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.scheduleInterview.labelType')}</Label>
               <Select
                 value={interviewForm.interview_type}
                 onValueChange={(v) => setInterviewForm((f) => ({ ...f, interview_type: v }))}
@@ -1044,15 +1042,15 @@ const RecruitmentPage = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="phone">Téléphone</SelectItem>
-                  <SelectItem value="video">Vidéo</SelectItem>
-                  <SelectItem value="onsite">Sur site</SelectItem>
-                  <SelectItem value="technical">Technique</SelectItem>
+                  <SelectItem value="phone">{t('recruitment.interviewType.phone')}</SelectItem>
+                  <SelectItem value="video">{t('recruitment.interviewType.video')}</SelectItem>
+                  <SelectItem value="onsite">{t('recruitment.interviewType.onsite')}</SelectItem>
+                  <SelectItem value="technical">{t('recruitment.interviewType.technical')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-gray-300">Date et heure *</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.scheduleInterview.labelDateTime')}</Label>
               <Input
                 type="datetime-local"
                 value={interviewForm.scheduled_at}
@@ -1061,7 +1059,7 @@ const RecruitmentPage = () => {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Notes</Label>
+              <Label className="text-gray-300">{t('recruitment.dialogs.scheduleInterview.labelNotes')}</Label>
               <Textarea
                 value={interviewForm.notes}
                 onChange={(e) => setInterviewForm((f) => ({ ...f, notes: e.target.value }))}
@@ -1072,14 +1070,14 @@ const RecruitmentPage = () => {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={() => setInterviewDialog(false)} className="text-gray-400">
-              Annuler
+              {t('recruitment.dialogs.scheduleInterview.btnCancel')}
             </Button>
             <Button
               onClick={handleScheduleInterview}
               disabled={!interviewForm.application_id || !interviewForm.scheduled_at}
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
-              Planifier
+              {t('recruitment.dialogs.scheduleInterview.btnSchedule')}
             </Button>
           </DialogFooter>
         </DialogContent>
