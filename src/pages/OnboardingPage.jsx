@@ -101,9 +101,10 @@ const OnboardingPage = () => {
   const stats = useMemo(() => {
     const active = onboardingPlans.filter((p) => p.status === 'active').length;
     const completed = onboardingPlans.filter((p) => p.status === 'completed').length;
+    // DB column is `completion_pct` (not `progress_pct`) — BUG-1 fix
     const avgProgress =
       onboardingPlans.length > 0
-        ? Math.round(onboardingPlans.reduce((s, p) => s + (p.progress_pct || 0), 0) / onboardingPlans.length)
+        ? Math.round(onboardingPlans.reduce((s, p) => s + (p.completion_pct || 0), 0) / onboardingPlans.length)
         : 0;
     return { active, completed, avgProgress, total: onboardingPlans.length };
   }, [onboardingPlans]);
@@ -128,7 +129,8 @@ const OnboardingPage = () => {
         .split('\n')
         .map((l) => l.trim())
         .filter(Boolean);
-      const tasks = taskLines.map((label, i) => ({
+      // DB column is `checklist` (not `tasks`) — BUG-1 fix
+      const checklist = taskLines.map((label, i) => ({
         label,
         completed: false,
         order: i,
@@ -140,7 +142,7 @@ const OnboardingPage = () => {
         plan_name: newPlanForm.plan_name || `Onboarding ${formatDate(new Date().toISOString())}`,
         start_date: newPlanForm.start_date || new Date().toISOString().slice(0, 10),
         duration_days: Number(newPlanForm.duration_days) || 30,
-        tasks,
+        checklist,
       });
 
       setCreateDialog(false);
@@ -163,7 +165,8 @@ const OnboardingPage = () => {
     if (!selectedPlan) return null;
     const emp = selectedPlan.employee;
     const mentor = selectedPlan.mentor;
-    const tasks = Array.isArray(selectedPlan.tasks) ? selectedPlan.tasks : [];
+    // DB column is `checklist` (not `tasks`) — BUG-1 fix
+    const tasks = Array.isArray(selectedPlan.checklist) ? selectedPlan.checklist : [];
     const daysLeft = getDaysRemaining(selectedPlan);
     const stCls = STATUS_CLS[selectedPlan.status] || STATUS_CLS.active;
     const stLabel = getStatusLabel(selectedPlan.status);
@@ -215,9 +218,10 @@ const OnboardingPage = () => {
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-gray-400">
                 <span>{t('employee.onboarding.progress', 'Progression')}</span>
-                <span className="text-orange-400 font-semibold">{selectedPlan.progress_pct || 0}%</span>
+                {/* DB column is `completion_pct` (not `progress_pct`) — BUG-1 fix */}
+                <span className="text-orange-400 font-semibold">{selectedPlan.completion_pct || 0}%</span>
               </div>
-              <Progress value={selectedPlan.progress_pct || 0} className="h-2 bg-white/10" />
+              <Progress value={selectedPlan.completion_pct || 0} className="h-2 bg-white/10" />
             </div>
           </CardContent>
         </Card>
@@ -322,7 +326,8 @@ const OnboardingPage = () => {
             const emp = plan.employee;
             const mentor = plan.mentor;
             const daysLeft = getDaysRemaining(plan);
-            const tasks = Array.isArray(plan.tasks) ? plan.tasks : [];
+            // DB column is `checklist` (not `tasks`) — BUG-1 fix
+            const tasks = Array.isArray(plan.checklist) ? plan.checklist : [];
             const completedTasks = tasks.filter((tk) => tk.completed).length;
             const stCls = STATUS_CLS[plan.status] || STATUS_CLS.active;
             const stLabel = getStatusLabel(plan.status);
@@ -360,9 +365,9 @@ const OnboardingPage = () => {
                       <span className="text-gray-500">
                         {completedTasks}/{tasks.length} {t('employee.onboarding.tasks', 'tâches')}
                       </span>
-                      <span className="text-orange-400 font-semibold">{plan.progress_pct || 0}%</span>
+                      <span className="text-orange-400 font-semibold">{plan.completion_pct || 0}%</span>
                     </div>
-                    <Progress value={plan.progress_pct || 0} className="h-1.5 bg-white/10" />
+                    <Progress value={plan.completion_pct || 0} className="h-1.5 bg-white/10" />
                   </div>
 
                   {/* Days remaining */}

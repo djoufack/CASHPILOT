@@ -19,6 +19,8 @@ const ClientProfile = () => {
   const client = clients.find((c) => c.id === id);
   const clientInvoices = invoices.filter((inv) => inv.client_id === id);
 
+  // Use total_ttc (canonical DB field) instead of total (undefined on DB rows)
+  // Check both payment_status and status to cover all invoice states (ENF-1)
   const totalRevenue = clientInvoices
     .filter((inv) => inv.payment_status === 'paid' || inv.status === 'paid')
     .reduce((sum, inv) => sum + (inv.total_ttc || 0), 0);
@@ -230,10 +232,10 @@ const ClientProfile = () => {
                       className={`text-xs ${
                         inv.payment_status === 'paid' || inv.status === 'paid'
                           ? 'bg-green-500/10 text-green-400'
-                          : inv.status === 'sent'
-                            ? 'bg-blue-500/10 text-blue-400'
-                            : inv.payment_status === 'overdue' || inv.status === 'overdue'
-                              ? 'bg-red-500/10 text-red-400'
+                          : inv.payment_status === 'overdue' || inv.status === 'overdue'
+                            ? 'bg-red-500/10 text-red-400'
+                            : inv.status === 'sent'
+                              ? 'bg-blue-500/10 text-blue-400'
                               : 'bg-gray-500/10 text-gray-400'
                       }`}
                     >
