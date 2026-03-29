@@ -5,7 +5,8 @@ import { defineConfig } from 'vite';
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
   esbuild: {
-    pure: mode === 'production' ? ['console.log', 'console.warn', 'console.debug', 'console.info'] : [],
+    pure:
+      mode === 'production' ? ['console.log', 'console.warn', 'console.debug', 'console.info', 'console.error'] : [],
   },
   server: {
     port: 3000,

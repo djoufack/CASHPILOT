@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { ArrowLeft, ArrowRight, FileText, Upload, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const PLAN_META = {
@@ -146,15 +146,24 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
 
   const parseExcelFile = async (file) => {
     const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array' });
-    const firstSheetName = workbook.SheetNames?.[0];
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const worksheet = workbook.worksheets[0];
 
-    if (!firstSheetName) {
+    if (!worksheet) {
       throw new Error('Le fichier Excel ne contient aucune feuille exploitable.');
     }
 
-    const worksheet = workbook.Sheets[firstSheetName];
-    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: false });
+    const rows = [];
+    worksheet.eachRow({ includeEmpty: false }, (row) => {
+      const rowData = [];
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        let val = cell.value;
+        if (val && typeof val === 'object' && val.result !== undefined) val = val.result;
+        rowData[cell.col - 1] = val ?? '';
+      });
+      if (rowData.some((v) => v !== '')) rows.push(rowData);
+    });
     return mapRowsToAccounts(rows);
   };
 

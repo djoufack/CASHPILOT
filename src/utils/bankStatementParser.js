@@ -1,11 +1,10 @@
-
 /**
  * Bank Statement Parser — PDF, Excel, CSV
  * Extracts transaction lines from bank statement files.
  * Returns a uniform ParsedStatement structure regardless of input format.
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { formatDateInput } from '@/utils/dateFormatting';
 
 // ============================================================================
@@ -13,8 +12,8 @@ import { formatDateInput } from '@/utils/dateFormatting';
 // ============================================================================
 
 const DATE_PATTERNS = [
-  /(\d{2})[\/\-.](\d{2})[\/\-.](\d{4})/,  // DD/MM/YYYY
-  /(\d{2})[\/\-.](\d{2})[\/\-.](\d{2})/,   // DD/MM/YY
+  /(\d{2})[\/\-.](\d{2})[\/\-.](\d{4})/, // DD/MM/YYYY
+  /(\d{2})[\/\-.](\d{2})[\/\-.](\d{2})/, // DD/MM/YY
 ];
 
 /**
@@ -42,7 +41,9 @@ export function parseFrenchDate(str) {
       if (year.length === 2) {
         year = parseInt(year) > 50 ? `19${year}` : `20${year}`;
       }
-      const d = parseInt(day), m = parseInt(month), y = parseInt(year);
+      const d = parseInt(day),
+        m = parseInt(month),
+        y = parseInt(year);
       if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 1900 && y <= 2100) {
         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       }
@@ -96,14 +97,49 @@ export function parseFrenchAmount(str) {
 // ============================================================================
 
 const BANK_COLUMN_ALIASES = {
-  date: ['date', 'date_operation', 'date_op', 'date_comptable', 'date opération', 'date comptable', 'date operation', 'dt_op', 'date_mouvement'],
+  date: [
+    'date',
+    'date_operation',
+    'date_op',
+    'date_comptable',
+    'date opération',
+    'date comptable',
+    'date operation',
+    'dt_op',
+    'date_mouvement',
+  ],
   value_date: ['date_valeur', 'date valeur', 'value_date', 'dt_val', 'date de valeur'],
-  description: ['libelle', 'libellé', 'description', 'label', 'intitule', 'intitulé', 'operation', 'opération', 'motif', 'communication', 'libellé opération', 'libelle operation', 'détail', 'detail'],
+  description: [
+    'libelle',
+    'libellé',
+    'description',
+    'label',
+    'intitule',
+    'intitulé',
+    'operation',
+    'opération',
+    'motif',
+    'communication',
+    'libellé opération',
+    'libelle operation',
+    'détail',
+    'detail',
+  ],
   reference: ['reference', 'référence', 'ref', 'num_operation', 'n° opération', 'numero', 'numéro', 'ref_operation'],
   debit: ['debit', 'débit', 'montant_debit', 'sortie', 'retrait', 'debit (eur)', 'débit (eur)', 'montant débit'],
-  credit: ['credit', 'crédit', 'montant_credit', 'entree', 'entrée', 'versement', 'credit (eur)', 'crédit (eur)', 'montant crédit'],
+  credit: [
+    'credit',
+    'crédit',
+    'montant_credit',
+    'entree',
+    'entrée',
+    'versement',
+    'credit (eur)',
+    'crédit (eur)',
+    'montant crédit',
+  ],
   amount: ['montant', 'amount', 'somme', 'valeur', 'montant (eur)', 'montant eur'],
-  balance: ['solde', 'balance', 'solde_apres', 'solde après', 'solde comptable', 'solde (eur)']
+  balance: ['solde', 'balance', 'solde_apres', 'solde après', 'solde comptable', 'solde (eur)'],
 };
 
 /**
@@ -111,18 +147,25 @@ const BANK_COLUMN_ALIASES = {
  */
 function mapBankColumns(headers) {
   const mapping = {};
-  const normalizedHeaders = headers.map(h =>
-    String(h || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const normalizedHeaders = headers.map((h) =>
+    String(h || '')
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
   );
 
   for (const [standardName, aliases] of Object.entries(BANK_COLUMN_ALIASES)) {
-    const normalizedAliases = aliases.map(a =>
-      a.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    const normalizedAliases = aliases.map((a) =>
+      a
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
     );
 
     for (let i = 0; i < normalizedHeaders.length; i++) {
       const header = normalizedHeaders[i];
-      if (normalizedAliases.some(alias => header === alias || header.includes(alias))) {
+      if (normalizedAliases.some((alias) => header === alias || header.includes(alias))) {
         if (!mapping[standardName]) {
           mapping[standardName] = i;
         }
@@ -138,14 +181,34 @@ function mapBankColumns(headers) {
  * Detect header row in an array of rows (scan first 15 rows)
  */
 function detectHeaderRow(rows, maxScan = 15) {
-  const keywords = ['date', 'libelle', 'libellé', 'montant', 'debit', 'débit', 'credit', 'crédit', 'description', 'amount', 'solde', 'balance', 'operation', 'opération'];
+  const keywords = [
+    'date',
+    'libelle',
+    'libellé',
+    'montant',
+    'debit',
+    'débit',
+    'credit',
+    'crédit',
+    'description',
+    'amount',
+    'solde',
+    'balance',
+    'operation',
+    'opération',
+  ];
 
   for (let i = 0; i < Math.min(rows.length, maxScan); i++) {
     const row = rows[i];
     if (!row || !Array.isArray(row)) continue;
 
-    const cellTexts = row.map(c => String(c || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
-    const matchCount = cellTexts.filter(t => keywords.some(k => t.includes(k))).length;
+    const cellTexts = row.map((c) =>
+      String(c || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+    );
+    const matchCount = cellTexts.filter((t) => keywords.some((k) => t.includes(k))).length;
 
     if (matchCount >= 2) {
       return i;
@@ -179,21 +242,38 @@ function normalizeAmount(debit, credit, amount) {
 export async function parseBankStatementExcel(file) {
   const errors = [];
   const lines = [];
-  const metadata = { bankName: null, accountNumber: null, periodStart: null, periodEnd: null, openingBalance: null, closingBalance: null };
+  const metadata = {
+    bankName: null,
+    accountNumber: null,
+    periodStart: null,
+    periodEnd: null,
+    openingBalance: null,
+    closingBalance: null,
+  };
 
   try {
     const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
 
     // Pick best sheet
-    const sheetNames = workbook.SheetNames;
     const targetNames = ['opérations', 'operations', 'relevé', 'releve', 'mouvements', 'compte', 'extrait'];
-    let sheetName = sheetNames.find(name =>
-      targetNames.some(t => name.toLowerCase().includes(t))
-    ) || sheetNames[0];
+    let worksheet =
+      workbook.worksheets.find((ws) => targetNames.some((t) => ws.name.toLowerCase().includes(t))) ||
+      workbook.worksheets[0];
 
-    const sheet = workbook.Sheets[sheetName];
-    const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    // Convert ExcelJS worksheet to array-of-arrays format
+    const rawRows = [];
+    worksheet.eachRow({ includeEmpty: true }, (row) => {
+      const rowData = [];
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        let val = cell.value;
+        if (val && typeof val === 'object' && val.result !== undefined) val = val.result;
+        if (val instanceof Date) val = val;
+        rowData[cell.col - 1] = val ?? '';
+      });
+      rawRows.push(rowData);
+    });
 
     if (rawRows.length < 2) {
       errors.push({ line: 0, message: 'Le fichier semble vide ou ne contient pas assez de lignes.' });
@@ -203,7 +283,11 @@ export async function parseBankStatementExcel(file) {
     // Detect header row
     const headerRowIdx = detectHeaderRow(rawRows);
     if (headerRowIdx === -1) {
-      errors.push({ line: 0, message: 'Impossible de détecter la ligne d\'en-tête. Vérifiez que le fichier contient des colonnes Date, Libellé, Montant.' });
+      errors.push({
+        line: 0,
+        message:
+          "Impossible de détecter la ligne d'en-tête. Vérifiez que le fichier contient des colonnes Date, Libellé, Montant.",
+      });
       return { lines, errors, metadata };
     }
 
@@ -224,7 +308,7 @@ export async function parseBankStatementExcel(file) {
     // Parse data rows
     for (let i = headerRowIdx + 1; i < rawRows.length; i++) {
       const row = rawRows[i];
-      if (!row || row.every(c => !c && c !== 0)) continue;
+      if (!row || row.every((c) => !c && c !== 0)) continue;
 
       const dateRaw = row[columnMap.date];
       let date;
@@ -272,13 +356,13 @@ export async function parseBankStatementExcel(file) {
         reference: reference || null,
         amount,
         balance,
-        rawData: Object.fromEntries(headers.map((h, idx) => [h, row[idx]]))
+        rawData: Object.fromEntries(headers.map((h, idx) => [h, row[idx]])),
       });
     }
 
     // Extract metadata from dates
     if (lines.length > 0) {
-      const dates = lines.map(l => l.date).sort();
+      const dates = lines.map((l) => l.date).sort();
       metadata.periodStart = dates[0];
       metadata.periodEnd = dates[dates.length - 1];
 
@@ -290,7 +374,6 @@ export async function parseBankStatementExcel(file) {
         metadata.closingBalance = lines[lines.length - 1].balance;
       }
     }
-
   } catch (err) {
     errors.push({ line: 0, message: `Erreur de lecture du fichier Excel : ${err.message}` });
   }
@@ -305,7 +388,14 @@ export async function parseBankStatementExcel(file) {
 export async function parseBankStatementPDF(file) {
   const errors = [];
   const lines = [];
-  const metadata = { bankName: null, accountNumber: null, periodStart: null, periodEnd: null, openingBalance: null, closingBalance: null };
+  const metadata = {
+    bankName: null,
+    accountNumber: null,
+    periodStart: null,
+    periodEnd: null,
+    openingBalance: null,
+    closingBalance: null,
+  };
 
   try {
     // Dynamic import to avoid bundling issues if pdfjs-dist not available
@@ -331,7 +421,7 @@ export async function parseBankStatementPDF(file) {
         if (!lineMap.has(y)) lineMap.set(y, []);
         lineMap.get(y).push({
           text: item.str,
-          x: item.transform[4] // X coordinate for ordering
+          x: item.transform[4], // X coordinate for ordering
         });
       }
 
@@ -339,7 +429,10 @@ export async function parseBankStatementPDF(file) {
       const sortedYs = [...lineMap.keys()].sort((a, b) => b - a);
       for (const y of sortedYs) {
         const items = lineMap.get(y).sort((a, b) => a.x - b.x);
-        const lineText = items.map(i => i.text).join(' ').trim();
+        const lineText = items
+          .map((i) => i.text)
+          .join(' ')
+          .trim();
         if (lineText) {
           allTextLines.push(lineText);
         }
@@ -349,7 +442,8 @@ export async function parseBankStatementPDF(file) {
     if (!hasTextLayer) {
       errors.push({
         line: 0,
-        message: 'Ce PDF semble être une image scannée et ne peut pas être lu automatiquement. Veuillez utiliser un export Excel de votre banque.'
+        message:
+          'Ce PDF semble être une image scannée et ne peut pas être lu automatiquement. Veuillez utiliser un export Excel de votre banque.',
       });
       return { lines, errors, metadata };
     }
@@ -383,13 +477,14 @@ export async function parseBankStatementPDF(file) {
     // Try to extract IBAN
     const ibanMatch = allTextLines.join(' ').match(/[A-Z]{2}\d{2}[\s]?[\d\s]{10,30}/);
     if (ibanMatch) {
-      metadata.accountNumber = ibanMatch[0].replace(/\s/g, '').slice(0, 4) + '****' + ibanMatch[0].replace(/\s/g, '').slice(-4);
+      metadata.accountNumber =
+        ibanMatch[0].replace(/\s/g, '').slice(0, 4) + '****' + ibanMatch[0].replace(/\s/g, '').slice(-4);
     }
 
     // Parse transaction lines using heuristics
     // A transaction line typically starts with a date DD/MM or DD/MM/YYYY
     const dateRegex = /^(\d{2}[\/\-\.]\d{2}(?:[\/\-\.]\d{2,4})?)/;
-    const amountRegex = /(-?\d[\d\s]*[.,]\d{2})\s*$/;
+    const _amountRegex = /(-?\d[\d\s]*[.,]\d{2})\s*$/;
 
     for (let i = 0; i < allTextLines.length; i++) {
       const line = allTextLines[i].trim();
@@ -467,21 +562,24 @@ export async function parseBankStatementPDF(file) {
         reference: null,
         amount: Math.round(amount * 100) / 100,
         balance: amounts.length >= 2 ? amounts[amounts.length - 1] : null,
-        rawData: { originalLine: line }
+        rawData: { originalLine: line },
       });
     }
 
     // Extract period metadata
     if (lines.length > 0) {
-      const dates = lines.map(l => l.date).sort();
+      const dates = lines.map((l) => l.date).sort();
       metadata.periodStart = dates[0];
       metadata.periodEnd = dates[dates.length - 1];
     }
 
     if (lines.length === 0) {
-      errors.push({ line: 0, message: 'Aucune opération bancaire détectée dans le PDF. Le format de ce relevé n\'est peut-être pas supporté. Essayez avec un export Excel.' });
+      errors.push({
+        line: 0,
+        message:
+          "Aucune opération bancaire détectée dans le PDF. Le format de ce relevé n'est peut-être pas supporté. Essayez avec un export Excel.",
+      });
     }
-
   } catch (err) {
     errors.push({ line: 0, message: `Erreur de lecture du PDF : ${err.message}` });
   }
@@ -496,7 +594,14 @@ export async function parseBankStatementPDF(file) {
 export async function parseBankStatementCSV(file) {
   const errors = [];
   const lines = [];
-  const metadata = { bankName: null, accountNumber: null, periodStart: null, periodEnd: null, openingBalance: null, closingBalance: null };
+  const metadata = {
+    bankName: null,
+    accountNumber: null,
+    periodStart: null,
+    periodEnd: null,
+    openingBalance: null,
+    closingBalance: null,
+  };
 
   try {
     const content = await file.text();
@@ -516,12 +621,15 @@ export async function parseBankStatementCSV(file) {
       }
     }
 
-    const allLines = cleaned.split('\n').map(l => l.trim()).filter(l => l);
-    const rows = allLines.map(l => l.split(bestDelimiter).map(c => c.replace(/^"|"$/g, '').trim()));
+    const allLines = cleaned
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l);
+    const rows = allLines.map((l) => l.split(bestDelimiter).map((c) => c.replace(/^"|"$/g, '').trim()));
 
     const headerRowIdx = detectHeaderRow(rows);
     if (headerRowIdx === -1) {
-      errors.push({ line: 0, message: 'Impossible de détecter la ligne d\'en-tête dans le CSV.' });
+      errors.push({ line: 0, message: "Impossible de détecter la ligne d'en-tête dans le CSV." });
       return { lines, errors, metadata };
     }
 
@@ -563,16 +671,15 @@ export async function parseBankStatementCSV(file) {
         reference,
         amount,
         balance,
-        rawData: Object.fromEntries(headers.map((h, idx) => [h, row[idx]]))
+        rawData: Object.fromEntries(headers.map((h, idx) => [h, row[idx]])),
       });
     }
 
     if (lines.length > 0) {
-      const dates = lines.map(l => l.date).sort();
+      const dates = lines.map((l) => l.date).sort();
       metadata.periodStart = dates[0];
       metadata.periodEnd = dates[dates.length - 1];
     }
-
   } catch (err) {
     errors.push({ line: 0, message: `Erreur de lecture du CSV : ${err.message}` });
   }
@@ -606,7 +713,7 @@ export async function parseBankStatement(file) {
   return {
     lines: [],
     errors: [{ line: 0, message: `Format de fichier non supporté : ${name}. Utilisez PDF, Excel (.xlsx) ou CSV.` }],
-    metadata: {}
+    metadata: {},
   };
 }
 
@@ -616,8 +723,8 @@ export async function parseBankStatement(file) {
 export function getBankStatementPreview(parsed, maxRows = 15) {
   const { lines, errors, metadata } = parsed;
 
-  const totalCredits = lines.filter(l => l.amount > 0).reduce((s, l) => s + l.amount, 0);
-  const totalDebits = lines.filter(l => l.amount < 0).reduce((s, l) => s + l.amount, 0);
+  const totalCredits = lines.filter((l) => l.amount > 0).reduce((s, l) => s + l.amount, 0);
+  const totalDebits = lines.filter((l) => l.amount < 0).reduce((s, l) => s + l.amount, 0);
 
   return {
     previewLines: lines.slice(0, maxRows),
@@ -628,6 +735,6 @@ export function getBankStatementPreview(parsed, maxRows = 15) {
     errorCount: errors.length,
     errors: errors.slice(0, 10),
     metadata,
-    hasMore: lines.length > maxRows
+    hasMore: lines.length > maxRows,
   };
 }

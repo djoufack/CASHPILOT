@@ -16,8 +16,15 @@ export default defineConfig({
     css: true,
     include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
     coverage: {
-      reporter: ['text', 'html'],
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
       exclude: ['node_modules/', 'src/test/'],
+      thresholds: {
+        branches: 60,
+        functions: 60,
+        lines: 60,
+        statements: 60,
+      },
     },
   },
 });

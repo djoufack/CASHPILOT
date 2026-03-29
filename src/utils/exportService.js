@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 /**
  * Export data to CSV format and trigger download
@@ -9,17 +9,19 @@ export const exportToCSV = (data, filename = 'export') => {
   const headers = Object.keys(data[0]);
   const csvContent = [
     headers.join(','),
-    ...data.map(row =>
-      headers.map(h => {
-        const val = row[h];
-        if (val === null || val === undefined) return '';
-        const str = String(val);
-        // Escape quotes and wrap in quotes if contains comma/newline/quote
-        if (str.includes(',') || str.includes('\n') || str.includes('"')) {
-          return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-      }).join(',')
+    ...data.map((row) =>
+      headers
+        .map((h) => {
+          const val = row[h];
+          if (val === null || val === undefined) return '';
+          const str = String(val);
+          // Escape quotes and wrap in quotes if contains comma/newline/quote
+          if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+          return str;
+        })
+        .join(',')
     ),
   ].join('\n');
 
@@ -30,24 +32,22 @@ export const exportToCSV = (data, filename = 'export') => {
 /**
  * Export data to Excel (XLSX) format and trigger download
  */
-export const exportToExcel = (data, filename = 'export', sheetName = 'Data') => {
+export const exportToExcel = async (data, filename = 'export', sheetName = 'Data') => {
   if (!data || data.length === 0) return;
 
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(sheetName);
 
-  // Auto-size columns
-  const colWidths = Object.keys(data[0]).map(key => {
-    const maxLen = Math.max(
-      key.length,
-      ...data.map(row => String(row[key] || '').length)
-    );
-    return { wch: Math.min(maxLen + 2, 50) };
+  const keys = Object.keys(data[0]);
+  worksheet.columns = keys.map((key) => {
+    const maxLen = Math.max(key.length, ...data.map((row) => String(row[key] || '').length));
+    return { header: key, key, width: Math.min(maxLen + 2, 50) };
   });
-  worksheet['!cols'] = colWidths;
 
-  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  worksheet.getRow(1).font = { bold: true };
+  data.forEach((row) => worksheet.addRow(row));
+
+  const excelBuffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   downloadBlob(blob, `${filename}.xlsx`);
 };
@@ -81,9 +81,9 @@ export const exportData = (data, filename, format = 'xlsx') => {
  * Prepare entity data for export (flatten nested objects, format dates)
  */
 export const prepareForExport = (items, columns) => {
-  return items.map(item => {
+  return items.map((item) => {
     const row = {};
-    columns.forEach(col => {
+    columns.forEach((col) => {
       const value = col.accessor ? col.accessor(item) : item[col.key];
       row[col.label || col.key] = value ?? '';
     });

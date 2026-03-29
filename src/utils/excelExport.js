@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { formatDate } from '@/utils/dateLocale';
 
 /**
@@ -78,7 +78,7 @@ export const formatDataForExport = (data, columns) => {
  * @param {Object[]} [options.columns] - Column definitions [{ key, header, type, width, accessor }]
  * @param {string} [options.format='xlsx'] - 'xlsx' or 'csv'
  */
-export const exportToExcel = (data, options = {}) => {
+export const exportToExcel = async (data, options = {}) => {
   const { filename = 'export', sheetName = 'Data', columns } = options;
 
   if (!data || data.length === 0) return;
@@ -86,51 +86,45 @@ export const exportToExcel = (data, options = {}) => {
   // Format data if columns are provided
   const exportData = columns ? formatDataForExport(data, columns) : data;
 
-  // Create worksheet
-  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  // Create workbook and worksheet with ExcelJS
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(sheetName);
 
-  // Apply column widths
-  if (columns) {
-    worksheet['!cols'] = columns.map((col) => ({
-      wch:
-        col.width ||
-        Math.max((col.header || '').length, ...exportData.map((row) => String(row[col.header] ?? '').length)) + 2,
-    }));
-  } else {
-    const keys = Object.keys(exportData[0]);
-    worksheet['!cols'] = keys.map((key) => {
-      const maxLen = Math.max(key.length, ...exportData.map((row) => String(row[key] ?? '').length));
-      return { wch: Math.min(maxLen + 2, 50) };
-    });
-  }
+  if (exportData.length === 0) return;
 
-  // Style header row (bold) - xlsx library community edition has limited styling
-  // but we set the cell types properly for numbers
-  if (columns) {
-    const range = XLSX.utils.decode_range(worksheet['!ref']);
-    for (let C = range.s.c; C <= range.e.c; C++) {
-      const col = columns[C];
-      if (!col) continue;
-      for (let R = range.s.r + 1; R <= range.e.r; R++) {
-        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-        const cell = worksheet[cellRef];
-        if (!cell) continue;
-        if (col.type === 'currency' || col.type === 'number') {
-          if (typeof cell.v === 'number') {
-            cell.t = 'n';
-            cell.z = col.type === 'currency' ? '#,##0.00' : '#,##0.##';
-          }
-        }
+  // Define columns
+  const keys = columns ? columns.map((c) => c.header) : Object.keys(exportData[0]);
+  worksheet.columns = keys.map((key, i) => {
+    const col = columns ? columns[i] : null;
+    const maxLen = Math.max(key.length, ...exportData.map((row) => String(row[key] ?? '').length));
+    return {
+      header: key,
+      key,
+      width: col?.width || Math.min(maxLen + 2, 50),
+    };
+  });
+
+  // Style header row bold
+  worksheet.getRow(1).font = { bold: true };
+
+  // Add data rows
+  exportData.forEach((row) => {
+    const rowData = {};
+    keys.forEach((key, i) => {
+      const col = columns ? columns[i] : null;
+      const val = row[key];
+      rowData[key] = val;
+      // Apply number format for currency/number columns
+      if (col && (col.type === 'currency' || col.type === 'number') && typeof val === 'number') {
+        const cell = worksheet.lastRow?.getCell(i + 1);
+        if (cell) cell.numFmt = col.type === 'currency' ? '#,##0.00' : '#,##0.##';
       }
-    }
-  }
-
-  // Build workbook
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    });
+    worksheet.addRow(rowData);
+  });
 
   // Generate and download
-  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const excelBuffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([excelBuffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });

@@ -1,15 +1,64 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { fromSpy, onNextSpy, onBackSpy, updateWizardDataSpy, xlsxReadSpy, sheetToJsonSpy } = vi.hoisted(() => ({
+// ── hoisted spies ────────────────────────────────────────────────────────────
+const { fromSpy, onNextSpy, onBackSpy, updateWizardDataSpy, excelJsLoadSpy } = vi.hoisted(() => ({
   fromSpy: vi.fn(),
   onNextSpy: vi.fn(),
   onBackSpy: vi.fn(),
   updateWizardDataSpy: vi.fn(),
-  xlsxReadSpy: vi.fn(),
-  sheetToJsonSpy: vi.fn(),
+  excelJsLoadSpy: vi.fn(),
 }));
 
+// ── Mock ExcelJS ─────────────────────────────────────────────────────────────
+vi.mock('exceljs', () => {
+  const defaultRows = [
+    [
+      { value: 'Code', col: 1 },
+      { value: 'Nom', col: 2 },
+      { value: 'Type', col: 3 },
+    ],
+    [
+      { value: '100', col: 1 },
+      { value: 'Capital', col: 2 },
+      { value: 'equity', col: 3 },
+    ],
+    [
+      { value: '512', col: 1 },
+      { value: 'Banque', col: 2 },
+      { value: 'asset', col: 3 },
+    ],
+  ];
+
+  const makeWorksheet = (rows) => ({
+    eachRow(_opts, cb) {
+      rows.forEach((cells, i) => {
+        cb(
+          {
+            eachCell(_o, cb2) {
+              cells.forEach((c) => cb2(c));
+            },
+          },
+          i + 1
+        );
+      });
+    },
+  });
+
+  // ExcelJS default export is the module itself; `new ExcelJS.Workbook()` is the usage pattern
+  class WorkbookClass {
+    constructor() {
+      this.xlsx = { load: excelJsLoadSpy };
+      this.worksheets = [makeWorksheet(defaultRows)];
+    }
+  }
+
+  return {
+    default: { Workbook: WorkbookClass },
+  };
+});
+
+// ── Other mocks ───────────────────────────────────────────────────────────────
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key, fallbackOrOptions, maybeOptions) => {
@@ -30,16 +79,7 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 
 vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: fromSpy,
-  },
-}));
-
-vi.mock('xlsx', () => ({
-  read: xlsxReadSpy,
-  utils: {
-    sheet_to_json: sheetToJsonSpy,
-  },
+  supabase: { from: fromSpy },
 }));
 
 vi.mock('lucide-react', () => ({
@@ -54,42 +94,41 @@ vi.mock('lucide-react', () => ({
 
 import Step3AccountingPlan from '@/components/onboarding/steps/Step3AccountingPlan';
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
 const buildPlanChain = () => {
+  const resolved = Promise.resolve({ data: [], error: null });
   const chain = {
     select: vi.fn(() => chain),
     or: vi.fn(() => chain),
     eq: vi.fn(() => chain),
-    order: vi.fn(() => chain),
+    order: vi.fn(() => resolved),
   };
   return chain;
 };
 
 const getImportButton = () =>
-  screen.getAllByRole('button').find((button) => button.textContent?.includes('Importer mon plan comptable'));
+  screen.getAllByRole('button').find((b) => b.textContent?.includes('Importer mon plan comptable'));
 
+const uploadFile = (fileInput, name = 'plan.xlsx') => {
+  const file = new File([new Uint8Array([80, 75, 3, 4])], name, {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  Object.defineProperty(file, 'arrayBuffer', {
+    value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
+  });
+  fireEvent.change(fileInput, { target: { files: [file] } });
+  return file;
+};
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
 describe('Step3AccountingPlan', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
+    excelJsLoadSpy.mockResolvedValue(undefined);
     fromSpy.mockImplementation((table) => {
-      if (table !== 'accounting_plans') {
-        throw new Error(`Unexpected table in test: ${table}`);
-      }
+      if (table !== 'accounting_plans') throw new Error(`Unexpected table: ${table}`);
       return buildPlanChain();
     });
-
-    xlsxReadSpy.mockReturnValue({
-      Sheets: {
-        Plan1: {},
-      },
-      SheetNames: ['Plan1'],
-    });
-
-    sheetToJsonSpy.mockReturnValue([
-      ['Code', 'Nom', 'Type'],
-      ['100', 'Capital', 'equity'],
-      ['512', 'Banque', 'asset'],
-    ]);
   });
 
   it('parses a real xlsx file and keeps account selection usable', async () => {
@@ -102,35 +141,20 @@ describe('Step3AccountingPlan', () => {
       />
     );
 
-    await waitFor(() => {
-      expect(getImportButton()).toBeTruthy();
-    });
-    const importButton = getImportButton();
-    fireEvent.click(importButton);
+    await waitFor(() => expect(getImportButton()).toBeTruthy());
+    fireEvent.click(getImportButton());
 
     const fileInput = screen.getByLabelText('Choisir un fichier a importer');
-    const file = new File([new Uint8Array([80, 75, 3, 4])], 'plan.xlsx', {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-
-    Object.defineProperty(file, 'arrayBuffer', {
-      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
-    });
-
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    uploadFile(fileInput);
 
     await waitFor(() => {
       expect(screen.getByText('2 comptes detectes')).toBeInTheDocument();
     });
-    expect(xlsxReadSpy).toHaveBeenCalledTimes(1);
-    expect(sheetToJsonSpy).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/Fichier/i)).not.toBeInTheDocument();
   });
 
   it('shows a readable error when an xlsx file cannot be parsed', async () => {
-    xlsxReadSpy.mockImplementation(() => {
-      throw new Error('Workbook corrupted');
-    });
+    excelJsLoadSpy.mockRejectedValue(new Error('Workbook corrupted'));
 
     render(
       <Step3AccountingPlan
@@ -141,21 +165,11 @@ describe('Step3AccountingPlan', () => {
       />
     );
 
-    await waitFor(() => {
-      expect(getImportButton()).toBeTruthy();
-    });
+    await waitFor(() => expect(getImportButton()).toBeTruthy());
     fireEvent.click(getImportButton());
 
     const fileInput = screen.getByLabelText('Choisir un fichier a importer');
-    const file = new File([new Uint8Array([1, 2, 3])], 'broken.xlsx', {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-
-    Object.defineProperty(file, 'arrayBuffer', {
-      value: vi.fn().mockResolvedValue(new ArrayBuffer(3)),
-    });
-
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    uploadFile(fileInput, 'broken.xlsx');
 
     await waitFor(() => {
       expect(

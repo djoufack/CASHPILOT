@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Upload, FileSpreadsheet, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseCSV } from '@/utils/csvParser';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -18,32 +18,29 @@ const STANDARD_COLUMNS = [
   { key: 'account_code', label: 'import.columns.code' },
   { key: 'account_name', label: 'import.columns.name' },
   { key: 'account_type', label: 'import.columns.type' },
-  { key: 'parent_code',  label: 'import.columns.parentCode' },
+  { key: 'parent_code', label: 'import.columns.parentCode' },
 ];
 
 // ---------------------------------------------------------------------------
 // Helper: parse Excel file to array of rows
 // ---------------------------------------------------------------------------
 
-function parseExcelFile(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheet];
-        // Convert to array of arrays
-        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-        resolve(rows);
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsArrayBuffer(file);
+async function parseExcelFile(file) {
+  const buffer = await file.arrayBuffer();
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const worksheet = workbook.worksheets[0];
+  const rows = [];
+  worksheet.eachRow({ includeEmpty: true }, (row) => {
+    const rowData = [];
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      let val = cell.value;
+      if (val && typeof val === 'object' && val.result !== undefined) val = val.result;
+      rowData[cell.col - 1] = val ?? '';
+    });
+    rows.push(rowData);
   });
+  return rows;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,16 +51,26 @@ function guessAccountType(code) {
   if (!code) return 'asset';
   const c = String(code).charAt(0);
   switch (c) {
-    case '1': return 'equity';
-    case '2': return 'asset';
-    case '3': return 'asset';
-    case '4': return 'asset';
-    case '5': return 'asset';
-    case '6': return 'expense';
-    case '7': return 'revenue';
-    case '8': return 'expense';
-    case '9': return 'expense';
-    default: return 'asset';
+    case '1':
+      return 'equity';
+    case '2':
+      return 'asset';
+    case '3':
+      return 'asset';
+    case '4':
+      return 'asset';
+    case '5':
+      return 'asset';
+    case '6':
+      return 'expense';
+    case '7':
+      return 'revenue';
+    case '8':
+      return 'expense';
+    case '9':
+      return 'expense';
+    default:
+      return 'asset';
   }
 }
 
@@ -82,7 +89,9 @@ const ColumnMapSelect = ({ value, onChange, options, label }) => {
       >
         <option value="">-- ignorer --</option>
         {options.map((opt, idx) => (
-          <option key={idx} value={idx}>{opt}</option>
+          <option key={idx} value={idx}>
+            {opt}
+          </option>
         ))}
       </select>
     </div>
@@ -125,74 +134,85 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
     setStep('upload');
   };
 
-  const validateFile = useCallback((f) => {
-    if (!f) return 'No file selected';
-    if (f.size > MAX_FILE_SIZE) return t('import.fileTooLarge', 'File exceeds 5 MB');
-    const ext = '.' + f.name.split('.').pop().toLowerCase();
-    if (!ACCEPTED_EXTENSIONS.includes(ext)) return t('import.invalidFormat', 'Invalid format. Accepted: .xlsx, .xls, .csv');
-    return null;
-  }, [t]);
+  const validateFile = useCallback(
+    (f) => {
+      if (!f) return 'No file selected';
+      if (f.size > MAX_FILE_SIZE) return t('import.fileTooLarge', 'File exceeds 5 MB');
+      const ext = '.' + f.name.split('.').pop().toLowerCase();
+      if (!ACCEPTED_EXTENSIONS.includes(ext))
+        return t('import.invalidFormat', 'Invalid format. Accepted: .xlsx, .xls, .csv');
+      return null;
+    },
+    [t]
+  );
 
-  const processFile = useCallback(async (selectedFile) => {
-    const error = validateFile(selectedFile);
-    if (error) {
-      setImportError(error);
-      return;
-    }
-
-    setFile(selectedFile);
-    setImportError(null);
-
-    try {
-      const ext = selectedFile.name.split('.').pop().toLowerCase();
-      let headers = [];
-      let dataRows = [];
-
-      if (ext === 'csv') {
-        // Use existing csvParser for CSV
-        const text = await selectedFile.text();
-        const result = parseCSV(text);
-        if (result.errors.length > 0 && result.accounts.length === 0) {
-          setParseErrors(result.errors);
-          setImportError(result.errors[0]?.message || 'Parse error');
-          return;
-        }
-        // For CSV, we already have parsed accounts via csvParser
-        // But we also need raw data for the mapping UI
-        const lines = text.replace(/^\uFEFF/, '').trim().split(/\r?\n/).filter(l => l.trim());
-        const delimiter = text.includes(';') ? ';' : text.includes('\t') ? '\t' : ',';
-        headers = lines[0]?.split(delimiter).map(h => h.trim()) || [];
-        dataRows = lines.slice(1).map(l => l.split(delimiter).map(c => c.trim()));
-      } else {
-        // Excel parsing
-        const rows = await parseExcelFile(selectedFile);
-        if (!rows || rows.length < 2) {
-          setImportError(t('import.emptyFile', 'File is empty or has no data rows'));
-          return;
-        }
-        headers = rows[0].map(h => String(h || '').trim());
-        dataRows = rows.slice(1).filter(r => r.some(cell => cell !== ''));
+  const processFile = useCallback(
+    async (selectedFile) => {
+      const error = validateFile(selectedFile);
+      if (error) {
+        setImportError(error);
+        return;
       }
 
-      setRawHeaders(headers);
-      setRawRows(dataRows);
+      setFile(selectedFile);
+      setImportError(null);
 
-      // Auto-detect column mapping
-      const autoMap = autoDetectColumns(headers);
-      setColumnMapping(autoMap);
-      setStep('mapping');
-    } catch (err) {
-      console.error('File parse error:', err);
-      setImportError(err.message || 'Failed to parse file');
-    }
-  }, [t, validateFile]);
+      try {
+        const ext = selectedFile.name.split('.').pop().toLowerCase();
+        let headers = [];
+        let dataRows = [];
+
+        if (ext === 'csv') {
+          // Use existing csvParser for CSV
+          const text = await selectedFile.text();
+          const result = parseCSV(text);
+          if (result.errors.length > 0 && result.accounts.length === 0) {
+            setParseErrors(result.errors);
+            setImportError(result.errors[0]?.message || 'Parse error');
+            return;
+          }
+          // For CSV, we already have parsed accounts via csvParser
+          // But we also need raw data for the mapping UI
+          const lines = text
+            .replace(/^\uFEFF/, '')
+            .trim()
+            .split(/\r?\n/)
+            .filter((l) => l.trim());
+          const delimiter = text.includes(';') ? ';' : text.includes('\t') ? '\t' : ',';
+          headers = lines[0]?.split(delimiter).map((h) => h.trim()) || [];
+          dataRows = lines.slice(1).map((l) => l.split(delimiter).map((c) => c.trim()));
+        } else {
+          // Excel parsing
+          const rows = await parseExcelFile(selectedFile);
+          if (!rows || rows.length < 2) {
+            setImportError(t('import.emptyFile', 'File is empty or has no data rows'));
+            return;
+          }
+          headers = rows[0].map((h) => String(h || '').trim());
+          dataRows = rows.slice(1).filter((r) => r.some((cell) => cell !== ''));
+        }
+
+        setRawHeaders(headers);
+        setRawRows(dataRows);
+
+        // Auto-detect column mapping
+        const autoMap = autoDetectColumns(headers);
+        setColumnMapping(autoMap);
+        setStep('mapping');
+      } catch (err) {
+        console.error('File parse error:', err);
+        setImportError(err.message || 'Failed to parse file');
+      }
+    },
+    [t, validateFile]
+  );
 
   // ---------------------------------------------------------------------------
   // Auto-detect columns
   // ---------------------------------------------------------------------------
 
   const autoDetectColumns = (headers) => {
-    const normalized = headers.map(h => h.toLowerCase().replace(/[^a-z0-9_]/g, '_'));
+    const normalized = headers.map((h) => h.toLowerCase().replace(/[^a-z0-9_]/g, '_'));
     const mapping = {};
 
     const codeAliases = ['account_code', 'code', 'numero', 'num', 'compte', 'account_number', 'code_compte'];
@@ -200,7 +220,7 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
     const typeAliases = ['account_type', 'type', 'classe', 'class', 'category_type'];
     const parentAliases = ['parent_code', 'parent', 'code_parent', 'parent_account'];
 
-    const findIdx = (aliases) => normalized.findIndex(h => aliases.includes(h));
+    const findIdx = (aliases) => normalized.findIndex((h) => aliases.includes(h));
 
     const codeIdx = findIdx(codeAliases);
     const nameIdx = findIdx(nameAliases);
@@ -248,15 +268,18 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
 
       let accountType = '';
       if (columnMapping.account_type !== undefined && columnMapping.account_type !== null) {
-        accountType = String(row[columnMapping.account_type] || '').trim().toLowerCase();
+        accountType = String(row[columnMapping.account_type] || '')
+          .trim()
+          .toLowerCase();
       }
       if (!accountType || !['asset', 'liability', 'equity', 'revenue', 'expense'].includes(accountType)) {
         accountType = guessAccountType(code);
       }
 
-      const parentCode = (columnMapping.parent_code !== undefined && columnMapping.parent_code !== null)
-        ? String(row[columnMapping.parent_code] || '').trim()
-        : '';
+      const parentCode =
+        columnMapping.parent_code !== undefined && columnMapping.parent_code !== null
+          ? String(row[columnMapping.parent_code] || '').trim()
+          : '';
 
       accounts.push({
         account_code: code,
@@ -303,7 +326,7 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
       // 2. Insert accounts in batches
       const BATCH_SIZE = 200;
       for (let i = 0; i < parsedAccounts.length; i += BATCH_SIZE) {
-        const batch = parsedAccounts.slice(i, i + BATCH_SIZE).map(a => ({
+        const batch = parsedAccounts.slice(i, i + BATCH_SIZE).map((a) => ({
           plan_id: plan.id,
           account_code: a.account_code,
           account_name: a.account_name,
@@ -312,9 +335,7 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
           is_active: true,
         }));
 
-        const { error: batchErr } = await supabase
-          .from('accounting_plan_accounts')
-          .insert(batch);
+        const { error: batchErr } = await supabase.from('accounting_plan_accounts').insert(batch);
 
         if (batchErr) {
           console.error(`Batch insert error (${i}-${i + BATCH_SIZE}):`, batchErr.message);
@@ -324,9 +345,7 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
       // 3. Upload original file to Supabase Storage
       try {
         const filePath = `${user.id}/${plan.id}/${file.name}`;
-        await supabase.storage
-          .from('accounting-plans')
-          .upload(filePath, file, { upsert: true });
+        await supabase.storage.from('accounting-plans').upload(filePath, file, { upsert: true });
       } catch (storageErr) {
         // Storage upload is non-critical; log but don't fail the import
         console.warn('File upload to storage failed (non-critical):', storageErr);
@@ -358,13 +377,16 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
     }
   }, []);
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    const droppedFile = e.dataTransfer?.files?.[0];
-    if (droppedFile) processFile(droppedFile);
-  }, [processFile]);
+  const handleDrop = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+      const droppedFile = e.dataTransfer?.files?.[0];
+      if (droppedFile) processFile(droppedFile);
+    },
+    [processFile]
+  );
 
   const handleBrowse = () => {
     fileInputRef.current?.click();
@@ -393,32 +415,23 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
             : 'border-gray-700 bg-gray-800/30 hover:border-gray-600 hover:bg-gray-800/50'
         }`}
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          onChange={handleFileInput}
-          className="hidden"
-        />
+        <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileInput} className="hidden" />
         <Upload className={`w-10 h-10 mx-auto mb-3 ${dragActive ? 'text-orange-400' : 'text-gray-500'}`} />
-        <p className="text-sm text-gray-300 font-medium">
-          {t('import.dropzone', 'Glissez-deposez votre fichier ici')}
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          {t('import.or', 'ou')}
-        </p>
+        <p className="text-sm text-gray-300 font-medium">{t('import.dropzone', 'Glissez-deposez votre fichier ici')}</p>
+        <p className="text-xs text-gray-500 mt-1">{t('import.or', 'ou')}</p>
         <Button
           type="button"
           variant="outline"
           size="sm"
           className="mt-2 border-gray-600 text-gray-300 hover:bg-gray-700"
-          onClick={(e) => { e.stopPropagation(); handleBrowse(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleBrowse();
+          }}
         >
           {t('import.browse', 'Parcourir')}
         </Button>
-        <p className="text-xs text-gray-600 mt-3">
-          .xlsx, .xls, .csv &mdash; {t('import.maxSize', 'Max 5 Mo')}
-        </p>
+        <p className="text-xs text-gray-600 mt-3">.xlsx, .xls, .csv &mdash; {t('import.maxSize', 'Max 5 Mo')}</p>
       </div>
     </div>
   );
@@ -440,9 +453,7 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
       </div>
 
       <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-4 space-y-3">
-        <h3 className="text-sm font-medium text-white">
-          {t('import.mapping', 'Associez les colonnes')}
-        </h3>
+        <h3 className="text-sm font-medium text-white">{t('import.mapping', 'Associez les colonnes')}</h3>
         <p className="text-xs text-gray-500">
           {t('import.mappingDesc', 'Indiquez quelle colonne de votre fichier correspond a chaque champ.')}
         </p>
@@ -452,7 +463,7 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
             key={col.key}
             label={t(col.label, col.key)}
             value={columnMapping[col.key] ?? null}
-            onChange={(val) => setColumnMapping(prev => ({ ...prev, [col.key]: val }))}
+            onChange={(val) => setColumnMapping((prev) => ({ ...prev, [col.key]: val }))}
             options={rawHeaders}
           />
         ))}
@@ -464,7 +475,9 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
           <thead>
             <tr className="bg-gray-800/80 sticky top-0">
               {rawHeaders.map((h, i) => (
-                <th key={i} className="px-2 py-1.5 text-left text-gray-400 font-medium whitespace-nowrap">{h}</th>
+                <th key={i} className="px-2 py-1.5 text-left text-gray-400 font-medium whitespace-nowrap">
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
@@ -472,7 +485,9 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
             {rawRows.slice(0, 5).map((row, rIdx) => (
               <tr key={rIdx} className="border-t border-gray-800/50">
                 {rawHeaders.map((_, cIdx) => (
-                  <td key={cIdx} className="px-2 py-1 text-gray-400 whitespace-nowrap">{String(row[cIdx] || '')}</td>
+                  <td key={cIdx} className="px-2 py-1 text-gray-400 whitespace-nowrap">
+                    {String(row[cIdx] || '')}
+                  </td>
                 ))}
               </tr>
             ))}
@@ -484,11 +499,7 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
         <Button variant="ghost" size="sm" onClick={resetState} className="text-gray-400 hover:text-white">
           {t('common.cancel', 'Annuler')}
         </Button>
-        <Button
-          size="sm"
-          onClick={applyMapping}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
-        >
+        <Button size="sm" onClick={applyMapping} className="bg-orange-500 hover:bg-orange-600 text-white">
           {t('import.preview', 'Apercu')}
         </Button>
       </div>
@@ -523,7 +534,9 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
           </div>
           <div className="text-xs text-yellow-500/80 space-y-0.5 max-h-20 overflow-y-auto">
             {parseErrors.slice(0, 5).map((err, i) => (
-              <p key={i}>Ligne {err.line}: {err.message}</p>
+              <p key={i}>
+                Ligne {err.line}: {err.message}
+              </p>
             ))}
           </div>
         </div>
@@ -537,7 +550,9 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
               <th className="px-3 py-2 text-left text-gray-400 font-medium">{t('import.columns.code', 'Code')}</th>
               <th className="px-3 py-2 text-left text-gray-400 font-medium">{t('import.columns.name', 'Nom')}</th>
               <th className="px-3 py-2 text-left text-gray-400 font-medium">{t('import.columns.type', 'Type')}</th>
-              <th className="px-3 py-2 text-left text-gray-400 font-medium">{t('import.columns.parentCode', 'Parent')}</th>
+              <th className="px-3 py-2 text-left text-gray-400 font-medium">
+                {t('import.columns.parentCode', 'Parent')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -546,14 +561,21 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
                 <td className="px-3 py-1.5 text-orange-400 font-mono">{acc.account_code}</td>
                 <td className="px-3 py-1.5 text-white">{acc.account_name}</td>
                 <td className="px-3 py-1.5">
-                  <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                    acc.account_type === 'asset' ? 'bg-blue-500/20 text-blue-400' :
-                    acc.account_type === 'liability' ? 'bg-red-500/20 text-red-400' :
-                    acc.account_type === 'equity' ? 'bg-purple-500/20 text-purple-400' :
-                    acc.account_type === 'revenue' ? 'bg-green-500/20 text-green-400' :
-                    acc.account_type === 'expense' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-gray-500/20 text-gray-400'
-                  }`}>
+                  <span
+                    className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      acc.account_type === 'asset'
+                        ? 'bg-blue-500/20 text-blue-400'
+                        : acc.account_type === 'liability'
+                          ? 'bg-red-500/20 text-red-400'
+                          : acc.account_type === 'equity'
+                            ? 'bg-purple-500/20 text-purple-400'
+                            : acc.account_type === 'revenue'
+                              ? 'bg-green-500/20 text-green-400'
+                              : acc.account_type === 'expense'
+                                ? 'bg-yellow-500/20 text-yellow-400'
+                                : 'bg-gray-500/20 text-gray-400'
+                    }`}
+                  >
                     {acc.account_type}
                   </span>
                 </td>
@@ -581,8 +603,7 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
         >
           {importing
             ? t('import.importing', 'Import en cours...')
-            : t('import.import_button', `Importer ${parsedAccounts.length} comptes`)
-          }
+            : t('import.import_button', `Importer ${parsedAccounts.length} comptes`)}
         </Button>
       </div>
     </div>
