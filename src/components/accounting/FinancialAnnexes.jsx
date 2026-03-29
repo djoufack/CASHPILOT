@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/button';
 import { FileDown, BookOpen, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 import { useAccountingTaxonomy } from '@/hooks/useAccountingTaxonomy';
+<<<<<<< Updated upstream
 import { formatDate } from '@/utils/dateLocale';
+=======
+>>>>>>> Stashed changes
 
 /**
  * Groups trial balance entries by account class prefix.
@@ -111,7 +114,15 @@ const FinancialAnnexes = ({
   // NOT from hardcoded arrays. The hook uses the company country to select
   // the correct regional plan (france / belgium / ohada).
   // See: BUGS/fix13-financial-annexes-bugs.md
+<<<<<<< Updated upstream
   const { caAccountPrefixes, chargesAccountPrefixes, loading: taxonomyLoading } = useAccountingTaxonomy(country);
+=======
+  const {
+    caAccountPrefixes,
+    chargesAccountPrefixes,
+    loading: taxonomyLoading,
+  } = useAccountingTaxonomy(country);
+>>>>>>> Stashed changes
 
   const notes = useMemo(() => {
     // Wait until taxonomy prefixes are loaded from DB before computing notes
@@ -157,13 +168,23 @@ const FinancialAnnexes = ({
     // semantic_role: 'sales_revenue' | 'operating_revenue' — region-aware (FR/BE/OHADA).
     const ca = tb.filter(
       (t) =>
+<<<<<<< Updated upstream
         t.account_code && caAccountPrefixes.some((p) => t.account_code.startsWith(p)) && Math.abs(t.balance) >= 0.01
+=======
+        t.account_code &&
+        caAccountPrefixes.some((p) => t.account_code.startsWith(p)) &&
+        Math.abs(t.balance) >= 0.01
+>>>>>>> Stashed changes
     );
     const totalCA = ca.reduce((s, a) => s + (a.balance || 0), 0);
 
     // Note 7: Charges d'exploitation — period
     // ENF-1 FIX: prefixes sourced from accounting_account_taxonomy via useAccountingTaxonomy.
+<<<<<<< Updated upstream
     // semantic_role: 'operating_cash_expense' | 'supplier_expense' | 'direct_cost_expense'.
+=======
+    // semantic_role: 'operating_cash_expense' | 'supplier_expense' | 'direct_cost_expense' — region-aware.
+>>>>>>> Stashed changes
     const charges = tb.filter(
       (t) =>
         t.account_code &&
@@ -282,13 +303,13 @@ const FinancialAnnexes = ({
               <span className="font-medium text-gray-100">{currency}</span>
             </p>
             <p>
-              <span className="text-gray-400">Methode d'inventaire :</span>{' '}
+              <span className="text-gray-400">Methode d&apos;inventaire :</span>{' '}
               <span className="font-medium text-gray-100">Inventaire permanent</span>
             </p>
             <p>
               <span className="text-gray-400">Convention de base :</span>{' '}
               <span className="text-gray-200">
-                Cout historique, continuite d'exploitation, prudence, permanence des methodes
+                Cout historique, continuite d&apos;exploitation, prudence, permanence des methodes
               </span>
             </p>
           </div>
@@ -320,7 +341,7 @@ const FinancialAnnexes = ({
               </>
             ) : (
               <p className="text-sm text-gray-500 italic">
-                Aucun stock enregistre. Les ecritures de stocks seront generees via les mappings d'inventaire permanent.
+                Aucun stock enregistre. Les ecritures de stocks seront generees via les mappings d&apos;inventaire permanent.
               </p>
             )}
           </div>
@@ -368,13 +389,13 @@ const FinancialAnnexes = ({
           </div>
 
           {/* Note 6: Chiffre d'affaires */}
-          <SectionTitle number="6" title="Chiffre d'affaires" />
+          <SectionTitle number="6" title="Chiffre d&apos;affaires" />
           <div className="ml-4">
             {notes.ca.length > 0 ? (
               <>
                 <AccountTable accounts={notes.ca} currency={currency} />
                 <p className="text-sm font-semibold text-gray-100 mt-2 max-w-2xl text-right">
-                  Total chiffre d'affaires : {formatCurrency(notes.totalCA, currency)}
+                  Total chiffre d&apos;affaires : {formatCurrency(notes.totalCA, currency)}
                 </p>
               </>
             ) : (
@@ -383,7 +404,7 @@ const FinancialAnnexes = ({
           </div>
 
           {/* Note 7: Charges d'exploitation */}
-          <SectionTitle number="7" title="Charges d'exploitation" />
+          <SectionTitle number="7" title="Charges d&apos;exploitation" />
           <div className="ml-4">
             {notes.charges.length > 0 ? (
               <>

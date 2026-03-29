@@ -358,16 +358,28 @@ describe('StockManagement', () => {
 
   it('renders FIFO/CMUP/COGS valuation panel', () => {
     render(<StockManagement />);
+<<<<<<< Updated upstream
+=======
+    // Component uses i18n key; global mock returns the key string as-is
+>>>>>>> Stashed changes
     expect(screen.getByText('stockManagement.cockpit.valuationTitle')).toBeTruthy();
   });
 
   it('renders multi-warehouse and lot/serial tab content', () => {
     render(<StockManagement />);
+<<<<<<< Updated upstream
+=======
+    // Component uses i18n key; global mock returns the key string as-is
+>>>>>>> Stashed changes
     expect(screen.getByText('stockManagement.tabs.warehouses')).toBeTruthy();
   });
 
   it('renders smart replenishment recommendation panel', () => {
     render(<StockManagement />);
+<<<<<<< Updated upstream
+=======
+    // Component uses i18n key; global mock returns the key string as-is
+>>>>>>> Stashed changes
     expect(screen.getByText('stockManagement.cockpit.replenishmentTitle')).toBeTruthy();
   });
 });
