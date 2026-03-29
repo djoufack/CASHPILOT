@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 
 const ACTIVE_SERVICE_WORKER_PATH = '/sw.js';
@@ -16,6 +17,7 @@ async function getPushServiceWorkerRegistration() {
 
 export const usePushNotifications = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -69,11 +71,18 @@ export const usePushNotifications = () => {
           p256dh_key: keys.p256dh,
           device_type: navigator.userAgent,
         });
-        toast({ title: 'Subscribed', description: 'Push notifications enabled.' });
+        toast({
+          title: t('hooks.pushNotifications.subscribed'),
+          description: t('hooks.pushNotifications.subscribedDesc'),
+        });
       }
     } catch (error) {
       console.error('Failed to subscribe:', error);
-      toast({ title: 'Error', description: 'Could not enable push notifications.', variant: 'destructive' });
+      toast({
+        title: t('hooks.pushNotifications.subscribeError'),
+        description: t('hooks.pushNotifications.subscribeErrorDesc'),
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -88,11 +97,12 @@ export const usePushNotifications = () => {
       setSubscription(null);
 
       if (user) {
-        await supabase.from('push_subscriptions')
-          .update({ is_active: false })
-          .eq('endpoint', subscription.endpoint);
+        await supabase.from('push_subscriptions').update({ is_active: false }).eq('endpoint', subscription.endpoint);
       }
-      toast({ title: 'Unsubscribed', description: 'Push notifications disabled.' });
+      toast({
+        title: t('hooks.pushNotifications.unsubscribed'),
+        description: t('hooks.pushNotifications.unsubscribedDesc'),
+      });
     } catch (error) {
       console.error('Error unsubscribing', error);
     } finally {
@@ -100,5 +110,11 @@ export const usePushNotifications = () => {
     }
   };
 
-  return { isSupported, isSubscribed, subscribe: subscribeToPushNotifications, unsubscribe: unsubscribeFromPushNotifications, loading };
+  return {
+    isSupported,
+    isSubscribed,
+    subscribe: subscribeToPushNotifications,
+    unsubscribe: unsubscribeFromPushNotifications,
+    loading,
+  };
 };

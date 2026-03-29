@@ -1,5 +1,5 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import {
   queueOperation,
@@ -14,8 +14,15 @@ export const useOfflineSync = () => {
   const [isOnline, setIsOnline] = useState(checkOnline());
   const [queueSize, setQueueSize] = useState(0);
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
   const toastRef = useRef(toast);
-  useEffect(() => { toastRef.current = toast; }, [toast]);
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const refreshQueueSize = useCallback(async () => {
     try {
@@ -33,7 +40,7 @@ export const useOfflineSync = () => {
     }
     try {
       const results = await syncPendingOperations(supabase);
-      const errors = results.filter(r => r.status === 'error');
+      const errors = results.filter((r) => r.status === 'error');
       if (errors.length > 0) {
         console.warn('Some operations failed to sync:', errors);
       }
@@ -47,11 +54,17 @@ export const useOfflineSync = () => {
     const handleOnline = () => {
       setIsOnline(true);
       processQueue();
-      toastRef.current({ title: 'Online', description: 'Connection restored. Syncing data...' });
+      toastRef.current({
+        title: tRef.current('hooks.offline.onlineTitle'),
+        description: tRef.current('hooks.offline.onlineDesc'),
+      });
     };
     const handleOffline = () => {
       setIsOnline(false);
-      toastRef.current({ title: 'Offline', description: 'You are offline. Changes saved locally.' });
+      toastRef.current({
+        title: tRef.current('hooks.offline.offlineTitle'),
+        description: tRef.current('hooks.offline.offlineDesc'),
+      });
     };
 
     const cleanup = registerConnectivityListeners(handleOnline, handleOffline);
@@ -63,7 +76,7 @@ export const useOfflineSync = () => {
 
   const addToQueue = useCallback(async (action) => {
     await queueOperation(action);
-    setQueueSize(prev => prev + 1);
+    setQueueSize((prev) => prev + 1);
   }, []);
 
   return { isOnline, queueSize, addToQueue, processQueue };

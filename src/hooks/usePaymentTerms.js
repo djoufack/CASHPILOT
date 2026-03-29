@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 
 export const usePaymentTerms = () => {
@@ -8,6 +9,7 @@ export const usePaymentTerms = () => {
   const [paymentTerms, setPaymentTerms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const fetchPaymentTerms = useCallback(async () => {
@@ -54,15 +56,11 @@ export const usePaymentTerms = () => {
 
       if (error) throw error;
 
-      setPaymentTerms(prev => [...prev, data].sort((a, b) => a.days - b.days));
-      toast({
-        title: "Succès",
-        description: "Condition de paiement créée.",
-        className: "bg-green-600 border-none text-white"
-      });
+      setPaymentTerms((prev) => [...prev, data].sort((a, b) => a.days - b.days));
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.paymentTerms.termCreated') });
       return data;
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       return null;
     }
   };
@@ -71,18 +69,15 @@ export const usePaymentTerms = () => {
     if (!supabase) return false;
 
     try {
-      const { error } = await supabase
-        .from('payment_terms')
-        .update(termData)
-        .eq('id', id);
+      const { error } = await supabase.from('payment_terms').update(termData).eq('id', id);
 
       if (error) throw error;
 
-      setPaymentTerms(prev => prev.map(t => t.id === id ? { ...t, ...termData } : t));
-      toast({ title: "Succès", description: "Condition mise à jour." });
+      setPaymentTerms((prev) => prev.map((term) => (term.id === id ? { ...term, ...termData } : term)));
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.paymentTerms.termUpdated') });
       return true;
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       return false;
     }
   };
@@ -91,18 +86,15 @@ export const usePaymentTerms = () => {
     if (!supabase) return false;
 
     try {
-      const { error } = await supabase
-        .from('payment_terms')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('payment_terms').delete().eq('id', id);
 
       if (error) throw error;
 
-      setPaymentTerms(prev => prev.filter(t => t.id !== id));
-      toast({ title: "Supprimé", description: "Condition de paiement supprimée." });
+      setPaymentTerms((prev) => prev.filter((term) => term.id !== id));
+      toast({ title: t('common.success'), description: t('hooks.paymentTerms.termDeleted') });
       return true;
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       return false;
     }
   };
@@ -114,6 +106,6 @@ export const usePaymentTerms = () => {
     fetchPaymentTerms,
     createPaymentTerm,
     updatePaymentTerm,
-    deletePaymentTerm
+    deletePaymentTerm,
   };
 };

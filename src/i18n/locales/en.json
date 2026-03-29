@@ -57,7 +57,8 @@
     "reloadPage": "Reload Page",
     "unexpectedError": "An unexpected error occurred.",
     "backToHome": "Back to home",
-    "goToDashboard": "Go to dashboard"
+    "goToDashboard": "Go to dashboard",
+    "deleted": "Deleted"
   },
   "aiChat": {
     "title": "AI Assistant",
@@ -5805,65 +5806,95 @@
       "requestCancelled": "Request cancelled"
     },
     "fixedAssets": {
-      "assetCreated": "Fixed asset created",
-      "assetUpdated": "Fixed asset updated",
-      "assetDeleted": "Fixed asset deleted"
-    },
-    "billing": {
-      "billingUpdated": "Billing updated",
-      "billingUpdatedDesc": "Your billing information has been saved.",
-      "subscriptionCancelled": "Subscription cancelled",
-      "subscriptionCancelledDesc": "Your subscription has been cancelled.",
-      "paymentIntegrationInfo": "Payment integration will be available soon."
-    },
-    "products": {
-      "created": "Product created successfully.",
-      "updated": "Product updated.",
-      "deleted": "Product deleted.",
-      "imported": "\"{{name}}\" imported into your inventory.",
-      "categoryCreated": "Category created.",
-      "categoryUpdated": "Category updated."
-    },
-    "services": {
-      "created": "Service created successfully.",
-      "updated": "Service updated.",
-      "deleted": "Service deleted.",
-      "categoryCreated": "Category created.",
-      "categoryUpdated": "Category updated."
-    },
-    "paymentTerms": {
-      "created": "Payment term created.",
-      "updated": "Payment term updated.",
-      "deleted": "Payment term deleted."
-    },
-    "expenses": {
-      "noCompany": "No active company selected",
-      "updated": "Expense updated",
-      "deleted": "Expense deleted",
-      "createError": "Error creating expense"
+      "fetchError": "Error loading fixed assets",
+      "assetCreated": "Asset created",
+      "assetUpdated": "Asset updated",
+      "assetDeleted": "Asset deleted",
+      "depreciationPosted": "Depreciation posted"
     },
     "accounting": {
+      "success": "Success",
+      "accountCreated": "Account created successfully",
+      "accountCreatedWithWarnings": "Account created with {{count}} warning(s) to review",
+      "accountUpdated": "Account updated successfully",
       "accountDeleted": "Account deleted",
+      "entryCreated": "Entry created",
+      "entryUpdated": "Entry updated",
+      "entryDeleted": "Entry deleted",
       "mappingCreated": "Mapping created",
       "mappingUpdated": "Mapping updated",
       "mappingDeleted": "Mapping deleted",
+      "mappingsImported": "{{count}} mappings imported",
       "taxRateCreated": "Tax rate created",
       "taxRateUpdated": "Tax rate updated",
       "taxRateDeleted": "Tax rate deleted",
-      "importSuccess": "{{count}} items imported",
-      "importSuccessWithWarnings": "{{count}} items imported, {{warnings}} point(s) to review",
-      "importError": "Import error",
-      "mappingsImported": "{{count}} mappings imported",
-      "accountCreatedWithWarnings": "Account created with {{count}} warning(s) to review",
-      "accountCreatedOk": "Account created successfully",
-      "accountUpdatedWithWarnings": "Account updated with {{count}} warning(s) to review",
-      "accountUpdatedOk": "Account updated successfully"
+      "fetchError": "Error loading accounting data",
+      "createError": "Creation error",
+      "updateError": "Update error",
+      "deleteError": "Deletion error",
+      "importError": "Import error"
+    },
+    "billing": {
+      "settingsSaved": "Settings saved",
+      "settingsSavedDesc": "Your billing settings have been updated.",
+      "saveError": "Error saving settings",
+      "paymentIntegrationInfo": "To integrate a payment provider, please contact support."
+    },
+    "paymentTerms": {
+      "termCreated": "Payment term created",
+      "termUpdated": "Payment term updated",
+      "termDeleted": "Payment term deleted",
+      "fetchError": "Loading error",
+      "createError": "Creation error",
+      "updateError": "Update error",
+      "deleteError": "Deletion error"
+    },
+    "products": {
+      "created": "Product created",
+      "updated": "Product updated",
+      "deleted": "Product deleted",
+      "imported": "Product imported: {{name}}",
+      "importError": "Product import error",
+      "fetchError": "Error loading products",
+      "createError": "Creation error",
+      "updateError": "Update error",
+      "deleteError": "Deletion error",
+      "categoryCreated": "Category created",
+      "categoryUpdated": "Category updated",
+      "categoryDeleted": "Category deleted"
+    },
+    "services": {
+      "created": "Service created",
+      "updated": "Service updated",
+      "deleted": "Service deleted",
+      "fetchError": "Error loading services",
+      "createError": "Creation error",
+      "updateError": "Update error",
+      "deleteError": "Deletion error",
+      "categoryCreated": "Category created",
+      "categoryUpdated": "Category updated",
+      "categoryDeleted": "Category deleted"
+    },
+    "expenses": {
+      "created": "Expense created",
+      "updated": "Expense updated",
+      "deleted": "Expense deleted",
+      "fetchError": "Error loading expenses",
+      "noCompany": "No active company selected",
+      "createError": "Creation error",
+      "updateError": "Update error",
+      "deleteError": "Deletion error"
     },
     "profileSettings": {
-      "avatarDeleted": "Avatar deleted.",
-      "avatarDeleteError": "Could not delete the avatar.",
-      "signatureDeleted": "Signature deleted.",
-      "signatureDeleteError": "Could not delete the signature."
+      "avatarDeleted": "Avatar deleted",
+      "avatarDeletedDesc": "Your avatar has been deleted.",
+      "avatarUploaded": "Avatar updated",
+      "avatarUploadedDesc": "Your avatar has been updated.",
+      "profileSaved": "Profile saved",
+      "profileSavedDesc": "Your information has been updated.",
+      "saveError": "Error saving profile",
+      "uploadError": "Error uploading avatar",
+      "deleteError": "Error deleting avatar"
     },
     "teamSettings": {
       "inviteSent": "Invitation sent",
@@ -5871,20 +5902,28 @@
       "memberUpdated": "Member updated",
       "memberUpdatedDesc": "The member's role has been changed.",
       "memberDeleted": "Member removed",
-      "memberDeletedDesc": "The user has been removed from the team."
+      "memberDeletedDesc": "The user has been removed from the team.",
+      "inviteError": "Invitation error",
+      "updateError": "Update error",
+      "deleteError": "Deletion error"
     },
     "stockHistory": {
       "stockUpdated": "Stock updated",
-      "stockUpdatedDesc": "Stock level adjusted successfully."
+      "stockUpdatedDesc": "Stock level adjusted successfully.",
+      "updateError": "Stock update error"
     },
     "supplierInvoices": {
-      "recorded": "Invoice recorded",
-      "recordedDesc": "Invoice recorded successfully",
+      "fetchError": "Error fetching invoices",
+      "created": "Invoice recorded",
+      "createdDesc": "Invoice recorded successfully",
       "deleted": "Invoice deleted",
       "updated": "Invoice updated",
-      "invoiceUpdatedDesc": "Invoice updated successfully",
+      "updatedDesc": "Invoice updated successfully",
       "paymentStatusUpdated": "Payment status updated",
-      "approvalStatusUpdated": "Approval status updated"
+      "approvalStatusUpdated": "Approval status updated",
+      "createError": "Creation error",
+      "deleteError": "Deletion error",
+      "updateError": "Update error"
     },
     "users": {
       "fetchError": "Failed to fetch users"
@@ -5892,40 +5931,60 @@
     "pushNotifications": {
       "subscribed": "Subscribed",
       "subscribedDesc": "Push notifications enabled.",
-      "subscribeError": "Could not enable push notifications.",
+      "subscribeError": "Error",
+      "subscribeErrorDesc": "Could not enable push notifications.",
       "unsubscribed": "Unsubscribed",
       "unsubscribedDesc": "Push notifications disabled."
     },
     "offline": {
-      "onlineTitle": "Online",
-      "onlineDesc": "Connection restored. Syncing data...",
-      "offlineTitle": "Offline",
-      "offlineDesc": "You are offline. Changes saved locally."
+      "onlineTitle": "Back online",
+      "onlineDesc": "You are online again. Syncing...",
+      "offlineTitle": "Connection lost",
+      "offlineDesc": "You are offline. Changes will sync when you reconnect.",
+      "syncError": "Sync error"
     },
     "notificationSettings": {
-      "saved": "Preferences saved",
-      "savedDesc": "Your notification settings have been updated."
+      "settingsSaved": "Preferences saved",
+      "settingsSavedDesc": "Your notification preferences have been updated.",
+      "saveError": "Error saving preferences"
     },
     "biometric": {
-      "enabled": "Biometric login enabled.",
-      "enableError": "Failed to register biometric."
+      "registered": "Biometric authentication enabled",
+      "registeredDesc": "Biometric login is now available.",
+      "registerError": "Biometric registration error"
     },
     "invoiceUpload": {
-      "fileDeleted": "Deleted",
-      "fileDeletedDesc": "File deleted successfully"
+      "uploadSuccess": "Invoice uploaded",
+      "uploadSuccessDesc": "The invoice has been uploaded and analyzed successfully.",
+      "uploadFailed": "Upload failed",
+      "downloadFailed": "File download failed",
+      "deleted": "Invoice deleted",
+      "error": "Error"
     },
     "taxFiling": {
+      "noCompany": "No active company selected",
       "declarationCreated": "Declaration created",
       "declarationDeleted": "Declaration deleted",
       "declarationSubmitted": "Declaration submitted successfully",
+      "computeVatError": "Error computing VAT",
+      "computeCorporateTaxError": "Error computing corporate tax",
       "createError": "Error creating declaration",
+      "updateError": "Error updating declaration",
       "deleteError": "Error deleting declaration",
-      "submitError": "Error submitting declaration",
-      "updateError": "Error updating declaration"
+      "submitError": "Error submitting declaration"
     },
     "barcodeScanner": {
-      "detected": "Barcode Detected",
-      "cameraError": "Could not access camera."
+      "permissionDenied": "Permission denied",
+      "permissionDeniedDesc": "Camera access is required to scan barcodes.",
+      "scanError": "Scan error"
+    },
+    "accountingInit": {
+      "initialized": "Accounting initialized",
+      "initializedDesc": "{{accounts}} accounts, {{mappings}} mappings, {{taxRates}} tax rates",
+      "autoEnabled": "Auto-initialization enabled",
+      "autoDisabled": "Auto-initialization disabled",
+      "initError": "Error initializing accounting",
+      "autoToggleError": "Error updating setting"
     }
   }
 }

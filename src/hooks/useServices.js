@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
@@ -11,6 +12,7 @@ export const useServices = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { logAction } = useAuditLog();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
@@ -38,11 +40,11 @@ export const useServices = () => {
         return;
       }
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]);
+  }, [applyCompanyScope, t, toast, user]);
 
   const createService = async (serviceData) => {
     if (!user || !supabase) return;
@@ -63,12 +65,12 @@ export const useServices = () => {
 
       logAction('create', 'service', null, data);
 
-      setServices(prev => [data, ...prev]);
-      toast({ title: "Succès", description: "Service créé avec succès." });
+      setServices((prev) => [data, ...prev]);
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.services.created') });
       return data;
     } catch (err) {
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -94,15 +96,15 @@ export const useServices = () => {
 
       if (error) throw error;
 
-      const oldService = services.find(s => s.id === id);
+      const oldService = services.find((s) => s.id === id);
       logAction('update', 'service', oldService || null, data);
 
-      setServices(prev => prev.map(s => s.id === id ? data : s));
-      toast({ title: "Succès", description: "Service mis à jour." });
+      setServices((prev) => prev.map((s) => (s.id === id ? data : s)));
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.services.updated') });
       return data;
     } catch (err) {
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -113,21 +115,18 @@ export const useServices = () => {
     if (!supabase) return;
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('services')
-        .update({ is_active: false })
-        .eq('id', id);
+      const { error } = await supabase.from('services').update({ is_active: false }).eq('id', id);
 
       if (error) throw error;
 
-      const deletedService = services.find(s => s.id === id);
+      const deletedService = services.find((s) => s.id === id);
       logAction('delete', 'service', deletedService || { id }, null);
 
-      setServices(prev => prev.filter(s => s.id !== id));
-      toast({ title: "Succès", description: "Service supprimé." });
+      setServices((prev) => prev.filter((s) => s.id !== id));
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.services.deleted') });
     } catch (err) {
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -145,7 +144,7 @@ export const useServices = () => {
     fetchServices,
     createService,
     updateService,
-    deleteService
+    deleteService,
   };
 };
 
@@ -153,6 +152,7 @@ export const useServiceCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
@@ -160,10 +160,7 @@ export const useServiceCategories = () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
-      let query = supabase
-        .from('service_categories')
-        .select('*')
-        .order('name', { ascending: true });
+      let query = supabase.from('service_categories').select('*').order('name', { ascending: true });
 
       query = applyCompanyScope(query);
 
@@ -188,11 +185,11 @@ export const useServiceCategories = () => {
         .single();
 
       if (error) throw error;
-      setCategories(prev => [...prev, data]);
-      toast({ title: "Succès", description: "Catégorie créée." });
+      setCategories((prev) => [...prev, data]);
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.services.categoryCreated') });
       return data;
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     }
   };
@@ -208,11 +205,11 @@ export const useServiceCategories = () => {
         .single();
 
       if (error) throw error;
-      setCategories(prev => prev.map(c => c.id === id ? data : c));
-      toast({ title: "Succès", description: "Catégorie mise à jour." });
+      setCategories((prev) => prev.map((c) => (c.id === id ? data : c)));
+      toast({ title: t('hooks.accounting.success'), description: t('hooks.services.categoryUpdated') });
       return data;
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       throw err;
     }
   };
@@ -220,15 +217,12 @@ export const useServiceCategories = () => {
   const deleteCategory = async (id) => {
     if (!supabase) return;
     try {
-      const { error } = await supabase
-        .from('service_categories')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('service_categories').delete().eq('id', id);
 
       if (error) throw error;
-      setCategories(prev => prev.filter(c => c.id !== id));
+      setCategories((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     }
   };
 

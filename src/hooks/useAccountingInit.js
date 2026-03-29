@@ -1,7 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 import { checkAccountingInitialized, initializeAccounting } from '@/services/accountingInitService';
@@ -15,6 +15,7 @@ import { checkAccountingInitialized, initializeAccounting } from '@/services/acc
 export const useAccountingInit = () => {
   const { user } = useAuth();
   const activeCompanyId = useActiveCompanyId();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [isInitialized, setIsInitialized] = useState(null); // null = loading
   const [isInitializing, setIsInitializing] = useState(false);
@@ -51,18 +52,18 @@ export const useAccountingInit = () => {
         setIsInitialized(true);
         setCountry(selectedCountry);
         toast({
-          title: 'Comptabilité initialisée',
-          description: `${result.accountsCount} comptes, ${result.mappingsCount} mappings, ${result.taxRatesCount} taux TVA`,
+          title: t('hooks.accountingInit.initialized'),
+          description: t('hooks.accountingInit.initializedDesc', {
+            accounts: result.accountsCount,
+            mappings: result.mappingsCount,
+            taxRates: result.taxRatesCount,
+          }),
         });
       } else {
         throw new Error(result.error || 'Initialization failed');
       }
     } catch (err) {
-      toast({
-        title: 'Erreur d\'initialisation',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast({ title: t('hooks.accountingInit.initError'), description: err.message, variant: 'destructive' });
     } finally {
       setIsInitializing(false);
     }
@@ -76,12 +77,10 @@ export const useAccountingInit = () => {
         .update({ auto_journal_enabled: enabled, updated_at: new Date().toISOString() })
         .eq('user_id', user.id);
       if (error) throw error;
-      setSettings(prev => prev ? { ...prev, auto_journal_enabled: enabled } : prev);
-      toast({
-        title: enabled ? 'Écritures automatiques activées' : 'Écritures automatiques désactivées',
-      });
+      setSettings((prev) => (prev ? { ...prev, auto_journal_enabled: enabled } : prev));
+      toast({ title: enabled ? t('hooks.accountingInit.autoEnabled') : t('hooks.accountingInit.autoDisabled') });
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     }
   };
 

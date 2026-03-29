@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 
 export const useTaxFiling = () => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
@@ -67,11 +69,7 @@ export const useTaxFiling = () => {
   const computeVat = useCallback(
     async (startDate, endDate) => {
       if (!user || !activeCompanyId) {
-        toast({
-          title: 'Error',
-          description: 'No active company selected',
-          variant: 'destructive',
-        });
+        toast({ title: t('common.error'), description: t('hooks.taxFiling.noCompany'), variant: 'destructive' });
         return null;
       }
       if (!supabase) throw new Error('Supabase not configured');
@@ -88,17 +86,13 @@ export const useTaxFiling = () => {
         return data;
       } catch (err) {
         setError(err.message);
-        toast({
-          title: 'Error computing VAT',
-          description: err.message,
-          variant: 'destructive',
-        });
+        toast({ title: t('hooks.taxFiling.computeVatError'), description: err.message, variant: 'destructive' });
         return null;
       } finally {
         setComputing(false);
       }
     },
-    [user, activeCompanyId, toast, setError]
+    [user, activeCompanyId, t, toast, setError]
   );
 
   // ---------------------------------------------------------------------------
@@ -107,11 +101,7 @@ export const useTaxFiling = () => {
   const computeCorporateTax = useCallback(
     async (year) => {
       if (!user || !activeCompanyId) {
-        toast({
-          title: 'Error',
-          description: 'No active company selected',
-          variant: 'destructive',
-        });
+        toast({ title: t('common.error'), description: t('hooks.taxFiling.noCompany'), variant: 'destructive' });
         return null;
       }
       if (!supabase) throw new Error('Supabase not configured');
@@ -128,7 +118,7 @@ export const useTaxFiling = () => {
       } catch (err) {
         setError(err.message);
         toast({
-          title: 'Error computing corporate tax',
+          title: t('hooks.taxFiling.computeCorporateTaxError'),
           description: err.message,
           variant: 'destructive',
         });
@@ -137,7 +127,7 @@ export const useTaxFiling = () => {
         setComputing(false);
       }
     },
-    [user, activeCompanyId, toast, setError]
+    [user, activeCompanyId, t, toast, setError]
   );
 
   // ---------------------------------------------------------------------------
@@ -146,11 +136,7 @@ export const useTaxFiling = () => {
   const createDeclaration = useCallback(
     async (declarationData) => {
       if (!user || !activeCompanyId) {
-        toast({
-          title: 'Error',
-          description: 'No active company selected',
-          variant: 'destructive',
-        });
+        toast({ title: t('common.error'), description: t('hooks.taxFiling.noCompany'), variant: 'destructive' });
         return null;
       }
       if (!supabase) throw new Error('Supabase not configured');
@@ -166,19 +152,15 @@ export const useTaxFiling = () => {
         if (error) throw error;
 
         setDeclarations((prev) => [data, ...prev]);
-        toast({ title: 'Declaration created' });
+        toast({ title: t('hooks.taxFiling.declarationCreated') });
         return data;
       } catch (err) {
         setError(err.message);
-        toast({
-          title: 'Error creating declaration',
-          description: err.message,
-          variant: 'destructive',
-        });
+        toast({ title: t('hooks.taxFiling.createError'), description: err.message, variant: 'destructive' });
         return null;
       }
     },
-    [user, activeCompanyId, withCompanyScope, toast, setDeclarations, setError]
+    [user, activeCompanyId, withCompanyScope, t, toast, setDeclarations, setError]
   );
 
   // ---------------------------------------------------------------------------
@@ -198,15 +180,11 @@ export const useTaxFiling = () => {
         return data;
       } catch (err) {
         setError(err.message);
-        toast({
-          title: 'Error updating declaration',
-          description: err.message,
-          variant: 'destructive',
-        });
+        toast({ title: t('hooks.taxFiling.updateError'), description: err.message, variant: 'destructive' });
         return null;
       }
     },
-    [user, toast, setDeclarations, setError]
+    [user, t, toast, setDeclarations, setError]
   );
 
   // ---------------------------------------------------------------------------
@@ -222,17 +200,13 @@ export const useTaxFiling = () => {
         if (error) throw error;
 
         setDeclarations((prev) => prev.filter((d) => d.id !== id));
-        toast({ title: 'Declaration deleted' });
+        toast({ title: t('hooks.taxFiling.declarationDeleted') });
       } catch (err) {
         setError(err.message);
-        toast({
-          title: 'Error deleting declaration',
-          description: err.message,
-          variant: 'destructive',
-        });
+        toast({ title: t('hooks.taxFiling.deleteError'), description: err.message, variant: 'destructive' });
       }
     },
-    [user, toast, setDeclarations, setError]
+    [user, t, toast, setDeclarations, setError]
   );
 
   // ---------------------------------------------------------------------------
@@ -257,21 +231,17 @@ export const useTaxFiling = () => {
           setDeclarations((prev) => prev.map((d) => (d.id === id ? data.declaration : d)));
         }
 
-        toast({ title: 'Declaration submitted successfully' });
+        toast({ title: t('hooks.taxFiling.declarationSubmitted') });
         return data;
       } catch (err) {
         setError(err.message);
-        toast({
-          title: 'Error submitting declaration',
-          description: err.message,
-          variant: 'destructive',
-        });
+        toast({ title: t('hooks.taxFiling.submitError'), description: err.message, variant: 'destructive' });
         return null;
       } finally {
         setSubmitting(false);
       }
     },
-    [user, toast, setDeclarations, setError]
+    [user, t, toast, setDeclarations, setError]
   );
 
   return {

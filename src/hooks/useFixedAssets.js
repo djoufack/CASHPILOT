@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { isMissingColumnError } from '@/lib/supabaseCompatibility';
@@ -60,6 +61,7 @@ export function calculateDepreciationSchedule(cost, residualValue, usefulLife, m
 export function useFixedAssets() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { applyCompanyScope, withCompanyScope, activeCompanyId } = useCompanyScope();
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -91,121 +93,132 @@ export function useFixedAssets() {
       if (error) throw error;
       setAssets(data || []);
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, user, toast]);
+  }, [applyCompanyScope, t, user, toast]);
 
-  const fetchSchedule = useCallback(async (assetId) => {
-    if (!user) return [];
-    const buildBaseQuery = () =>
-      supabase
-        .from('accounting_depreciation_schedule')
-        .select('*')
-        .eq('asset_id', assetId)
-        .eq('user_id', user.id)
-        .order('period_year')
-        .order('period_month');
-
-    let query = buildBaseQuery();
-    query = applyCompanyScope(query, { includeUnassigned: false });
-    let { data, error } = await query;
-
-    if (error && isMissingColumnError(error, 'company_id')) {
-      ({ data, error } = await buildBaseQuery());
-    }
-
-    if (error) throw error;
-    return data || [];
-  }, [applyCompanyScope, user]);
-
-  const createAsset = useCallback(async (assetData) => {
-    if (!user) return;
-    const scopedPayload = { ...withCompanyScope(assetData), user_id: user.id };
-    let { data, error } = await supabase
-      .from('accounting_fixed_assets')
-      .insert(scopedPayload)
-      .select()
-      .single();
-
-    if (error && scopedPayload.company_id && isMissingColumnError(error, 'company_id')) {
-      ({ data, error } = await supabase
-        .from('accounting_fixed_assets')
-        .insert(stripCompanyId(scopedPayload))
-        .select()
-        .single());
-    }
-
-    if (error) throw error;
-
-    // Generate depreciation schedule
-    const lines = calculateDepreciationSchedule(
-      parseFloat(assetData.acquisition_cost),
-      parseFloat(assetData.residual_value || 0),
-      parseInt(assetData.useful_life_years),
-      assetData.depreciation_method || 'linear',
-      assetData.acquisition_date
-    );
-    if (lines.length > 0) {
-      const rows = lines.map(l => ({
-        ...l,
-        asset_id: data.id,
-        user_id: user.id,
-        company_id: data.company_id || activeCompanyId || null,
-      }));
-      let { error: scheduleError } = await supabase.from('accounting_depreciation_schedule').insert(rows);
-
-      if (scheduleError && rows.some((row) => row.company_id) && isMissingColumnError(scheduleError, 'company_id')) {
-        ({ error: scheduleError } = await supabase
+  const fetchSchedule = useCallback(
+    async (assetId) => {
+      if (!user) return [];
+      const buildBaseQuery = () =>
+        supabase
           .from('accounting_depreciation_schedule')
-          .insert(rows.map((row) => stripCompanyId(row))));
+          .select('*')
+          .eq('asset_id', assetId)
+          .eq('user_id', user.id)
+          .order('period_year')
+          .order('period_month');
+
+      let query = buildBaseQuery();
+      query = applyCompanyScope(query, { includeUnassigned: false });
+      let { data, error } = await query;
+
+      if (error && isMissingColumnError(error, 'company_id')) {
+        ({ data, error } = await buildBaseQuery());
       }
 
-      if (scheduleError) console.warn('Schedule insert error:', scheduleError);
-    }
+      if (error) throw error;
+      return data || [];
+    },
+    [applyCompanyScope, user]
+  );
 
-    toast({ title: 'Immobilisation créée', description: assetData.asset_name });
-    await fetchAssets();
-    return data;
-  }, [user, withCompanyScope, fetchAssets, toast, activeCompanyId, stripCompanyId]);
+  const createAsset = useCallback(
+    async (assetData) => {
+      if (!user) return;
+      const scopedPayload = { ...withCompanyScope(assetData), user_id: user.id };
+      let { data, error } = await supabase.from('accounting_fixed_assets').insert(scopedPayload).select().single();
 
-  const updateAsset = useCallback(async (id, updates) => {
-    const { data, error } = await supabase
-      .from('accounting_fixed_assets')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    toast({ title: 'Immobilisation mise à jour' });
-    await fetchAssets();
-    return data;
-  }, [fetchAssets, toast]);
+      if (error && scopedPayload.company_id && isMissingColumnError(error, 'company_id')) {
+        ({ data, error } = await supabase
+          .from('accounting_fixed_assets')
+          .insert(stripCompanyId(scopedPayload))
+          .select()
+          .single());
+      }
 
-  const deleteAsset = useCallback(async (id) => {
-    const { error } = await supabase.from('accounting_fixed_assets').delete().eq('id', id);
-    if (error) throw error;
-    toast({ title: 'Immobilisation supprimée' });
-    await fetchAssets();
-  }, [fetchAssets, toast]);
+      if (error) throw error;
 
-  const postDepreciationEntry = useCallback(async (asset, scheduleLine) => {
-    if (!user) return;
-    const txDate = `${scheduleLine.period_year}-${String(scheduleLine.period_month).padStart(2, '0')}-28`;
-    // DB function is the authoritative accounting engine for depreciation posting.
-    const { error } = await supabase.rpc('generate_depreciation_entries', {
-      p_user_id: user.id,
-      p_date: txDate,
-    });
-    if (error) throw error;
+      // Generate depreciation schedule
+      const lines = calculateDepreciationSchedule(
+        parseFloat(assetData.acquisition_cost),
+        parseFloat(assetData.residual_value || 0),
+        parseInt(assetData.useful_life_years),
+        assetData.depreciation_method || 'linear',
+        assetData.acquisition_date
+      );
+      if (lines.length > 0) {
+        const rows = lines.map((l) => ({
+          ...l,
+          asset_id: data.id,
+          user_id: user.id,
+          company_id: data.company_id || activeCompanyId || null,
+        }));
+        let { error: scheduleError } = await supabase.from('accounting_depreciation_schedule').insert(rows);
 
-    toast({
-      title: 'Dotation comptabilisée',
-      description: `${asset.asset_name} - ${scheduleLine.depreciation_amount.toLocaleString('fr-FR')} €`,
-    });
-    await fetchAssets();
-  }, [user, fetchAssets, toast]);
+        if (scheduleError && rows.some((row) => row.company_id) && isMissingColumnError(scheduleError, 'company_id')) {
+          ({ error: scheduleError } = await supabase
+            .from('accounting_depreciation_schedule')
+            .insert(rows.map((row) => stripCompanyId(row))));
+        }
+
+        if (scheduleError) console.warn('Schedule insert error:', scheduleError);
+      }
+
+      toast({ title: t('hooks.fixedAssets.assetCreated'), description: assetData.asset_name });
+      await fetchAssets();
+      return data;
+    },
+    [user, withCompanyScope, fetchAssets, t, toast, activeCompanyId, stripCompanyId]
+  );
+
+  const updateAsset = useCallback(
+    async (id, updates) => {
+      const { data, error } = await supabase
+        .from('accounting_fixed_assets')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      toast({ title: t('hooks.fixedAssets.assetUpdated') });
+      await fetchAssets();
+      return data;
+    },
+    [fetchAssets, t, toast]
+  );
+
+  const deleteAsset = useCallback(
+    async (id) => {
+      const { error } = await supabase.from('accounting_fixed_assets').delete().eq('id', id);
+      if (error) throw error;
+      toast({ title: t('hooks.fixedAssets.assetDeleted') });
+      await fetchAssets();
+    },
+    [fetchAssets, t, toast]
+  );
+
+  const postDepreciationEntry = useCallback(
+    async (asset, scheduleLine) => {
+      if (!user) return;
+      const txDate = `${scheduleLine.period_year}-${String(scheduleLine.period_month).padStart(2, '0')}-28`;
+      // DB function is the authoritative accounting engine for depreciation posting.
+      const { error } = await supabase.rpc('generate_depreciation_entries', {
+        p_user_id: user.id,
+        p_date: txDate,
+      });
+      if (error) throw error;
+
+      toast({
+        title: t('hooks.fixedAssets.depreciationPosted'),
+        description: `${asset.asset_name} - ${scheduleLine.depreciation_amount.toLocaleString('fr-FR')} €`,
+      });
+      await fetchAssets();
+    },
+    [user, fetchAssets, t, toast]
+  );
 
   return { assets, loading, fetchAssets, fetchSchedule, createAsset, updateAsset, deleteAsset, postDepreciationEntry };
 }

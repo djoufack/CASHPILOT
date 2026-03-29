@@ -57,7 +57,8 @@
     "reloadPage": "Pagina herladen",
     "unexpectedError": "Er is een onverwachte fout opgetreden.",
     "backToHome": "Terug naar startpagina",
-    "goToDashboard": "Naar dashboard"
+    "goToDashboard": "Naar dashboard",
+    "deleted": "Verwijderd"
   },
   "aiChat": {
     "title": "AI-assistent",
@@ -6588,127 +6589,185 @@
       "requestCancelled": "Aanvraag geannuleerd"
     },
     "fixedAssets": {
-      "assetCreated": "Vaste activa aangemaakt",
-      "assetUpdated": "Vaste activa bijgewerkt",
-      "assetDeleted": "Vaste activa verwijderd"
-    },
-    "billing": {
-      "billingUpdated": "Facturering bijgewerkt",
-      "billingUpdatedDesc": "Uw factureringsgegevens zijn opgeslagen.",
-      "subscriptionCancelled": "Abonnement opgezegd",
-      "subscriptionCancelledDesc": "Uw abonnement is opgezegd.",
-      "paymentIntegrationInfo": "Betalingsintegratie is binnenkort beschikbaar."
-    },
-    "products": {
-      "created": "Product succesvol aangemaakt.",
-      "updated": "Product bijgewerkt.",
-      "deleted": "Product verwijderd.",
-      "imported": "\"{{name}}\" geïmporteerd in uw voorraad.",
-      "categoryCreated": "Categorie aangemaakt.",
-      "categoryUpdated": "Categorie bijgewerkt."
-    },
-    "services": {
-      "created": "Dienst succesvol aangemaakt.",
-      "updated": "Dienst bijgewerkt.",
-      "deleted": "Dienst verwijderd.",
-      "categoryCreated": "Categorie aangemaakt.",
-      "categoryUpdated": "Categorie bijgewerkt."
-    },
-    "paymentTerms": {
-      "created": "Betalingsvoorwaarde aangemaakt.",
-      "updated": "Betalingsvoorwaarde bijgewerkt.",
-      "deleted": "Betalingsvoorwaarde verwijderd."
-    },
-    "expenses": {
-      "noCompany": "Geen actief bedrijf geselecteerd",
-      "updated": "Uitgave bijgewerkt",
-      "deleted": "Uitgave verwijderd",
-      "createError": "Fout bij aanmaken van uitgave"
+      "fetchError": "Fout bij laden van vaste activa",
+      "assetCreated": "Actief aangemaakt",
+      "assetUpdated": "Actief bijgewerkt",
+      "assetDeleted": "Actief verwijderd",
+      "depreciationPosted": "Afschrijving geboekt"
     },
     "accounting": {
-      "accountDeleted": "Rekening verwijderd",
+      "success": "Succes",
+      "accountCreated": "Account succesvol aangemaakt",
+      "accountCreatedWithWarnings": "Account aangemaakt met {{count}} waarschuwing(en) om te controleren",
+      "accountUpdated": "Account succesvol bijgewerkt",
+      "accountDeleted": "Account verwijderd",
+      "entryCreated": "Boeking aangemaakt",
+      "entryUpdated": "Boeking bijgewerkt",
+      "entryDeleted": "Boeking verwijderd",
       "mappingCreated": "Mapping aangemaakt",
       "mappingUpdated": "Mapping bijgewerkt",
       "mappingDeleted": "Mapping verwijderd",
+      "mappingsImported": "{{count}} mappings geïmporteerd",
       "taxRateCreated": "BTW-tarief aangemaakt",
       "taxRateUpdated": "BTW-tarief bijgewerkt",
       "taxRateDeleted": "BTW-tarief verwijderd",
-      "importSuccess": "{{count}} items geïmporteerd",
-      "importSuccessWithWarnings": "{{count}} items geïmporteerd, {{warnings}} punt(en) om te controleren",
-      "importError": "Importfout",
-      "mappingsImported": "{{count}} mappings geïmporteerd",
-      "accountCreatedWithWarnings": "Rekening aangemaakt met {{count}} waarschuwing(en) om te controleren",
-      "accountCreatedOk": "Rekening succesvol aangemaakt",
-      "accountUpdatedWithWarnings": "Rekening bijgewerkt met {{count}} waarschuwing(en) om te controleren",
-      "accountUpdatedOk": "Rekening succesvol bijgewerkt"
+      "fetchError": "Fout bij laden van boekhoudgegevens",
+      "createError": "Aanmaakfout",
+      "updateError": "Updatefout",
+      "deleteError": "Verwijderfout",
+      "importError": "Importfout"
+    },
+    "billing": {
+      "settingsSaved": "Instellingen opgeslagen",
+      "settingsSavedDesc": "Uw facturatieïnstellingen zijn bijgewerkt.",
+      "saveError": "Fout bij opslaan van instellingen",
+      "paymentIntegrationInfo": "Neem contact op met de ondersteuning om een betalingsprovider te integreren."
+    },
+    "paymentTerms": {
+      "termCreated": "Betalingstermijn aangemaakt",
+      "termUpdated": "Betalingstermijn bijgewerkt",
+      "termDeleted": "Betalingstermijn verwijderd",
+      "fetchError": "LaadFout",
+      "createError": "Aanmaakfout",
+      "updateError": "Updatefout",
+      "deleteError": "Verwijderfout"
+    },
+    "products": {
+      "created": "Product aangemaakt",
+      "updated": "Product bijgewerkt",
+      "deleted": "Product verwijderd",
+      "imported": "Product geïmporteerd: {{name}}",
+      "importError": "Productimportfout",
+      "fetchError": "Fout bij laden van producten",
+      "createError": "Aanmaakfout",
+      "updateError": "Updatefout",
+      "deleteError": "Verwijderfout",
+      "categoryCreated": "Categorie aangemaakt",
+      "categoryUpdated": "Categorie bijgewerkt",
+      "categoryDeleted": "Categorie verwijderd"
+    },
+    "services": {
+      "created": "Dienst aangemaakt",
+      "updated": "Dienst bijgewerkt",
+      "deleted": "Dienst verwijderd",
+      "fetchError": "Fout bij laden van diensten",
+      "createError": "Aanmaakfout",
+      "updateError": "Updatefout",
+      "deleteError": "Verwijderfout",
+      "categoryCreated": "Categorie aangemaakt",
+      "categoryUpdated": "Categorie bijgewerkt",
+      "categoryDeleted": "Categorie verwijderd"
+    },
+    "expenses": {
+      "created": "Uitgave aangemaakt",
+      "updated": "Uitgave bijgewerkt",
+      "deleted": "Uitgave verwijderd",
+      "fetchError": "Fout bij laden van uitgaven",
+      "noCompany": "Geen actief bedrijf geselecteerd",
+      "createError": "Aanmaakfout",
+      "updateError": "Updatefout",
+      "deleteError": "Verwijderfout"
     },
     "profileSettings": {
-      "avatarDeleted": "Avatar verwijderd.",
-      "avatarDeleteError": "Kon de avatar niet verwijderen.",
-      "signatureDeleted": "Handtekening verwijderd.",
-      "signatureDeleteError": "Kon de handtekening niet verwijderen."
+      "avatarDeleted": "Avatar verwijderd",
+      "avatarDeletedDesc": "Uw avatar is verwijderd.",
+      "avatarUploaded": "Avatar bijgewerkt",
+      "avatarUploadedDesc": "Uw avatar is bijgewerkt.",
+      "profileSaved": "Profiel opgeslagen",
+      "profileSavedDesc": "Uw informatie is bijgewerkt.",
+      "saveError": "Fout bij opslaan van profiel",
+      "uploadError": "Fout bij uploaden van avatar",
+      "deleteError": "Fout bij verwijderen van avatar"
     },
     "teamSettings": {
-      "inviteSent": "Uitnodiging verstuurd",
-      "inviteSentDesc": "Uitnodiging verstuurd naar {{email}}",
+      "inviteSent": "Uitnodiging verzonden",
+      "inviteSentDesc": "Uitnodiging verzonden naar {{email}}",
       "memberUpdated": "Lid bijgewerkt",
       "memberUpdatedDesc": "De rol van het lid is gewijzigd.",
       "memberDeleted": "Lid verwijderd",
-      "memberDeletedDesc": "De gebruiker is uit het team verwijderd."
+      "memberDeletedDesc": "De gebruiker is verwijderd uit het team.",
+      "inviteError": "Uitnodigingsfout",
+      "updateError": "Updatefout",
+      "deleteError": "Verwijderfout"
     },
     "stockHistory": {
       "stockUpdated": "Voorraad bijgewerkt",
-      "stockUpdatedDesc": "Voorraadniveau succesvol aangepast."
+      "stockUpdatedDesc": "Voorraadniveau succesvol aangepast.",
+      "updateError": "Fout bij bijwerken van voorraad"
     },
     "supplierInvoices": {
-      "recorded": "Factuur geregistreerd",
-      "recordedDesc": "Factuur succesvol geregistreerd",
+      "fetchError": "Fout bij laden van facturen",
+      "created": "Factuur geregistreerd",
+      "createdDesc": "De leveranciersfactuur is succesvol geregistreerd.",
       "deleted": "Factuur verwijderd",
       "updated": "Factuur bijgewerkt",
-      "invoiceUpdatedDesc": "Factuur succesvol bijgewerkt",
+      "updatedDesc": "De factuur is succesvol bijgewerkt.",
       "paymentStatusUpdated": "Betalingsstatus bijgewerkt",
-      "approvalStatusUpdated": "Goedkeuringsstatus bijgewerkt"
+      "approvalStatusUpdated": "Goedkeuringsstatus bijgewerkt",
+      "createError": "Aanmaakfout",
+      "deleteError": "Verwijderfout",
+      "updateError": "Updatefout"
     },
     "users": {
-      "fetchError": "Ophalen van gebruikers mislukt"
+      "fetchError": "Fout bij laden van gebruikers"
     },
     "pushNotifications": {
-      "subscribed": "Ingeschreven",
-      "subscribedDesc": "Push-meldingen ingeschakeld.",
-      "subscribeError": "Kon push-meldingen niet inschakelen.",
+      "subscribed": "Geabonneerd",
+      "subscribedDesc": "Push-meldingen zijn ingeschakeld.",
+      "subscribeError": "Fout",
+      "subscribeErrorDesc": "Kan push-meldingen niet inschakelen.",
       "unsubscribed": "Uitgeschreven",
-      "unsubscribedDesc": "Push-meldingen uitgeschakeld."
+      "unsubscribedDesc": "Push-meldingen zijn uitgeschakeld."
     },
     "offline": {
-      "onlineTitle": "Online",
-      "onlineDesc": "Verbinding hersteld. Gegevens worden gesynchroniseerd...",
-      "offlineTitle": "Offline",
-      "offlineDesc": "U bent offline. Wijzigingen worden lokaal opgeslagen."
+      "onlineTitle": "Weer online",
+      "onlineDesc": "U bent weer online. Synchroniseren...",
+      "offlineTitle": "Verbinding verbroken",
+      "offlineDesc": "U bent offline. Wijzigingen worden gesynchroniseerd wanneer u opnieuw verbinding maakt.",
+      "syncError": "Synchronisatiefout"
     },
     "notificationSettings": {
-      "saved": "Voorkeuren opgeslagen",
-      "savedDesc": "Uw meldingsinstellingen zijn bijgewerkt."
+      "settingsSaved": "Voorkeuren opgeslagen",
+      "settingsSavedDesc": "Uw meldingsvoorkeuren zijn bijgewerkt.",
+      "saveError": "Fout bij opslaan van voorkeuren"
     },
     "biometric": {
-      "enabled": "Biometrisch inloggen ingeschakeld.",
-      "enableError": "Registratie biometrie mislukt."
+      "registered": "Biometrische authenticatie ingeschakeld",
+      "registeredDesc": "Biometrische aanmelding is nu beschikbaar.",
+      "registerError": "Fout bij biometrische registratie"
     },
     "invoiceUpload": {
-      "fileDeleted": "Verwijderd",
-      "fileDeletedDesc": "Bestand succesvol verwijderd"
+      "uploadSuccess": "Factuur geüpload",
+      "uploadSuccessDesc": "De factuur is succesvol geüpload en geanalyseerd.",
+      "uploadFailed": "Upload mislukt",
+      "downloadFailed": "Bestandsdownload mislukt",
+      "deleted": "Factuur verwijderd",
+      "error": "Fout"
     },
     "taxFiling": {
+      "noCompany": "Geen actief bedrijf geselecteerd",
       "declarationCreated": "Aangifte aangemaakt",
       "declarationDeleted": "Aangifte verwijderd",
       "declarationSubmitted": "Aangifte succesvol ingediend",
+      "computeVatError": "Fout bij berekening BTW",
+      "computeCorporateTaxError": "Fout bij berekening vennootschapsbelasting",
       "createError": "Fout bij aanmaken van aangifte",
+      "updateError": "Fout bij bijwerken van aangifte",
       "deleteError": "Fout bij verwijderen van aangifte",
-      "submitError": "Fout bij indienen van aangifte",
-      "updateError": "Fout bij bijwerken van aangifte"
+      "submitError": "Fout bij indienen van aangifte"
     },
     "barcodeScanner": {
-      "detected": "Barcode gedetecteerd",
-      "cameraError": "Geen toegang tot camera."
+      "permissionDenied": "Toestemming geweigerd",
+      "permissionDeniedDesc": "Cameratoegang is vereist om barcodes te scannen.",
+      "scanError": "Scanfout"
+    },
+    "accountingInit": {
+      "initialized": "Boekhouding geïnitialiseerd",
+      "initializedDesc": "{{accounts}} accounts, {{mappings}} mappings, {{taxRates}} BTW-tarieven",
+      "autoEnabled": "Automatische initialisatie ingeschakeld",
+      "autoDisabled": "Automatische initialisatie uitgeschakeld",
+      "initError": "Fout bij initialiseren van boekhouding",
+      "autoToggleError": "Fout bij bijwerken van instelling"
     }
   },
   "recruitment": {

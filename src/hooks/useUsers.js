@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { normalizeRole } from '@/lib/roles';
 
 export const useUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const fetchUsers = useCallback(async () => {
@@ -47,11 +49,11 @@ export const useUsers = () => {
       );
     } catch (err) {
       console.error(err);
-      toast({ title: 'Error', description: 'Failed to fetch users', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('hooks.users.fetchError'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [t, toast]);
 
   return { users, fetchUsers, loading };
 };

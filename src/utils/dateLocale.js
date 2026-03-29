@@ -63,3 +63,21 @@ export function formatNumber(value, options = {}) {
     return String(value);
   }
 }
+
+/**
+ * Format a Date value as a time string using the current i18n language.
+ *
+ * @param {Date|string|number} value - The date/time to format
+ * @param {Intl.DateTimeFormatOptions} [options] - Intl.DateTimeFormat options
+ * @returns {string} Formatted time string
+ */
+export function formatTime(value, options = { hour: '2-digit', minute: '2-digit' }) {
+  if (!value) return '';
+  try {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat(getLocale(), options).format(date);
+  } catch {
+    return String(value);
+  }
+}
