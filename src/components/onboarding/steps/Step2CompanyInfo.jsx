@@ -262,7 +262,7 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
             onChange={(e) => handleChange('company_name', e.target.value)}
             className={inputClass}
             style={inputStyle}
-            placeholder="Ma Societe SARL"
+            placeholder={t('onboarding.companyNamePlaceholder', 'Ma Société SARL')}
             aria-required="true"
             aria-label={t('onboarding.company.name', "Nom de l'entreprise")}
           />
@@ -318,7 +318,7 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
             onChange={(e) => handleChange('city', e.target.value)}
             className={inputClass}
             style={inputStyle}
-            placeholder="Paris"
+            placeholder={t('onboarding.cityPlaceholder', 'Paris')}
           />
         </div>
 

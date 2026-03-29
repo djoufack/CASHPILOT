@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -45,16 +45,21 @@ import { useToast } from '@/components/ui/use-toast';
 import { exportCrmSupportTicketHTML, exportCrmSupportTicketPDF } from '@/services/exportCrmSupportRecords';
 import { buildCrmPipelineForecastInsights } from '@/services/crmPipelineForecastInsights';
 
-const sectionConfig = [
-  { key: 'overview', label: 'Vue CRM', icon: BarChart3 },
-  { key: 'accounts', label: 'Comptes & Contacts', icon: Users },
-  { key: 'leads', label: 'Leads', icon: Users },
-  { key: 'opportunities', label: 'Opportunités', icon: FileSignature },
-  { key: 'activities', label: 'Activités', icon: Activity },
-  { key: 'quotes-contracts', label: 'Devis & Contrats', icon: ClipboardList },
-  { key: 'support', label: 'Tickets & SLA', icon: LifeBuoy },
-  { key: 'automation', label: 'Automatisation', icon: Workflow },
-  { key: 'reports', label: 'Rapports CRM', icon: BarChart3 },
+const sectionKeys = [
+  { key: 'overview', i18nKey: 'crm.sections.overview', fallback: 'Vue CRM', icon: BarChart3 },
+  { key: 'accounts', i18nKey: 'crm.sections.accounts', fallback: 'Comptes & Contacts', icon: Users },
+  { key: 'leads', i18nKey: 'crm.sections.leads', fallback: 'Leads', icon: Users },
+  { key: 'opportunities', i18nKey: 'crm.sections.opportunities', fallback: 'Opportunités', icon: FileSignature },
+  { key: 'activities', i18nKey: 'crm.sections.activities', fallback: 'Activités', icon: Activity },
+  {
+    key: 'quotes-contracts',
+    i18nKey: 'crm.sections.quotesContracts',
+    fallback: 'Devis & Contrats',
+    icon: ClipboardList,
+  },
+  { key: 'support', i18nKey: 'crm.sections.support', fallback: 'Tickets & SLA', icon: LifeBuoy },
+  { key: 'automation', i18nKey: 'crm.sections.automation', fallback: 'Automatisation', icon: Workflow },
+  { key: 'reports', i18nKey: 'crm.sections.reports', fallback: 'Rapports CRM', icon: BarChart3 },
 ];
 
 const openOpportunityStatuses = new Set(['draft', 'sent', 'pending', 'open']);
@@ -104,52 +109,68 @@ const ticketPriorityClass = (priority = '') => {
   return 'bg-slate-700/40 text-slate-300 border-slate-600';
 };
 
-const ticketStatusLabel = (status = '') => {
-  const normalized = String(status).toLowerCase();
-  if (normalized === 'in_progress') return 'En cours';
-  if (normalized === 'waiting_customer') return 'Attente client';
-  if (normalized === 'resolved') return 'Résolu';
-  if (normalized === 'closed') return 'Clôturé';
-  return 'Ouvert';
-};
-
-const supportStatusOptions = [
-  { value: 'open', label: 'Ouvert' },
-  { value: 'in_progress', label: 'En cours' },
-  { value: 'waiting_customer', label: 'Attente client' },
-  { value: 'resolved', label: 'Résolu' },
-  { value: 'closed', label: 'Clôturé' },
-];
-
-const supportPriorityOptions = [
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
-  { value: 'critical', label: 'Critical' },
-];
-
-const supportSlaOptions = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'premium', label: 'Premium' },
-  { value: 'critical', label: 'Critical' },
-];
-
-const supportViewModes = [
-  { key: 'list', label: 'Liste', icon: List },
-  { key: 'gallery', label: 'Galerie', icon: LayoutGrid },
-  { key: 'calendar', label: 'Calendrier', icon: CalendarDays },
-  { key: 'agenda', label: 'Agenda', icon: CalendarClock },
-  { key: 'kanban', label: 'Kanban', icon: Kanban },
-];
-
 const CRMPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { section } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const sectionConfig = useMemo(() => sectionKeys.map((s) => ({ ...s, label: t(s.i18nKey, s.fallback) })), [t]);
   const normalizedSection = section || 'overview';
   const activeSection = sectionConfig.find((entry) => entry.key === normalizedSection) || sectionConfig[0];
+
+  const ticketStatusLabel = useCallback(
+    (status = '') => {
+      const normalized = String(status).toLowerCase();
+      if (normalized === 'in_progress') return t('crm.ticketStatus.in_progress', 'En cours');
+      if (normalized === 'waiting_customer') return t('crm.ticketStatus.waiting_customer', 'Attente client');
+      if (normalized === 'resolved') return t('crm.ticketStatus.resolved', 'Résolu');
+      if (normalized === 'closed') return t('crm.ticketStatus.closed', 'Clôturé');
+      return t('crm.ticketStatus.open', 'Ouvert');
+    },
+    [t]
+  );
+
+  const supportStatusOptions = useMemo(
+    () => [
+      { value: 'open', label: t('crm.ticketStatus.open', 'Ouvert') },
+      { value: 'in_progress', label: t('crm.ticketStatus.in_progress', 'En cours') },
+      { value: 'waiting_customer', label: t('crm.ticketStatus.waiting_customer', 'Attente client') },
+      { value: 'resolved', label: t('crm.ticketStatus.resolved', 'Résolu') },
+      { value: 'closed', label: t('crm.ticketStatus.closed', 'Clôturé') },
+    ],
+    [t]
+  );
+
+  const supportPriorityOptions = useMemo(
+    () => [
+      { value: 'low', label: t('crm.priority.low', 'Basse') },
+      { value: 'medium', label: t('crm.priority.medium', 'Moyenne') },
+      { value: 'high', label: t('crm.priority.high', 'Haute') },
+      { value: 'critical', label: t('crm.priority.critical', 'Critique') },
+    ],
+    [t]
+  );
+
+  const supportSlaOptions = useMemo(
+    () => [
+      { value: 'standard', label: t('crm.sla.standard', 'Standard') },
+      { value: 'premium', label: t('crm.sla.premium', 'Premium') },
+      { value: 'critical', label: t('crm.sla.critical', 'Critique') },
+    ],
+    [t]
+  );
+
+  const supportViewModes = useMemo(
+    () => [
+      { key: 'list', label: t('common.list', 'Liste'), icon: List },
+      { key: 'gallery', label: t('common.gallery', 'Galerie'), icon: LayoutGrid },
+      { key: 'calendar', label: t('common.calendar', 'Calendrier'), icon: CalendarDays },
+      { key: 'agenda', label: t('common.agenda', 'Agenda'), icon: CalendarClock },
+      { key: 'kanban', label: t('common.kanban', 'Kanban'), icon: Kanban },
+    ],
+    [t]
+  );
 
   const { company, companies = [] } = useCompany();
   const { activeCompanyId } = useCompanyScope();
@@ -226,7 +247,7 @@ const CRMPage = () => {
   );
 
   useEffect(() => {
-    if (section && !sectionConfig.some((entry) => entry.key === section)) {
+    if (section && !sectionKeys.some((entry) => entry.key === section)) {
       navigate('/app/crm', { replace: true });
     }
   }, [navigate, section]);
@@ -444,7 +465,7 @@ const CRMPage = () => {
         statusColor: statusBadgeClass(ticket.status),
         raw: ticket,
       })),
-    [supportTickets]
+    [supportTickets, ticketStatusLabel]
   );
 
   const handleCreateTicket = async (event) => {
