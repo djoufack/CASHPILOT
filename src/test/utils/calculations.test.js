@@ -1,4 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Force fr-FR locale so formatCurrency uses comma decimal separator and symbol-after format
+vi.mock('@/i18n/config', () => ({
+  default: {
+    resolvedLanguage: 'fr',
+    language: 'fr',
+    on: vi.fn(),
+  },
+}));
+
 import {
   calculateDuration,
   durationToHours,
@@ -88,12 +98,8 @@ describe('durationToHours', () => {
 // ============================================================================
 describe('calculateInvoiceTotal', () => {
   it('should calculate subtotal, tax and total', () => {
-    const items = [
-      { amount: 100 },
-      { amount: 200 },
-      { amount: 50 },
-    ];
-    const result = calculateInvoiceTotal(items, 0.20);
+    const items = [{ amount: 100 }, { amount: 200 }, { amount: 50 }];
+    const result = calculateInvoiceTotal(items, 0.2);
     expect(result.subtotal).toBe(350);
     expect(result.taxAmount).toBe(70);
     expect(result.total).toBe(420);
@@ -108,7 +114,7 @@ describe('calculateInvoiceTotal', () => {
   });
 
   it('should handle empty items array', () => {
-    const result = calculateInvoiceTotal([], 0.20);
+    const result = calculateInvoiceTotal([], 0.2);
     expect(result.subtotal).toBe(0);
     expect(result.taxAmount).toBe(0);
     expect(result.total).toBe(0);
@@ -116,7 +122,7 @@ describe('calculateInvoiceTotal', () => {
 
   it('should handle items with missing amount', () => {
     const items = [{ amount: 100 }, { description: 'no amount' }];
-    const result = calculateInvoiceTotal(items, 0.20);
+    const result = calculateInvoiceTotal(items, 0.2);
     expect(result.subtotal).toBe(100);
     expect(result.taxAmount).toBe(20);
     expect(result.total).toBe(120);
@@ -124,7 +130,7 @@ describe('calculateInvoiceTotal', () => {
 
   it('should round to 2 decimal places', () => {
     const items = [{ amount: 33.33 }, { amount: 33.33 }, { amount: 33.34 }];
-    const result = calculateInvoiceTotal(items, 0.20);
+    const result = calculateInvoiceTotal(items, 0.2);
     expect(result.subtotal).toBe(100);
     expect(result.taxAmount).toBe(20);
     expect(result.total).toBe(120);
@@ -231,7 +237,7 @@ describe('calculateInvoiceTotalWithDiscount', () => {
       { quantity: 2, unitPrice: 100 },
       { quantity: 1, unitPrice: 50 },
     ];
-    const result = calculateInvoiceTotalWithDiscount(items, 0.20);
+    const result = calculateInvoiceTotalWithDiscount(items, 0.2);
     expect(result.subtotal).toBe(250);
     expect(result.totalItemDiscounts).toBe(0);
     expect(result.subtotalAfterItemDiscounts).toBe(250);
@@ -242,10 +248,8 @@ describe('calculateInvoiceTotalWithDiscount', () => {
   });
 
   it('should apply item percentage discount', () => {
-    const items = [
-      { quantity: 2, unitPrice: 100, discount_type: 'percentage', discount_value: 10 },
-    ];
-    const result = calculateInvoiceTotalWithDiscount(items, 0.20);
+    const items = [{ quantity: 2, unitPrice: 100, discount_type: 'percentage', discount_value: 10 }];
+    const result = calculateInvoiceTotalWithDiscount(items, 0.2);
     expect(result.subtotal).toBe(200);
     expect(result.totalItemDiscounts).toBe(20);
     expect(result.subtotalAfterItemDiscounts).toBe(180);
@@ -255,11 +259,9 @@ describe('calculateInvoiceTotalWithDiscount', () => {
   });
 
   it('should apply global percentage discount', () => {
-    const items = [
-      { quantity: 1, unitPrice: 100 },
-    ];
+    const items = [{ quantity: 1, unitPrice: 100 }];
     const globalDiscount = { type: 'percentage', value: 10 };
-    const result = calculateInvoiceTotalWithDiscount(items, 0.20, globalDiscount);
+    const result = calculateInvoiceTotalWithDiscount(items, 0.2, globalDiscount);
     expect(result.subtotal).toBe(100);
     expect(result.globalDiscountAmount).toBe(10);
     expect(result.totalHT).toBe(90);
@@ -268,21 +270,17 @@ describe('calculateInvoiceTotalWithDiscount', () => {
   });
 
   it('should apply global fixed discount', () => {
-    const items = [
-      { quantity: 1, unitPrice: 200 },
-    ];
+    const items = [{ quantity: 1, unitPrice: 200 }];
     const globalDiscount = { type: 'fixed', value: 25 };
-    const result = calculateInvoiceTotalWithDiscount(items, 0.20, globalDiscount);
+    const result = calculateInvoiceTotalWithDiscount(items, 0.2, globalDiscount);
     expect(result.globalDiscountAmount).toBe(25);
     expect(result.totalHT).toBe(175);
   });
 
   it('should combine item and global discounts', () => {
-    const items = [
-      { quantity: 2, unitPrice: 100, discount_type: 'fixed', discount_value: 10 },
-    ];
+    const items = [{ quantity: 2, unitPrice: 100, discount_type: 'fixed', discount_value: 10 }];
     const globalDiscount = { type: 'percentage', value: 5 };
-    const result = calculateInvoiceTotalWithDiscount(items, 0.20, globalDiscount);
+    const result = calculateInvoiceTotalWithDiscount(items, 0.2, globalDiscount);
     // subtotal = 200, itemDiscount = 10, afterItem = 190, globalDiscount = 190*5% = 9.5
     expect(result.subtotal).toBe(200);
     expect(result.totalItemDiscounts).toBe(10);
@@ -292,7 +290,7 @@ describe('calculateInvoiceTotalWithDiscount', () => {
   });
 
   it('should handle empty items', () => {
-    const result = calculateInvoiceTotalWithDiscount([], 0.20);
+    const result = calculateInvoiceTotalWithDiscount([], 0.2);
     expect(result.subtotal).toBe(0);
     expect(result.totalTTC).toBe(0);
   });
@@ -372,19 +370,13 @@ describe('allocateLumpSumPayment', () => {
       { id: 'inv-2', balance_due: 100, date: '2024-02-01' },
     ];
     const result = allocateLumpSumPayment(100, invoices);
-    expect(result).toEqual([
-      { invoiceId: 'inv-2', allocatedAmount: 100 },
-    ]);
+    expect(result).toEqual([{ invoiceId: 'inv-2', allocatedAmount: 100 }]);
   });
 
   it('should handle total_ttc as fallback', () => {
-    const invoices = [
-      { id: 'inv-1', total_ttc: 50, date: '2024-01-01' },
-    ];
+    const invoices = [{ id: 'inv-1', total_ttc: 50, date: '2024-01-01' }];
     const result = allocateLumpSumPayment(30, invoices);
-    expect(result).toEqual([
-      { invoiceId: 'inv-1', allocatedAmount: 30 },
-    ]);
+    expect(result).toEqual([{ invoiceId: 'inv-1', allocatedAmount: 30 }]);
   });
 });
 
@@ -444,10 +436,7 @@ describe('generateInvoiceNumber', () => {
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     Storage.prototype.getItem.mockReturnValue(
-      JSON.stringify([
-        { invoiceNumber: `INV-${year}-${month}-001` },
-        { invoiceNumber: `INV-${year}-${month}-002` },
-      ])
+      JSON.stringify([{ invoiceNumber: `INV-${year}-${month}-001` }, { invoiceNumber: `INV-${year}-${month}-002` }])
     );
     const result = await generateInvoiceNumber();
     expect(result).toBe(`INV-${year}-${month}-003`);
