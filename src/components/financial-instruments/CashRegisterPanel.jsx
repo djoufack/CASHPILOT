@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useTranslation } from 'react-i18next';
 import { Banknote, Plus, Pencil, Trash2, MapPin, User, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';

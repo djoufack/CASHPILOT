@@ -42,6 +42,10 @@ if ($status) {
   Write-Host "No local changes to commit. Continuing with push and deploy."
 }
 
+Run-Step -Label "npm run verify:local" -Action { npm run verify:local }
+Run-Step -Label "npm run test:coverage" -Action { npm run test:coverage }
+Run-Step -Label "npm audit --omit=dev --audit-level=high" -Action { npm audit --omit=dev --audit-level=high }
+
 Run-Step -Label $pushLabel -Action { git @pushArgs }
 Run-Step -Label "vercel deploy --prod --yes" -Action { vercel deploy --prod --yes }
 

@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, Loader2 } from 'lucide-react';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';

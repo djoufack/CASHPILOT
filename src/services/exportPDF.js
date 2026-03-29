@@ -1,5 +1,4 @@
 
-import React from "react";
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
 

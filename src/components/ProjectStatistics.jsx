@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useProjectStatistics } from '@/hooks/useProjectStatistics';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Loader2 } from 'lucide-react';

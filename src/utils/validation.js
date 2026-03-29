@@ -1,6 +1,4 @@
 
-import React from "react";
-
 /**
  * Validate email address
  * @param {string} email - Email to validate

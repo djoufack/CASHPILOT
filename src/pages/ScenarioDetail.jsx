@@ -2,8 +2,7 @@
  * Scenario Detail Page
  * Shows scenario details, assumptions management, and simulation results
  */
-
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';

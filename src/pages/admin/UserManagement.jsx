@@ -1,5 +1,4 @@
-
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUsers } from '@/hooks/useUsers';
 import { Button } from '@/components/ui/button';

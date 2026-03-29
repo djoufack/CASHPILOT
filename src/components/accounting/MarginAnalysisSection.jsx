@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, DollarSign, Activity, Target, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';

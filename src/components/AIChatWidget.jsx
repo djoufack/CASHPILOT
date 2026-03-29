@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2, Trash2, Bot, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAIChat } from '@/hooks/useAIChat';

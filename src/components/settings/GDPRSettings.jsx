@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useTranslation } from 'react-i18next';
 import { useGDPR } from '@/hooks/useGDPR';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

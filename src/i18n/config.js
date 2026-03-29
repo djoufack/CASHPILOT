@@ -1,14 +1,17 @@
-
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import en from './locales/en.json';
-import fr from './locales/fr.json';
-import nl from './locales/nl.json';
 
 const SUPPORTED_LANGUAGES = ['en', 'fr', 'nl'];
 const LANGUAGE_STORAGE_KEY = 'cashpilot_language';
 const RTL_LANGUAGES = new Set(['ar', 'he', 'fa', 'ur']);
+const NAMESPACE = 'translation';
+
+const localeLoaders = {
+  en: () => import('./locales/en.json'),
+  fr: () => import('./locales/fr.json'),
+  nl: () => import('./locales/nl.json'),
+};
 
 const normalizeLanguageCode = (value) => {
   const normalized = String(value || '')
@@ -20,29 +23,47 @@ const normalizeLanguageCode = (value) => {
   return SUPPORTED_LANGUAGES.includes(baseLanguage) ? baseLanguage : 'en';
 };
 
+const localeBackend = {
+  type: 'backend',
+  read(language, _namespace, callback) {
+    const normalizedLanguage = normalizeLanguageCode(language);
+    const loadLocale = localeLoaders[normalizedLanguage] || localeLoaders.en;
+
+    loadLocale()
+      .then((module) => {
+        callback(null, module.default || module);
+      })
+      .catch((error) => {
+        callback(error, false);
+      });
+  },
+};
+
 i18n
+  .use(localeBackend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: {
-      en: { translation: en },
-      fr: { translation: fr },
-      nl: { translation: nl }
-    },
     supportedLngs: SUPPORTED_LANGUAGES,
     fallbackLng: 'en',
+    ns: [NAMESPACE],
+    defaultNS: NAMESPACE,
     load: 'languageOnly',
     cleanCode: true,
     nonExplicitSupportedLngs: true,
+    partialBundledLanguages: true,
     interpolation: {
-      escapeValue: false
+      escapeValue: false,
+    },
+    react: {
+      useSuspense: false,
     },
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
       lookupLocalStorage: LANGUAGE_STORAGE_KEY,
       caches: ['localStorage'],
       convertDetectedLanguage: (lng) => normalizeLanguageCode(lng),
-    }
+    },
   });
 
 if (typeof document !== 'undefined') {

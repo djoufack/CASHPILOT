@@ -1,5 +1,4 @@
-
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTasksForProject } from '@/hooks/useTasksForProject';
 import TaskList from './TaskList';
 import TaskForm from './TaskForm';

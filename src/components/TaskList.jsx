@@ -1,5 +1,4 @@
 
-import React from 'react';
 import TaskCard from './TaskCard';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

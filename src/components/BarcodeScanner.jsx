@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { Button } from '@/components/ui/button';

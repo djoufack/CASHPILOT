@@ -67,6 +67,10 @@ AGENTS.md
 /supabase/
 
 # ---- Other non-runtime directories ----
+# Anchored with / to avoid matching src/components/api/ etc.
+# Keep only the runtime MCP handler in the Vercel deployment payload.
+/api/*
+!/api/mcp.js
 /n8n-workflows/
 /skills/
 /stripe/

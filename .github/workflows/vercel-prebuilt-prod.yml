@@ -31,16 +31,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run guards
-        run: npm run guard
+      - name: Run local quality gate
+        run: npm run verify:local
 
-      - name: Run critical regression tests
-        run: |
-          npm run test -- \
-            src/test/regression/companyScopeMissingColumnsMigration.test.js \
-            src/test/regression/verifyAccountingCompanyScopeScriptContract.test.js \
-            src/test/services/accountingInitService.test.js \
-            src/test/regression/supabaseCompatibility.test.js
+      - name: Run coverage gate
+        run: npm run test:coverage
+
+      - name: Run runtime security audit
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Run remote accounting compliance gate
         if: ${{ secrets.SUPABASE_URL != '' && secrets.SUPABASE_SERVICE_ROLE_KEY != '' && secrets.VITE_SUPABASE_ANON_KEY != '' && secrets.PILOTAGE_FR_PASSWORD != '' && secrets.PILOTAGE_BE_PASSWORD != '' && secrets.PILOTAGE_OHADA_PASSWORD != '' }}

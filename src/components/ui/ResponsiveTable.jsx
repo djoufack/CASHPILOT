@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useResponsive } from '@/hooks/useResponsive';
 import {
   Table,

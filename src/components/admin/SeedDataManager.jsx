@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSeedData } from '@/hooks/useSeedData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
