@@ -9,49 +9,46 @@
 
 ## Résumé exécutif
 
-| Bug      | Module                                | Sévérité    | Statut  | ENF violée |
-| -------- | ------------------------------------- | ----------- | ------- | ---------- |
-| BUG-P001 | supplier_invoices (DB trigger)        | 🔴 CRITIQUE | FIXED   | ENF-3      |
-| BUG-P002 | PurchaseOrdersPage                    | ℹ️ INFO     | WONTFIX | —          |
-| BUG-P003 | Dépenses — catégorie `operations`     | 🟡 MAJEUR   | FIXED   | ENF-3      |
-| BUG-P004 | useSuppliers — fallback cross-company | 🟡 MAJEUR   | FIXED   | ENF-2      |
-| BUG-P005 | Dépenses — reversal à la suppression  | ℹ️ INFO     | WONTFIX | —          |
+| Bug      | Module                                 | Sévérité  | Statut  | ENF violée |
+| -------- | -------------------------------------- | --------- | ------- | ---------- |
+| BUG-P001 | supplier_invoices — trigger code achat | 🟡 MAJEUR | FIXED   | ENF-3      |
+| BUG-P002 | PurchaseOrdersPage                     | ℹ️ INFO   | WONTFIX | —          |
+| BUG-P003 | Dépenses — catégorie `operations`      | 🟡 MAJEUR | FIXED   | ENF-3      |
+| BUG-P004 | useSuppliers — fallback cross-company  | 🟡 MAJEUR | FIXED   | ENF-2      |
+| BUG-P005 | Dépenses — reversal à la suppression   | ℹ️ INFO   | WONTFIX | —          |
 
 ---
 
-## BUG-P001 | migrations/ | 🔴 CRITIQUE | FIXED
+## BUG-P001 | supabase/migrations/ | 🟡 MAJEUR | FIXED
 
-**Fichier :** `migrations/040_auto_journal_supplier_invoice.sql` (nouveau)
+**Fichiers :**
+
+- `supabase/migrations/20260226155822_040_supplier_invoice_trigger.sql` (existant — code incorrect)
+- `supabase/migrations/20260308450000_fix_auto_journal_company_id_and_gaps.sql` (partiel — colonne corrigée)
+- `migrations/040_auto_journal_supplier_invoice.sql` (nouveau — version archive)
+- `supabase/migrations/20260329030000_buy_fix_expense_operations_account_code.sql` (nouveau — fix live DB)
+
 **ENF :** ENF-3 — Journalisation comptable automatique
 
 ### Problème
 
-Aucun trigger `auto_journal_supplier_invoice` n'existait dans la base de données.
-Créer une facture fournisseur (`supplier_invoices`) ne déclenchait **aucune écriture comptable** dans `accounting_entries`.
-En comparaison, les dépenses (`expenses`) et les factures clients (`invoices`) avaient bien leurs triggers.
+Le trigger `auto_journal_supplier_invoice` existe dans la DB live (depuis `20260226155822`), mais présentait deux défauts :
 
-**Impact :** Toutes les dettes fournisseurs et achats HT sont absents du grand livre comptable. Les bilans et balances sont faux pour les 3 plans comptables.
+1. **Colonne inexistante** (corrigé dans `20260308450000`) : La version initiale utilisait `NEW.amount_ht` et `NEW.tax_amount` qui n'existent pas dans `supplier_invoices`. COALESCE retournait `0`, donc les entrées débit-achat et TVA n'étaient jamais insérées. Seul le crédit fournisseur (à partir de `NEW.total_ttc`) était créé → écritures incomplètes.
 
-**Preuve :**
+2. **Code comptable achat incorrect** : Le trigger utilise `get_user_account_code(user_id, 'expense.general')` → retourne `618` (charges générales) pour la France au lieu de `607` (achats marchandises). Sémantiquement incorrect : une facture fournisseur doit débiter un compte d'achat (classe 60x), pas une charge générale (classe 61x).
 
-- FR (PCG) : 0 entrées pour source_type='supplier_invoice' malgré 4+ factures existantes
-- BE (PCMN) : idem
-- OHADA : idem
+**Observations :**
+
+- FR (PCG) : 0 entrées `source_type='supplier_invoice'` malgré 10 factures existantes
+- Raison : toutes les factures demo sont en status `draft` — le trigger ne se déclenche que pour `received/processed`
+- Le comportement draft→received est correct ; le problème est que le compte débité est `expense.general` au lieu de `purchase`
 
 ### Correction
 
-Créé `migrations/040_auto_journal_supplier_invoice.sql` qui :
-
-1. Ajoute la fonction `auto_journal_supplier_invoice()` avec :
-   - **À la réception** (INSERT) : Débit Achats (601/607/604) + Débit TVA déductible (44566/4110/4452) / Crédit Fournisseur (401/440)
-   - **Au paiement** (payment_status → paid) : Débit Fournisseur / Crédit Banque (512/550/521)
-2. Codes comptables corrects par plan :
-   - PCG France : 607 (achats), 401 (fournisseurs), 44566 (TVA), 512 (banque)
-   - PCMN Belgique : 604 (achats), 440 (fournisseurs), 4110 (TVA), 550 (banque)
-   - SYSCOHADA : 607 (achats), 401 (fournisseurs), 4452 (TVA), 521 (banque)
-3. Idempotence via `EXISTS` check avant chaque insertion
-4. Trace dans `accounting_audit_log`
-5. Enrichit `get_user_account_code()` avec les nouvelles clés `purchase`, `purchase.goods`, `purchase.services`
+- Migration `20260308450000` a déjà corrigé les noms de colonnes (`total_ht`, `vat_amount`, `total_ttc`)
+- Migration `20260329030000_buy_fix_expense_operations_account_code.sql` (nouvelle) enrichit `get_user_account_code()` avec les clés `purchase`, `purchase.goods`, `purchase.services`
+- Fichier archive `migrations/040_auto_journal_supplier_invoice.sql` (legacy, non appliqué automatiquement) documente la version améliorée qui utilise `purchase` (607/604) au lieu de `expense.general` (618/638)
 
 ---
 
@@ -72,26 +69,37 @@ WONTFIX — Design intentionnel. Les deux modules (`purchase_orders` côté clie
 
 ---
 
-## BUG-P003 | migrations/ + ExpensesPage.jsx | 🟡 MAJEUR | FIXED
+## BUG-P003 | supabase/migrations/ + ExpensesPage.jsx | 🟡 MAJEUR | FIXED
 
-**Fichier :** `migrations/040_auto_journal_supplier_invoice.sql` (ajout section get_user_account_code)
+**Fichiers :**
+
+- `supabase/migrations/20260329030000_buy_fix_expense_operations_account_code.sql` (nouveau — fix live DB)
+- `migrations/040_auto_journal_supplier_invoice.sql` (archive — aussi inclus)
+
 **ENF :** ENF-3 — Journalisation comptable incorrecte
 
 ### Problème
 
-La catégorie `operations` est présente dans le formulaire de création des dépenses (UI), mais absent de la fonction `get_user_account_code()`.
+La catégorie `operations` est présente dans le formulaire Edit des dépenses (UI dropdown), mais absente de la fonction `get_user_account_code()` dans la DB live.
 
-Quand une dépense avec `category = 'operations'` est créée, le trigger `auto_journal_expense` appelle `get_user_account_code(user_id, 'expense.operations')` qui retourne `'999'` (code fallback invalide). L'écriture comptable est créée avec un compte fictif `999`, polluant le grand livre.
+Quand une dépense avec `category = 'operations'` est créée, le trigger `auto_journal_expense` appelle `get_user_account_code(user_id, 'expense.operations')` qui tombait dans le branche `ELSE '658'` (code expense.other fallback). L'écriture comptable était créée avec le compte `658` au lieu du code d'exploitation correct.
 
-**Impact :** Toute dépense créée avec catégorie "Opérations" reçoit un code comptable invalide `999`.
+**Confirmé en live :** `SELECT get_user_account_code('<fr_user_id>', 'expense.operations')` → retournait `'658'` pour les 3 comptes (FR/BE/OHADA).
+
+**Impact :** Toute dépense créée avec catégorie "Opérations" recevait le code comptable `658` (charges diverses) au lieu des codes d'exploitation appropriés.
 
 ### Correction
 
-Ajout du mapping `expense.operations` dans `get_user_account_code()` (migration 040) :
+Nouvelle migration `supabase/migrations/20260329030000_buy_fix_expense_operations_account_code.sql` :
 
+- Ajoute `WHEN 'expense.operations'` dans `get_user_account_code()`
 - PCG France : `615` (entretien et réparations)
 - PCMN Belgique : `6150`
 - SYSCOHADA : `636` (charges de personnel temporaire / charges d'exploitation diverses)
+- Aussi ajoute les clés `purchase`, `purchase.goods`, `purchase.services` (607/604/611)
+- Appliqué via `CREATE OR REPLACE FUNCTION` — idempotent
+
+**Vérification :** Après application, `get_user_account_code(fr_user_id, 'expense.operations')` → `'615'`.
 
 ---
 
@@ -167,13 +175,16 @@ WONTFIX — comportement correct et intentionnel.
 
 ### ENF-3 — Journalisation comptable automatique
 
-| Opération                     | FR (PCG)                        | BE (PCMN)   | OHADA      | Codes comptables |
-| ----------------------------- | ------------------------------- | ----------- | ---------- | ---------------- |
-| Créer dépense                 | ✅ 618/512                      | ✅ 6180/550 | ✅ 638/521 | Corrects         |
-| Supprimer dépense             | ✅ Contre-passation             | ✅          | ✅         | Trigger 025      |
-| **Créer facture fournisseur** | 🔴 FIXÉ                         | 🔴 FIXÉ     | 🔴 FIXÉ    | Migration 040    |
-| **Payer facture fournisseur** | 🔴 FIXÉ                         | 🔴 FIXÉ     | 🔴 FIXÉ    | Migration 040    |
-| Bons de commande              | N/A — commitment, pas financier | —           | —          | —                |
+| Opération                            | FR (PCG)                        | BE (PCMN)   | OHADA      | Codes comptables         |
+| ------------------------------------ | ------------------------------- | ----------- | ---------- | ------------------------ |
+| Créer dépense (cat. générale)        | ✅ 618/512                      | ✅ 6180/550 | ✅ 638/521 | Corrects                 |
+| **Créer dépense (cat. operations)**  | 🔴 658→FIXÉ 615                 | 🔴 658→6150 | 🔴 658→636 | Migration 20260329030000 |
+| Supprimer dépense                    | ✅ Contre-passation             | ✅          | ✅         | Trigger 025              |
+| Créer facture fournisseur (draft)    | N/A — trigger sur received      | —           | —          | Design intentionnel      |
+| Créer facture fournisseur (received) | ✅ 618/44566/401                | ✅          | ✅         | Trigger existant         |
+| **Compte achat SINV (amélioration)** | ⚠️ 618 → idéalement 607         | ⚠️ 6180→604 | ⚠️ 638→607 | Migration 20260329030000 |
+| Payer facture fournisseur            | ✅ 401/512                      | ✅ 440/550  | ✅ 401/521 | Trigger existant         |
+| Bons de commande                     | N/A — commitment, pas financier | —           | —          | —                        |
 
 ---
 
