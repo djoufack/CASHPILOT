@@ -138,7 +138,7 @@ const SkillsMatrixPage = () => {
     target_level: '3',
     recommended_training_id: '',
     notes: '',
-    assessment_date: new Date().toISOString().split('T')[0],
+    assessed_at: new Date().toISOString().split('T')[0],
   });
 
   /* ── derived data ──────────────────────────────────────────── */
@@ -153,7 +153,7 @@ const SkillsMatrixPage = () => {
       const eid = a.employee_id;
       if (!map[eid]) map[eid] = {};
       const prev = map[eid][a.skill_name];
-      if (!prev || new Date(a.assessment_date) > new Date(prev.assessment_date)) {
+      if (!prev || new Date(a.assessed_at) > new Date(prev.assessed_at)) {
         map[eid][a.skill_name] = a;
       }
     });
@@ -212,7 +212,7 @@ const SkillsMatrixPage = () => {
         target_level: '3',
         recommended_training_id: '',
         notes: '',
-        assessment_date: new Date().toISOString().split('T')[0],
+        assessed_at: new Date().toISOString().split('T')[0],
       });
       setShowEvalDialog(false);
     } catch (err) {
@@ -658,8 +658,8 @@ const SkillsMatrixPage = () => {
                 <Label className="text-gray-300">Date evaluation</Label>
                 <Input
                   type="date"
-                  value={evalForm.assessment_date}
-                  onChange={(e) => setEvalForm((p) => ({ ...p, assessment_date: e.target.value }))}
+                  value={evalForm.assessed_at}
+                  onChange={(e) => setEvalForm((p) => ({ ...p, assessed_at: e.target.value }))}
                   className="bg-white/5 border-white/10 text-gray-100"
                 />
               </div>

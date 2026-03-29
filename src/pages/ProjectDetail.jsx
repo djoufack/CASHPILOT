@@ -46,7 +46,7 @@ const ProjectDetail = () => {
   const { projectId } = useParams();
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { projects } = useProjects();
+  const { projects, loading: projectsLoading } = useProjects();
   const [project, setProject] = useState(null);
   const { tasks, createTask, updateTask, deleteTask, refreshTasks } = useTasksForProject(projectId);
   const { status: calculatedStatus, stats } = useProjectStatus(projectId);
@@ -122,7 +122,7 @@ const ProjectDetail = () => {
   useEffect(() => {
     if (projects.length > 0) {
       const found = projects.find((p) => p.id === projectId);
-      setProject(found);
+      setProject(found || null);
     }
   }, [projectId, projects]);
 
@@ -238,8 +238,22 @@ const ProjectDetail = () => {
     refreshTasks();
   };
 
-  if (!project)
+  if (!project) {
+    // If projects have loaded but this ID wasn't found, show an error instead of spinning forever
+    if (!projectsLoading && projects.length > 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full min-h-[500px] text-white gap-4">
+          <p className="text-lg text-gray-400">Project not found.</p>
+          <Link to="/app/projects">
+            <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Projects
+            </Button>
+          </Link>
+        </div>
+      );
+    }
     return <div className="flex items-center justify-center h-full min-h-[500px] text-white">Loading Project...</div>;
+  }
 
   return (
     <>
