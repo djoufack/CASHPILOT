@@ -7,11 +7,22 @@ import { supabase } from '@/lib/supabase';
 import { formatDateInput } from '@/utils/dateFormatting';
 
 /**
- * Account used as counterpart for opening balance entries
- * 890 - Bilan d'ouverture (standard PCG)
+ * Country-specific contra-account for opening balance entries (ENF-1: no hardcoded FR-only code).
+ * FR PCG   : 890 — Bilan d'ouverture
+ * BE PCMN  : 891 — Bilan d'ouverture (PCMN convention)
+ * OHADA    : 11  — Report à nouveau
  */
-const OPENING_BALANCE_ACCOUNT = '890';
+const OPENING_BALANCE_ACCOUNT_BY_COUNTRY = { FR: '890', BE: '891', OHADA: '11' };
+const DEFAULT_OPENING_BALANCE_ACCOUNT = '890'; // PCG fallback
 const OPENING_BALANCE_JOURNAL = 'OD';
+
+/**
+ * Returns the country-appropriate opening balance contra-account code.
+ * @param {string} [countryCode] - "BE" | "FR" | "OHADA"
+ * @returns {string}
+ */
+export const getOpeningBalanceContraAccount = (countryCode) =>
+  OPENING_BALANCE_ACCOUNT_BY_COUNTRY[countryCode] || DEFAULT_OPENING_BALANCE_ACCOUNT;
 
 // ---------------------------------------------------------------------------
 // Country-specific account code mapping
@@ -22,12 +33,12 @@ const OPENING_BALANCE_JOURNAL = 'OD';
  * Supports Belgium (PCMN), France (PCG), and OHADA (SYSCOHADA).
  */
 const ACCOUNT_CODE_MAP = {
-  bank_balance:   { BE: '550', FR: '512', OHADA: '521' },
-  receivables:    { BE: '400', FR: '411', OHADA: '411' },
-  payables:       { BE: '440', FR: '401', OHADA: '401' },
+  bank_balance: { BE: '550', FR: '512', OHADA: '521' },
+  receivables: { BE: '400', FR: '411', OHADA: '411' },
+  payables: { BE: '440', FR: '401', OHADA: '401' },
   equity_capital: { BE: '100', FR: '101', OHADA: '101' },
-  loan_balance:   { BE: '174', FR: '164', OHADA: '162' },
-  fixed_assets:   { BE: '215', FR: '218', OHADA: '241' },
+  loan_balance: { BE: '174', FR: '164', OHADA: '162' },
+  fixed_assets: { BE: '215', FR: '218', OHADA: '241' },
 };
 
 /**
@@ -36,12 +47,12 @@ const ACCOUNT_CODE_MAP = {
  * liability / equity -> credit normal
  */
 const FIELD_ACCOUNT_TYPES = {
-  bank_balance:   { type: 'asset',     label: 'Banque' },
-  receivables:    { type: 'asset',     label: 'Créances clients' },
-  payables:       { type: 'liability', label: 'Dettes fournisseurs' },
-  equity_capital: { type: 'equity',    label: 'Capital' },
-  loan_balance:   { type: 'liability', label: 'Emprunts' },
-  fixed_assets:   { type: 'asset',     label: 'Immobilisations' },
+  bank_balance: { type: 'asset', label: 'Banque' },
+  receivables: { type: 'asset', label: 'Créances clients' },
+  payables: { type: 'liability', label: 'Dettes fournisseurs' },
+  equity_capital: { type: 'equity', label: 'Capital' },
+  loan_balance: { type: 'liability', label: 'Emprunts' },
+  fixed_assets: { type: 'asset', label: 'Immobilisations' },
 };
 
 /**
@@ -69,7 +80,13 @@ export const getAccountCodeForCountry = (fieldName, countryCode) => {
  * @param {string} [countryCode='FR'] - Country code for account mapping
  * @returns {Promise<Object>} Result with created entries count
  */
-export const generateOpeningEntries = async (balances, accountingPlanId, userId, countryCode = 'FR', companyId = null) => {
+export const generateOpeningEntries = async (
+  balances,
+  accountingPlanId,
+  userId,
+  countryCode = 'FR',
+  companyId = null
+) => {
   if (!userId) {
     throw new Error('userId is required');
   }
@@ -106,12 +123,13 @@ export const generateOpeningEntries = async (balances, accountingPlanId, userId,
       description: `Solde d'ouverture - ${fieldInfo.label}`,
     });
 
-    // Counterpart entry (890 - Bilan d'ouverture)
+    // Counterpart entry — country-aware contra-account (ENF-1: no hardcoded 890)
+    const contraAccount = getOpeningBalanceContraAccount(countryCode);
     entries.push({
       user_id: userId,
       company_id: companyId,
       transaction_date: dateStr,
-      account_code: OPENING_BALANCE_ACCOUNT,
+      account_code: contraAccount,
       debit: isAsset ? 0 : amount,
       credit: isAsset ? amount : 0,
       entry_ref: entryRef,
@@ -128,10 +146,7 @@ export const generateOpeningEntries = async (balances, accountingPlanId, userId,
   }
 
   // Insert all entries
-  const { data, error } = await supabase
-    .from('accounting_entries')
-    .insert(entries)
-    .select();
+  const { data, error } = await supabase.from('accounting_entries').insert(entries).select();
 
   if (error) throw error;
 
@@ -161,7 +176,7 @@ export const deleteOpeningBalanceEntries = async (userId, companyId = null) => {
     .delete()
     .eq('user_id', userId)
     .eq('journal', OPENING_BALANCE_JOURNAL)
-    .like('description', '%Solde d\'ouverture%');
+    .like('description', "%Solde d'ouverture%");
 
   if (companyId) {
     query = query.eq('company_id', companyId);
@@ -180,7 +195,13 @@ export const deleteOpeningBalanceEntries = async (userId, companyId = null) => {
  * @param {Array} balances - Array of { account_code, account_name, amount, type }
  * @returns {Object} Result with created entries count
  */
-export const createOpeningBalanceEntries = async (userId, openingDate, balances, companyId = null) => {
+export const createOpeningBalanceEntries = async (
+  userId,
+  openingDate,
+  balances,
+  companyId = null,
+  countryCode = 'FR'
+) => {
   if (!userId || !openingDate || !balances?.length) {
     throw new Error('Missing required parameters');
   }
@@ -189,7 +210,7 @@ export const createOpeningBalanceEntries = async (userId, openingDate, balances,
   const dateStr = formatDateInput(openingDate);
 
   // Filter out zero balances
-  const nonZeroBalances = balances.filter(b => b.amount && b.amount !== 0);
+  const nonZeroBalances = balances.filter((b) => b.amount && b.amount !== 0);
 
   if (nonZeroBalances.length === 0) {
     return { success: true, entriesCreated: 0 };
@@ -215,15 +236,16 @@ export const createOpeningBalanceEntries = async (userId, openingDate, balances,
       source_type: 'opening_balance',
       source_id: null,
       is_auto: false,
-      description: `Solde d'ouverture - ${balance.account_name}`
+      description: `Solde d'ouverture - ${balance.account_name}`,
     });
 
-    // Counterpart entry (890 - Bilan d'ouverture)
+    // Counterpart entry — country-aware contra-account (ENF-1: no hardcoded 890)
+    const contraAccount2 = getOpeningBalanceContraAccount(countryCode);
     entries.push({
       user_id: userId,
       company_id: companyId,
       transaction_date: dateStr,
-      account_code: OPENING_BALANCE_ACCOUNT,
+      account_code: contraAccount2,
       debit: isDebit ? 0 : absAmount,
       credit: isDebit ? absAmount : 0,
       entry_ref: entryRef,
@@ -231,22 +253,19 @@ export const createOpeningBalanceEntries = async (userId, openingDate, balances,
       source_type: 'opening_balance',
       source_id: null,
       is_auto: false,
-      description: `Solde d'ouverture - Contrepartie ${balance.account_code}`
+      description: `Solde d'ouverture - Contrepartie ${balance.account_code}`,
     });
   }
 
   // Insert all entries
-  const { data, error } = await supabase
-    .from('accounting_entries')
-    .insert(entries)
-    .select();
+  const { data, error } = await supabase.from('accounting_entries').insert(entries).select();
 
   if (error) throw error;
 
   return {
     success: true,
     entriesCreated: data.length,
-    entryRef
+    entryRef,
   };
 };
 
@@ -305,7 +324,7 @@ export const validateOpeningBalances = (balances) => {
     isBalanced,
     totalAssets,
     totalLiabilitiesEquity,
-    difference: totalAssets - totalLiabilitiesEquity
+    difference: totalAssets - totalLiabilitiesEquity,
   };
 };
 
@@ -317,6 +336,6 @@ export default {
   validateOpeningBalances,
   generateOpeningEntries,
   getAccountCodeForCountry,
-  OPENING_BALANCE_ACCOUNT,
-  OPENING_BALANCE_JOURNAL
+  getOpeningBalanceContraAccount,
+  OPENING_BALANCE_JOURNAL,
 };
