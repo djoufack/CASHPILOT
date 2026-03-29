@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
+import { formatDate } from '@/utils/dateLocale';
 
 function toNumber(value) {
   const parsed = Number.parseFloat(String(value ?? 0));
@@ -11,7 +12,11 @@ function toNumber(value) {
 
 function normalizeAccount(account) {
   return {
-    id: account?.id || account?.account_code || account?.code || `${account?.category || 'other'}-${account?.account_name || account?.label || 'row'}`,
+    id:
+      account?.id ||
+      account?.account_code ||
+      account?.code ||
+      `${account?.category || 'other'}-${account?.account_name || account?.label || 'row'}`,
     account_code: account?.account_code || account?.code || '',
     account_name: account?.account_name || account?.label || 'Compte sans libellé',
     amount: toNumber(account?.amount ?? account?.balance ?? 0),
@@ -53,9 +58,11 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
   const netIncome = toNumber(incomeStatement.netIncome);
   const isProfit = netIncome >= 0;
 
-  const renderSection = (groups) => (
+  const renderSection = (groups) =>
     groups.map((group) => {
-      const accounts = (Array.isArray(group?.accounts) ? group.accounts : []).filter((account) => Math.abs(account.amount) > 0.001);
+      const accounts = (Array.isArray(group?.accounts) ? group.accounts : []).filter(
+        (account) => Math.abs(account.amount) > 0.001
+      );
       if (accounts.length === 0) return null;
 
       return (
@@ -74,8 +81,7 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
           ))}
         </div>
       );
-    })
-  );
+    });
 
   return (
     <div className="space-y-6">
@@ -87,7 +93,7 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
           </h2>
           {period && (
             <p className="text-sm text-gray-400">
-              Du {new Date(period.startDate).toLocaleDateString('fr-FR')} au {new Date(period.endDate).toLocaleDateString('fr-FR')}
+              Du {formatDate(period.startDate)} au {formatDate(period.endDate)}
             </p>
           )}
         </div>
@@ -110,7 +116,9 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-3">
               <h3 className="border-b border-gray-700 pb-2 text-lg font-bold text-green-400">Produits</h3>
-              {revenueGroups.length > 0 ? renderSection(revenueGroups) : (
+              {revenueGroups.length > 0 ? (
+                renderSection(revenueGroups)
+              ) : (
                 <div className="flex justify-between px-2 py-1">
                   <span className="text-sm text-gray-300">Chiffre d'affaires</span>
                   <span className="font-mono text-sm text-white">{formatCurrency(totalRevenue, currency)}</span>
@@ -124,7 +132,9 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
 
             <div className="space-y-3">
               <h3 className="border-b border-gray-700 pb-2 text-lg font-bold text-red-400">Charges</h3>
-              {expenseGroups.length > 0 ? renderSection(expenseGroups) : (
+              {expenseGroups.length > 0 ? (
+                renderSection(expenseGroups)
+              ) : (
                 <div className="flex justify-between px-2 py-1">
                   <span className="text-sm text-gray-300">Total des charges</span>
                   <span className="font-mono text-sm text-white">{formatCurrency(totalExpenses, currency)}</span>
@@ -137,10 +147,10 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
             </div>
           </div>
 
-          <div className={`flex items-center justify-between border-t-2 pt-4 ${isProfit ? 'border-green-500' : 'border-red-500'}`}>
-            <span className="text-xl font-bold text-white">
-              Résultat Net ({isProfit ? 'Bénéfice' : 'Perte'})
-            </span>
+          <div
+            className={`flex items-center justify-between border-t-2 pt-4 ${isProfit ? 'border-green-500' : 'border-red-500'}`}
+          >
+            <span className="text-xl font-bold text-white">Résultat Net ({isProfit ? 'Bénéfice' : 'Perte'})</span>
             <span className={`font-mono text-2xl font-bold ${isProfit ? 'text-green-400' : 'text-red-400'}`}>
               {formatCurrency(netIncome, currency)}
             </span>
@@ -152,5 +162,3 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
 };
 
 export default IncomeStatement;
-
-

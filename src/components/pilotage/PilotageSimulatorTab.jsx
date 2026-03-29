@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { getLocale } from '@/utils/dateLocale';
 import {
   Play,
   ArrowRight,
@@ -12,8 +13,6 @@ import {
   TrendingDown,
   RotateCcw,
   DollarSign,
-  Percent,
-  Users,
   ShoppingCart,
   BarChart3,
 } from 'lucide-react';
@@ -55,7 +54,8 @@ const PilotageSimulatorTab = ({ data }) => {
   // Base financials from current data
   const baseRevenue = data?.revenue || data?.incomeStatement?.totalRevenue || 0;
   const baseExpenses = data?.totalExpenses || data?.incomeStatement?.totalExpenses || 0;
-  const baseNetIncome = data?.financialDiagnostic?.margins?.netIncome ?? data?.incomeStatement?.netIncome ?? (baseRevenue - baseExpenses);
+  const baseNetIncome =
+    data?.financialDiagnostic?.margins?.netIncome ?? data?.incomeStatement?.netIncome ?? baseRevenue - baseExpenses;
   const baseMargin = baseRevenue > 0 ? (baseNetIncome / baseRevenue) * 100 : 0;
 
   // Simulated values
@@ -72,12 +72,12 @@ const PilotageSimulatorTab = ({ data }) => {
   const handleReset = () => setParams(DEFAULT_PARAMS);
 
   const updateParam = (key, value) => {
-    setParams(prev => ({ ...prev, [key]: value }));
+    setParams((prev) => ({ ...prev, [key]: value }));
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Intl.DateTimeFormat('fr-FR', {
+    return new Intl.DateTimeFormat(getLocale(), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -93,18 +93,14 @@ const PilotageSimulatorTab = ({ data }) => {
     return (
       <span className={`inline-flex items-center gap-1 text-xs font-medium ${color}`}>
         <Icon className="w-3 h-3" />
-        {positive ? '+' : ''}{isPercent ? `${delta.toFixed(1)}%` : formatCurrency(delta, currency)}
+        {positive ? '+' : ''}
+        {isPercent ? `${delta.toFixed(1)}%` : formatCurrency(delta, currency)}
       </span>
     );
   };
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
-    >
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
       {/* Quick Simulator */}
       <motion.div variants={itemVariants}>
         <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
@@ -114,18 +110,16 @@ const PilotageSimulatorTab = ({ data }) => {
                 <Play className="w-5 h-5" />
                 {t('pilotage.simulator.quickSimTitle', 'Simulation rapide')}
               </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReset}
-                className="text-gray-400 hover:text-gray-200"
-              >
+              <Button variant="ghost" size="sm" onClick={handleReset} className="text-gray-400 hover:text-gray-200">
                 <RotateCcw className="w-4 h-4 mr-1" />
                 {t('pilotage.simulator.reset', 'Reinitialiser')}
               </Button>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {t('pilotage.simulator.quickSimHint', "Ajustez les curseurs pour simuler l'impact sur vos indicateurs financiers.")}
+              {t(
+                'pilotage.simulator.quickSimHint',
+                "Ajustez les curseurs pour simuler l'impact sur vos indicateurs financiers."
+              )}
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -140,8 +134,11 @@ const PilotageSimulatorTab = ({ data }) => {
                       {t('pilotage.simulator.revenueGrowth', 'Croissance CA')}
                     </span>
                   </div>
-                  <span className={`text-sm font-bold ${params.revenueGrowth >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {params.revenueGrowth > 0 ? '+' : ''}{params.revenueGrowth}%
+                  <span
+                    className={`text-sm font-bold ${params.revenueGrowth >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+                  >
+                    {params.revenueGrowth > 0 ? '+' : ''}
+                    {params.revenueGrowth}%
                   </span>
                 </div>
                 <Slider
@@ -163,8 +160,11 @@ const PilotageSimulatorTab = ({ data }) => {
                       {t('pilotage.simulator.expenseChange', 'Variation charges')}
                     </span>
                   </div>
-                  <span className={`text-sm font-bold ${params.expenseChange <= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {params.expenseChange > 0 ? '+' : ''}{params.expenseChange}%
+                  <span
+                    className={`text-sm font-bold ${params.expenseChange <= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+                  >
+                    {params.expenseChange > 0 ? '+' : ''}
+                    {params.expenseChange}%
                   </span>
                 </div>
                 <Slider
@@ -182,7 +182,7 @@ const PilotageSimulatorTab = ({ data }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-800/50">
               {/* Revenue */}
               <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-4">
-                <p className="text-xs text-gray-500 mb-1">{t('pilotage.simulator.revenue', 'Chiffre d\'affaires')}</p>
+                <p className="text-xs text-gray-500 mb-1">{t('pilotage.simulator.revenue', "Chiffre d'affaires")}</p>
                 <p className="text-lg font-bold text-gray-100">{formatCurrency(sim.revenue, currency)}</p>
                 {renderDelta(sim.revenue, baseRevenue)}
               </div>
@@ -244,19 +244,17 @@ const PilotageSimulatorTab = ({ data }) => {
                     className="rounded-xl border border-gray-800 bg-gray-950/60 p-3 hover:border-gray-700 transition-colors block"
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="text-sm font-medium text-gray-100 line-clamp-1">
-                        {scenario.name}
-                      </p>
-                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border whitespace-nowrap ${statusColors[scenario.status] || statusColors.draft}`}>
+                      <p className="text-sm font-medium text-gray-100 line-clamp-1">{scenario.name}</p>
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border whitespace-nowrap ${statusColors[scenario.status] || statusColors.draft}`}
+                      >
                         {scenario.status}
                       </span>
                     </div>
                     {scenario.description && (
                       <p className="text-xs text-gray-500 line-clamp-1">{scenario.description}</p>
                     )}
-                    <p className="text-[10px] text-gray-600 mt-1">
-                      {formatDate(scenario.created_at)}
-                    </p>
+                    <p className="text-[10px] text-gray-600 mt-1">{formatDate(scenario.created_at)}</p>
                   </Link>
                 ))}
               </div>

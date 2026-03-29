@@ -1,3 +1,4 @@
+import { getLocale } from '@/utils/dateLocale';
 import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
 
 /**
@@ -157,7 +158,7 @@ export const generateHTMLDocument = (title, content, styles = '') => {
   ${content}
 
   <div class="footer">
-    <p>Document généré par CashPilot - ${new Date().toLocaleString('fr-FR')}</p>
+    <p>Document généré par CashPilot - ${new Date().toLocaleString(getLocale())}</p>
   </div>
 </body>
 </html>`;
@@ -188,11 +189,22 @@ export const downloadHTML = (html, filename) => {
  */
 export const exportBalanceSheetHTML = (balanceSheet, companyInfo, period) => {
   const currency = resolveAccountingCurrency(companyInfo);
-  const fmt = (v) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
+  const fmt = (v) =>
+    new Intl.NumberFormat(getLocale(), {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(v || 0);
 
-  const periodLabel = typeof period === 'string' ? period : (period?.endDate ? new Date(period.endDate).toLocaleDateString('fr-FR') : '');
+  const periodLabel =
+    typeof period === 'string'
+      ? period
+      : period?.endDate
+        ? new Date(period.endDate).toLocaleDateString(getLocale())
+        : '';
   const now = new Date();
-  const printDate = `${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR')}`;
+  const printDate = `${now.toLocaleDateString(getLocale())} à ${now.toLocaleTimeString(getLocale())}`;
 
   // Render a SYSCOHADA section (e.g., ACTIF IMMOBILISÉ)
   const renderSection = (section) => {
@@ -279,10 +291,7 @@ export const exportBalanceSheetHTML = (balanceSheet, companyInfo, period) => {
 
   // Company header
   const companyName = companyInfo?.company_name || companyInfo?.name || 'Société';
-  const companyDetails = [
-    companyInfo?.city,
-    companyInfo?.country,
-  ].filter(Boolean).join(', ');
+  const companyDetails = [companyInfo?.city, companyInfo?.country].filter(Boolean).join(', ');
 
   const content = `
     <div style="text-align:center;margin-bottom:24px;">
@@ -330,8 +339,16 @@ export const exportBalanceSheetHTML = (balanceSheet, companyInfo, period) => {
  * @param {string} period - Période
  */
 export const exportIncomeStatementHTML = (incomeStatement, companyInfo, period) => {
-  const revenueRows = Array.isArray(incomeStatement?.revenueItems) ? incomeStatement.revenueItems : Array.isArray(incomeStatement?.revenues) ? incomeStatement.revenues : [];
-  const expenseRows = Array.isArray(incomeStatement?.expenseItems) ? incomeStatement.expenseItems : Array.isArray(incomeStatement?.expenses) ? incomeStatement.expenses : [];
+  const revenueRows = Array.isArray(incomeStatement?.revenueItems)
+    ? incomeStatement.revenueItems
+    : Array.isArray(incomeStatement?.revenues)
+      ? incomeStatement.revenues
+      : [];
+  const expenseRows = Array.isArray(incomeStatement?.expenseItems)
+    ? incomeStatement.expenseItems
+    : Array.isArray(incomeStatement?.expenses)
+      ? incomeStatement.expenses
+      : [];
   const totalRevenue = Number(incomeStatement?.totalRevenue ?? incomeStatement?.totalRevenues ?? 0);
   const totalExpenses = Number(incomeStatement?.totalExpenses ?? 0);
   const netIncome = Number(incomeStatement?.netIncome ?? 0);
@@ -353,13 +370,19 @@ export const exportIncomeStatementHTML = (incomeStatement, companyInfo, period) 
           </tr>
         </thead>
         <tbody>
-          ${revenueRows.map(revenue => `
+          ${
+            revenueRows
+              .map(
+                (revenue) => `
             <tr>
               <td>${revenue.account_code || revenue.code || ''}</td>
               <td>${revenue.account_name || revenue.label || ''}</td>
               <td style="text-align: right">${Number(revenue.amount || revenue.balance || 0).toFixed(2)}</td>
             </tr>
-          `).join('') || '<tr><td colspan="3">Aucune donnée</td></tr>'}
+          `
+              )
+              .join('') || '<tr><td colspan="3">Aucune donnée</td></tr>'
+          }
           <tr class="total-row">
             <td colspan="2">TOTAL PRODUITS</td>
             <td style="text-align: right">${totalRevenue.toFixed(2)}</td>
@@ -379,13 +402,19 @@ export const exportIncomeStatementHTML = (incomeStatement, companyInfo, period) 
           </tr>
         </thead>
         <tbody>
-          ${expenseRows.map(expense => `
+          ${
+            expenseRows
+              .map(
+                (expense) => `
             <tr>
               <td>${expense.account_code || expense.code || ''}</td>
               <td>${expense.account_name || expense.label || ''}</td>
               <td style="text-align: right">${Number(expense.amount || expense.balance || 0).toFixed(2)}</td>
             </tr>
-          `).join('') || '<tr><td colspan="3">Aucune donnée</td></tr>'}
+          `
+              )
+              .join('') || '<tr><td colspan="3">Aucune donnée</td></tr>'
+          }
           <tr class="total-row">
             <td colspan="2">TOTAL CHARGES</td>
             <td style="text-align: right">${totalExpenses.toFixed(2)}</td>
@@ -419,7 +448,7 @@ export const exportInvoiceHTML = (invoice, client, items) => {
   const content = `
     <div class="header">
       <h1>Facture N° ${invoice.invoice_number}</h1>
-      <p>Date: ${new Date(invoice.date).toLocaleDateString('fr-FR')}</p>
+      <p>Date: ${new Date(invoice.date).toLocaleDateString(getLocale())}</p>
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
@@ -445,14 +474,20 @@ export const exportInvoiceHTML = (invoice, client, items) => {
         </tr>
       </thead>
       <tbody>
-        ${items?.map(item => `
+        ${
+          items
+            ?.map(
+              (item) => `
           <tr>
             <td>${item.description}</td>
             <td style="text-align: right">${item.quantity}</td>
             <td style="text-align: right">${item.unit_price?.toFixed(2)} €</td>
             <td style="text-align: right">${(item.quantity * item.unit_price)?.toFixed(2)} €</td>
           </tr>
-        `).join('') || '<tr><td colspan="4">Aucun article</td></tr>'}
+        `
+            )
+            .join('') || '<tr><td colspan="4">Aucun article</td></tr>'
+        }
         <tr class="total-row">
           <td colspan="3">TOTAL TTC</td>
           <td style="text-align: right">${invoice.total_amount?.toFixed(2) || '0.00'} €</td>
@@ -563,7 +598,9 @@ export const exportTaxEstimationHTML = (taxData, companyInfo, period) => {
       <p><strong>Taux Effectif:</strong> ${taxEstimate?.effectiveRate ? (taxEstimate.effectiveRate * 100).toFixed(2) : '0.00'}%</p>
     </div>
 
-    ${taxEstimate?.brackets?.length > 0 ? `
+    ${
+      taxEstimate?.brackets?.length > 0
+        ? `
     <div class="section">
       <h2 class="section-title">DÉTAIL PAR TRANCHE</h2>
       <table>
@@ -576,14 +613,18 @@ export const exportTaxEstimationHTML = (taxData, companyInfo, period) => {
           </tr>
         </thead>
         <tbody>
-          ${taxEstimate.brackets.map(bracket => `
+          ${taxEstimate.brackets
+            .map(
+              (bracket) => `
             <tr>
               <td>${bracket.min || 0} - ${bracket.max || '+'}</td>
               <td style="text-align: right">${bracket.taxableAmount?.toFixed(2) || '0.00'}</td>
               <td style="text-align: right">${bracket.rate ? (bracket.rate * 100).toFixed(0) : '0'}%</td>
               <td style="text-align: right">${bracket.tax?.toFixed(2) || '0.00'}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
           <tr class="total-row">
             <td colspan="3">TOTAL IMPÔT ESTIMÉ</td>
             <td style="text-align: right">${taxEstimate.total?.toFixed(2) || '0.00'}</td>
@@ -591,7 +632,9 @@ export const exportTaxEstimationHTML = (taxData, companyInfo, period) => {
         </tbody>
       </table>
     </div>
-    ` : ''}
+    `
+        : ''
+    }
 
     <div class="summary" style="background: #fef3c7; border-left-color: #f59e0b;">
       <h3 style="color: #92400e;">Provision Trimestrielle</h3>
@@ -616,12 +659,13 @@ export const exportFinancialDiagnosticHTML = (diagnostic, companyInfo, period, v
     return;
   }
 
-  const fmtCurrency = (value) => (Number(value || 0)).toFixed(2);
+  const fmtCurrency = (value) => Number(value || 0).toFixed(2);
   const fmtPct = (value) => `${Number(value || 0).toFixed(1)}%`;
   const snapshotCards = Array.isArray(viewSnapshot?.visibleCards) ? viewSnapshot.visibleCards : [];
 
-  const snapshotSection = snapshotCards.length > 0
-    ? `
+  const snapshotSection =
+    snapshotCards.length > 0
+      ? `
       <div class="section">
         <h2 class="section-title">VUE COURANTE EXPORTEE</h2>
         <div class="summary" style="background:#f8fafc;border-left-color:#334155;">
@@ -642,7 +686,9 @@ export const exportFinancialDiagnosticHTML = (diagnostic, companyInfo, period, v
             </tr>
           </thead>
           <tbody>
-            ${snapshotCards.map((card) => `
+            ${snapshotCards
+              .map(
+                (card) => `
               <tr>
                 <td>${card.section || '-'}</td>
                 <td>${card.title || '-'}</td>
@@ -650,12 +696,14 @@ export const exportFinancialDiagnosticHTML = (diagnostic, companyInfo, period, v
                 <td style="text-align:right">${card.formattedComparisonValue || '-'}</td>
                 <td style="text-align:right">${card.formattedBenchmarkValue || '-'}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join('')}
           </tbody>
         </table>
       </div>
     `
-    : '';
+      : '';
 
   const content = `
     <div class="header">
@@ -746,4 +794,3 @@ export const exportFinancialDiagnosticHTML = (diagnostic, companyInfo, period, v
   const html = generateHTMLDocument(`Diagnostic Financier - ${period}`, content);
   downloadHTML(html, `diagnostic-${String(period).replace(/\s+/g, '-')}`);
 };
-

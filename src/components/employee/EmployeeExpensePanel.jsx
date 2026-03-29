@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Receipt, PlusCircle, CheckCircle, Clock, XCircle, X, Loader2, Send, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/utils/calculations';
+import { formatDate } from '@/utils/dateLocale';
 
 const STATUS_COLORS = {
   draft: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
@@ -143,9 +144,9 @@ const EmployeeExpensePanel = ({ expenseReports, onCreateReport, loading }) => {
                     <p className="text-xs text-gray-400">
                       {itemCount} {t('employee.expense.items', 'poste(s)')}
                       {report.submitted_at
-                        ? ` - ${new Date(report.submitted_at).toLocaleDateString('fr-FR')}`
+                        ? ` - ${formatDate(report.submitted_at)}`
                         : report.created_at
-                          ? ` - ${new Date(report.created_at).toLocaleDateString('fr-FR')}`
+                          ? ` - ${formatDate(report.created_at)}`
                           : ''}
                     </p>
                   </div>

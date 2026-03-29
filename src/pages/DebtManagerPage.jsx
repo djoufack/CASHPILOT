@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useReceivables } from '@/hooks/useReceivables';
 import { usePayables } from '@/hooks/usePayables';
 import { Button } from '@/components/ui/button';
+import { formatNumber } from '@/utils/dateLocale';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -120,7 +121,8 @@ const DebtManagerPage = () => {
       netBalance: {
         title: t('debtManager.netBalance'),
         definition: 'Solde net des créances et dettes encore ouvertes.',
-        dataSource: 'Agrégats `rStats.totalPending` et `pStats.totalOwed` issus des hooks `useReceivables` et `usePayables`.',
+        dataSource:
+          'Agrégats `rStats.totalPending` et `pStats.totalOwed` issus des hooks `useReceivables` et `usePayables`.',
         formula: 'Solde net = Créances restantes - Dettes restantes',
         calculationMethod:
           'Calcule le montant restant de chaque créance et dette, puis soustrait le total dettes au total créances.',
@@ -367,7 +369,7 @@ const DebtManagerPage = () => {
     status: r.status || debtKanbanColumns[0]?.id || '',
     statusLabel: getStatusLabel(r.status),
     statusColor: statusColors[r.status] || 'bg-gray-500/20 text-gray-400',
-    amount: `${parseFloat(r.amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${r.currency || 'EUR'}`,
+    amount: `${formatNumber(parseFloat(r.amount || 0), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${r.currency || 'EUR'}`,
   }));
 
   const payableKanbanItems = payables.map((p) => ({
@@ -378,7 +380,7 @@ const DebtManagerPage = () => {
     status: p.status || debtKanbanColumns[0]?.id || '',
     statusLabel: getStatusLabel(p.status),
     statusColor: statusColors[p.status] || 'bg-gray-500/20 text-gray-400',
-    amount: `${parseFloat(p.amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${p.currency || 'EUR'}`,
+    amount: `${formatNumber(parseFloat(p.amount || 0), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${p.currency || 'EUR'}`,
   }));
 
   // Handlers
@@ -454,7 +456,7 @@ const DebtManagerPage = () => {
 
   const formatAmount = (amount, currency = 'EUR') => {
     const symbols = { EUR: '\u20ac', USD: '$', GBP: '\u00a3', XAF: 'FCFA', XOF: 'FCFA' };
-    const formatted = parseFloat(amount || 0).toLocaleString('fr-FR', {
+    const formatted = formatNumber(parseFloat(amount || 0), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });

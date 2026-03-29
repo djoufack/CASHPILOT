@@ -6,6 +6,7 @@ import InterCompanyLinksList from '@/components/intercompany/InterCompanyLinksLi
 import TransferPricingPanel from '@/components/intercompany/TransferPricingPanel';
 import EliminationSummary from '@/components/intercompany/EliminationSummary';
 import { Button } from '@/components/ui/button';
+import { formatDate } from '@/utils/dateLocale';
 import { Building2, ArrowLeftRight, RefreshCw, Loader2, Link2, Receipt, Scale, Scissors, Sparkles } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 
@@ -263,9 +264,7 @@ const InterCompanyPage = () => {
                             {tx.status}
                           </span>
                         </td>
-                        <td className="py-3 px-2 text-gray-500">
-                          {new Date(tx.created_at).toLocaleDateString('fr-FR')}
-                        </td>
+                        <td className="py-3 px-2 text-gray-500">{formatDate(tx.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>

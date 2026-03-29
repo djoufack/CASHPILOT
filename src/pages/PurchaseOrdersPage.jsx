@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
@@ -7,13 +6,28 @@ import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useClients } from '@/hooks/useClients';
 import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import { formatDate } from '@/utils/dateLocale';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportPurchaseOrderPDF, exportPurchaseOrderHTML } from '@/services/exportDocuments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, ClipboardList, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Kanban, Download, FileText, Eye, Pencil } from 'lucide-react';
+import {
+  Plus,
+  ClipboardList,
+  Trash2,
+  Loader2,
+  Search,
+  List,
+  CalendarDays,
+  CalendarClock,
+  Kanban,
+  Download,
+  FileText,
+  Eye,
+  Pencil,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
 import { usePagination } from '@/hooks/usePagination';
@@ -23,25 +37,27 @@ import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 
 const DEFAULT_TAX_RATE_FALLBACK = 0;
-const createEmptyItem = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({ description: '', quantity: 1, unit_price: 0, tax_rate: taxRate });
+const createEmptyItem = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
+  description: '',
+  quantity: 1,
+  unit_price: 0,
+  tax_rate: taxRate,
+});
 
 const createInitialFormData = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
   client_id: '',
@@ -83,7 +99,9 @@ const POCard = ({ po, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => 
           <h3 className="text-lg font-bold text-gradient">{po.po_number}</h3>
           <p className="text-sm text-gray-400">{po.client?.company_name || t('timesheets.noClient')}</p>
         </div>
-        <span className={`text-xs px-2 py-1 rounded-full border capitalize ${statusColors[po.status] || statusColors.draft}`}>
+        <span
+          className={`text-xs px-2 py-1 rounded-full border capitalize ${statusColors[po.status] || statusColors.draft}`}
+        >
           {statusLabels[po.status] || po.status}
         </span>
       </div>
@@ -93,10 +111,22 @@ const POCard = ({ po, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => 
       </div>
       {po.notes && <p className="text-xs text-gray-500 mb-4 line-clamp-2">{po.notes}</p>}
       <div className="flex justify-end gap-2 border-t border-gray-800 pt-3">
-        <Button variant="ghost" size="sm" onClick={() => onView(po)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20" title="Visualiser">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onView(po)}
+          className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
+          title="Visualiser"
+        >
           <Eye className="w-4 h-4" />
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => onEdit(po)} className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20" title="Modifier">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onEdit(po)}
+          className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20"
+          title="Modifier"
+        >
           <Pencil className="w-4 h-4" />
         </Button>
         <Button
@@ -132,7 +162,8 @@ const POCard = ({ po, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => 
 
 const PurchaseOrdersPage = () => {
   const { t } = useTranslation();
-  const { purchaseOrders, loading, createPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder } = usePurchaseOrders();
+  const { purchaseOrders, loading, createPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder } =
+    usePurchaseOrders();
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -168,7 +199,7 @@ const PurchaseOrdersPage = () => {
     { label: t('purchaseOrdersPage.statusCancelled'), color: '#ef4444' },
   ];
 
-  const poCalendarEvents = purchaseOrders.map(po => ({
+  const poCalendarEvents = purchaseOrders.map((po) => ({
     id: po.id,
     title: `${po.po_number || ''} - ${po.client?.company_name || t('timesheets.noClient')}`,
     date: po.date,
@@ -176,7 +207,7 @@ const PurchaseOrdersPage = () => {
     resource: po,
   }));
 
-  const poAgendaItems = purchaseOrders.map(po => {
+  const poAgendaItems = purchaseOrders.map((po) => {
     const statusColorMap = {
       draft: 'bg-gray-500/20 text-gray-400',
       sent: 'bg-blue-500/20 text-blue-400',
@@ -215,7 +246,7 @@ const PurchaseOrdersPage = () => {
     { id: 'cancelled', title: t('purchaseOrdersPage.statusCancelled'), color: 'bg-red-500/20 text-red-400' },
   ];
 
-  const filteredPOs = purchaseOrders.filter(po => {
+  const filteredPOs = purchaseOrders.filter((po) => {
     const matchesSearch =
       po.po_number?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       po.client?.company_name?.toLowerCase().includes(debouncedSearch.toLowerCase());
@@ -257,7 +288,7 @@ const PurchaseOrdersPage = () => {
   const calculateTotals = () => {
     let totalHT = 0;
     let totalTax = 0;
-    formData.items.forEach(item => {
+    formData.items.forEach((item) => {
       const lineHT = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
       totalHT += lineHT;
       totalTax += lineHT * ((parseFloat(item.tax_rate) || 0) / 100);
@@ -270,7 +301,7 @@ const PurchaseOrdersPage = () => {
     if (!formData.client_id) return;
 
     setSubmitting(true);
-    const { totalHT, totalTax, totalTTC } = calculateTotals();
+    const { totalHT: _totalHT, totalTax: _totalTax, totalTTC } = calculateTotals();
     try {
       await createPurchaseOrder({
         client_id: formData.client_id,
@@ -278,7 +309,7 @@ const PurchaseOrdersPage = () => {
         due_date: formData.due_date || null,
         notes: formData.notes.trim() || null,
         status: formData.status,
-        items: formData.items.map(item => ({
+        items: formData.items.map((item) => ({
           description: item.description,
           quantity: parseFloat(item.quantity) || 0,
           unit_price: parseFloat(item.unit_price) || 0,
@@ -315,14 +346,15 @@ const PurchaseOrdersPage = () => {
       due_date: po.due_date || '',
       notes: po.notes || '',
       status: po.status || 'draft',
-      items: po.items && po.items.length > 0
-        ? po.items.map(item => ({
-            description: item.description || '',
-            quantity: item.quantity || 1,
-            unit_price: item.unit_price || 0,
-            tax_rate: item.tax_rate ?? defaultRate ?? 0,
-          }))
-        : [createEmptyItem(defaultRate)],
+      items:
+        po.items && po.items.length > 0
+          ? po.items.map((item) => ({
+              description: item.description || '',
+              quantity: item.quantity || 1,
+              unit_price: item.unit_price || 0,
+              tax_rate: item.tax_rate ?? defaultRate ?? 0,
+            }))
+          : [createEmptyItem(defaultRate)],
     });
   };
 
@@ -332,7 +364,7 @@ const PurchaseOrdersPage = () => {
     setEditSubmitting(true);
     let totalHT = 0;
     let totalTax = 0;
-    editFormData.items.forEach(item => {
+    editFormData.items.forEach((item) => {
       const lineHT = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
       totalHT += lineHT;
       totalTax += lineHT * ((parseFloat(item.tax_rate) || 0) / 100);
@@ -344,7 +376,7 @@ const PurchaseOrdersPage = () => {
         due_date: editFormData.due_date || null,
         notes: editFormData.notes.trim() || null,
         status: editFormData.status,
-        items: editFormData.items.map(item => ({
+        items: editFormData.items.map((item) => ({
           description: item.description,
           quantity: parseFloat(item.quantity) || 0,
           unit_price: parseFloat(item.unit_price) || 0,
@@ -377,31 +409,23 @@ const PurchaseOrdersPage = () => {
   };
 
   const handleExportPurchaseOrderPDF = (po) => {
-    guardedAction(
-      CREDIT_COSTS.PDF_PURCHASE_ORDER,
-      t('credits.costs.pdfPurchaseOrder'),
-      async () => {
-        const enrichedPO = {
-          ...po,
-          supplier: clients.find(c => c.id === po.client_id)
-        };
-        await exportPurchaseOrderPDF(enrichedPO, company);
-      }
-    );
+    guardedAction(CREDIT_COSTS.PDF_PURCHASE_ORDER, t('credits.costs.pdfPurchaseOrder'), async () => {
+      const enrichedPO = {
+        ...po,
+        supplier: clients.find((c) => c.id === po.client_id),
+      };
+      await exportPurchaseOrderPDF(enrichedPO, company);
+    });
   };
 
   const handleExportPurchaseOrderHTML = (po) => {
-    guardedAction(
-      CREDIT_COSTS.EXPORT_HTML,
-      t('credits.costs.exportHtml'),
-      () => {
-        const enrichedPO = {
-          ...po,
-          supplier: clients.find(c => c.id === po.client_id)
-        };
-        exportPurchaseOrderHTML(enrichedPO, company);
-      }
-    );
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, t('credits.costs.exportHtml'), () => {
+      const enrichedPO = {
+        ...po,
+        supplier: clients.find((c) => c.id === po.client_id),
+      };
+      exportPurchaseOrderHTML(enrichedPO, company);
+    });
   };
 
   const { totalHT, totalTax, totalTTC } = calculateTotals();
@@ -409,16 +433,16 @@ const PurchaseOrdersPage = () => {
   return (
     <>
       <Helmet>
-        <title>{t('purchaseOrdersPage.title')} - {t('app.name')}</title>
+        <title>
+          {t('purchaseOrdersPage.title')} - {t('app.name')}
+        </title>
       </Helmet>
       <CreditsGuardModal {...modalProps} />
 
       <div className="container mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
-              {t('purchaseOrdersPage.title')}
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">{t('purchaseOrdersPage.title')}</h1>
             <p className="text-gray-400 text-sm md:text-base">{t('purchaseOrdersPage.subtitle')}</p>
           </div>
           <Button onClick={handleOpenDialog} className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white">
@@ -444,7 +468,7 @@ const PurchaseOrdersPage = () => {
                 { value: 'sent', label: t('purchaseOrdersPage.statusSent') },
                 { value: 'confirmed', label: t('purchaseOrdersPage.statusConfirmed') },
                 { value: 'completed', label: t('purchaseOrdersPage.statusCompleted') },
-              ].map(s => (
+              ].map((s) => (
                 <Button
                   key={s.value}
                   variant={filterStatus === s.value ? 'default' : 'outline'}
@@ -460,16 +484,28 @@ const PurchaseOrdersPage = () => {
 
         <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
           <TabsList className="bg-gray-800 border border-gray-700 mb-4">
-            <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <TabsTrigger
+              value="list"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
               <List className="w-4 h-4 mr-2" /> {t('common.list') || 'Liste'}
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <TabsTrigger
+              value="calendar"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
               <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendrier'}
             </TabsTrigger>
-            <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <TabsTrigger
+              value="agenda"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
               <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
             </TabsTrigger>
-            <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <TabsTrigger
+              value="kanban"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
               <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
             </TabsTrigger>
           </TabsList>
@@ -492,15 +528,27 @@ const PurchaseOrdersPage = () => {
                 </div>
                 <h3 className="text-xl font-bold text-gradient mb-2">{t('purchaseOrdersPage.emptyTitle')}</h3>
                 <p className="text-gray-400 mb-6">{t('purchaseOrdersPage.emptyDescription')}</p>
-                <Button onClick={handleOpenDialog} variant="outline" className="border-gray-700 text-gray-300 w-full md:w-auto">
+                <Button
+                  onClick={handleOpenDialog}
+                  variant="outline"
+                  className="border-gray-700 text-gray-300 w-full md:w-auto"
+                >
                   {t('purchaseOrdersPage.create')}
                 </Button>
               </motion.div>
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {paginatedPOs.map(po => (
-                    <POCard key={po.id} po={po} onView={handleView} onEdit={handleEdit} onDelete={(id) => setDeleteTarget(purchaseOrders.find(p => p.id === id))} onExportPDF={handleExportPurchaseOrderPDF} onExportHTML={handleExportPurchaseOrderHTML} />
+                  {paginatedPOs.map((po) => (
+                    <POCard
+                      key={po.id}
+                      po={po}
+                      onView={handleView}
+                      onEdit={handleEdit}
+                      onDelete={(id) => setDeleteTarget(purchaseOrders.find((p) => p.id === id))}
+                      onExportPDF={handleExportPurchaseOrderPDF}
+                      onExportHTML={handleExportPurchaseOrderHTML}
+                    />
                   ))}
                 </div>
                 <PaginationControls
@@ -535,15 +583,45 @@ const PurchaseOrdersPage = () => {
               dateField="date"
               paidStatuses={['completed', 'received', 'cancelled']}
               renderActions={(item) => {
-                const po = purchaseOrders.find(p => p.id === item.id);
+                const po = purchaseOrders.find((p) => p.id === item.id);
                 if (!po) return null;
                 return (
                   <div className="flex gap-1">
-                    <button onClick={() => handleView(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Visualiser"><Eye className="w-4 h-4" /></button>
-                    <button onClick={() => handleEdit(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Modifier"><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => handleExportPurchaseOrderPDF(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="PDF"><Download className="w-4 h-4" /></button>
-                    <button onClick={() => handleExportPurchaseOrderHTML(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="HTML"><FileText className="w-4 h-4" /></button>
-                    <button onClick={() => setDeleteTarget(po)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                    <button
+                      onClick={() => handleView(po)}
+                      className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                      title="Visualiser"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(po)}
+                      className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                      title="Modifier"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleExportPurchaseOrderPDF(po)}
+                      className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                      title="PDF"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleExportPurchaseOrderHTML(po)}
+                      className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                      title="HTML"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(po)}
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 );
               }}
@@ -556,15 +634,45 @@ const PurchaseOrdersPage = () => {
               items={poAgendaItems}
               onStatusChange={async (id, status) => await updatePurchaseOrder(id, { status })}
               renderActions={(item) => {
-                const po = purchaseOrders.find(p => p.id === item.id);
+                const po = purchaseOrders.find((p) => p.id === item.id);
                 if (!po) return null;
                 return (
                   <div className="flex gap-1">
-                    <button onClick={() => handleView(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Visualiser"><Eye className="w-4 h-4" /></button>
-                    <button onClick={() => handleEdit(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Modifier"><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => handleExportPurchaseOrderPDF(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="PDF"><Download className="w-4 h-4" /></button>
-                    <button onClick={() => handleExportPurchaseOrderHTML(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="HTML"><FileText className="w-4 h-4" /></button>
-                    <button onClick={() => setDeleteTarget(po)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                    <button
+                      onClick={() => handleView(po)}
+                      className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                      title="Visualiser"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(po)}
+                      className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                      title="Modifier"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleExportPurchaseOrderPDF(po)}
+                      className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                      title="PDF"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleExportPurchaseOrderHTML(po)}
+                      className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                      title="HTML"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(po)}
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 );
               }}
@@ -591,7 +699,7 @@ const PurchaseOrdersPage = () => {
                   <SelectValue placeholder={t('invoices.selectClient')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
-                  {clients.map(client => (
+                  {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id} className="text-white hover:bg-gray-700">
                       {client.company_name}
                     </SelectItem>
@@ -681,7 +789,13 @@ const PurchaseOrdersPage = () => {
                   </div>
                 ))}
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={addItem} className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addItem}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full"
+              >
                 <Plus className="w-4 h-4 mr-2" /> {t('purchaseOrdersPage.addLine')}
               </Button>
             </div>
@@ -714,10 +828,19 @@ const PurchaseOrdersPage = () => {
             </div>
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
                 {t('common.cancel')}
               </Button>
-              <Button type="submit" disabled={submitting || !formData.client_id} className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button
+                type="submit"
+                disabled={submitting || !formData.client_id}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
                 {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 {t('common.create')}
               </Button>
@@ -745,11 +868,11 @@ const PurchaseOrdersPage = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Date</p>
-                  <p className="text-white">{viewPO.date ? new Date(viewPO.date).toLocaleDateString('fr-FR') : '—'}</p>
+                  <p className="text-white">{viewPO.date ? formatDate(viewPO.date) : '—'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Date de livraison</p>
-                  <p className="text-white">{viewPO.due_date ? new Date(viewPO.due_date).toLocaleDateString('fr-FR') : '—'}</p>
+                  <p className="text-white">{viewPO.due_date ? formatDate(viewPO.due_date) : '—'}</p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-gray-500 uppercase">Total</p>
@@ -779,7 +902,9 @@ const PurchaseOrdersPage = () => {
                               <td className="p-2 text-right text-gray-300">{item.quantity}</td>
                               <td className="p-2 text-right text-gray-300">{formatCurrency(item.unit_price || 0)}</td>
                               <td className="p-2 text-right text-gray-300">{item.tax_rate || 0}%</td>
-                              <td className="p-2 text-right text-gradient font-medium">{formatCurrency(lineTotal * (1 + (item.tax_rate || 0) / 100))}</td>
+                              <td className="p-2 text-right text-gradient font-medium">
+                                {formatCurrency(lineTotal * (1 + (item.tax_rate || 0) / 100))}
+                              </td>
                             </tr>
                           );
                         })}
@@ -795,13 +920,30 @@ const PurchaseOrdersPage = () => {
                 </div>
               )}
               <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
-                <Button size="sm" variant="outline" className="border-gray-600" onClick={() => handleExportPurchaseOrderPDF(viewPO)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600"
+                  onClick={() => handleExportPurchaseOrderPDF(viewPO)}
+                >
                   <Download className="w-4 h-4 mr-2" /> PDF
                 </Button>
-                <Button size="sm" variant="outline" className="border-gray-600" onClick={() => handleExportPurchaseOrderHTML(viewPO)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600"
+                  onClick={() => handleExportPurchaseOrderHTML(viewPO)}
+                >
                   <FileText className="w-4 h-4 mr-2" /> HTML
                 </Button>
-                <Button size="sm" onClick={() => { handleEdit(viewPO); setViewPO(null); }} className="bg-orange-500 hover:bg-orange-600">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    handleEdit(viewPO);
+                    setViewPO(null);
+                  }}
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
                   <Pencil className="w-4 h-4 mr-2" /> Modifier
                 </Button>
               </DialogFooter>
@@ -811,7 +953,13 @@ const PurchaseOrdersPage = () => {
       </Dialog>
 
       {/* Edit PO Dialog */}
-      <Dialog open={!!editPO} onOpenChange={() => { setEditPO(null); setEditFormData(null); }}>
+      <Dialog
+        open={!!editPO}
+        onOpenChange={() => {
+          setEditPO(null);
+          setEditFormData(null);
+        }}
+      >
         <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-gradient text-xl">Modifier {editPO?.po_number}</DialogTitle>
@@ -820,11 +968,18 @@ const PurchaseOrdersPage = () => {
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-gray-300">{t('quotesPage.client')} *</Label>
-                <Select value={editFormData.client_id} onValueChange={(value) => setEditFormData({ ...editFormData, client_id: value })}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder={t('invoices.selectClient')} /></SelectTrigger>
+                <Select
+                  value={editFormData.client_id}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, client_id: value })}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectValue placeholder={t('invoices.selectClient')} />
+                  </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700">
-                    {clients.map(client => (
-                      <SelectItem key={client.id} value={client.id} className="text-white hover:bg-gray-700">{client.company_name}</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id} className="text-white hover:bg-gray-700">
+                        {client.company_name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -832,23 +987,48 @@ const PurchaseOrdersPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-gray-300">{t('quotesPage.date')}</Label>
-                  <Input type="date" value={editFormData.date} onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })} className="bg-gray-800 border-gray-700 text-white" />
+                  <Input
+                    type="date"
+                    value={editFormData.date}
+                    onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-gray-300">{t('purchaseOrdersPage.deliveryDate')}</Label>
-                  <Input type="date" value={editFormData.due_date} onChange={(e) => setEditFormData({ ...editFormData, due_date: e.target.value })} className="bg-gray-800 border-gray-700 text-white" />
+                  <Input
+                    type="date"
+                    value={editFormData.due_date}
+                    onChange={(e) => setEditFormData({ ...editFormData, due_date: e.target.value })}
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-300">Statut</Label>
-                <Select value={editFormData.status} onValueChange={(val) => setEditFormData({ ...editFormData, status: val })}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+                <Select
+                  value={editFormData.status}
+                  onValueChange={(val) => setEditFormData({ ...editFormData, status: val })}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="draft" className="text-white hover:bg-gray-700">{t('purchaseOrdersPage.statusDraft')}</SelectItem>
-                    <SelectItem value="sent" className="text-white hover:bg-gray-700">{t('purchaseOrdersPage.statusSent')}</SelectItem>
-                    <SelectItem value="confirmed" className="text-white hover:bg-gray-700">{t('purchaseOrdersPage.statusConfirmed')}</SelectItem>
-                    <SelectItem value="completed" className="text-white hover:bg-gray-700">{t('purchaseOrdersPage.statusCompleted')}</SelectItem>
-                    <SelectItem value="cancelled" className="text-white hover:bg-gray-700">{t('purchaseOrdersPage.statusCancelled')}</SelectItem>
+                    <SelectItem value="draft" className="text-white hover:bg-gray-700">
+                      {t('purchaseOrdersPage.statusDraft')}
+                    </SelectItem>
+                    <SelectItem value="sent" className="text-white hover:bg-gray-700">
+                      {t('purchaseOrdersPage.statusSent')}
+                    </SelectItem>
+                    <SelectItem value="confirmed" className="text-white hover:bg-gray-700">
+                      {t('purchaseOrdersPage.statusConfirmed')}
+                    </SelectItem>
+                    <SelectItem value="completed" className="text-white hover:bg-gray-700">
+                      {t('purchaseOrdersPage.statusCompleted')}
+                    </SelectItem>
+                    <SelectItem value="cancelled" className="text-white hover:bg-gray-700">
+                      {t('purchaseOrdersPage.statusCancelled')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -857,39 +1037,101 @@ const PurchaseOrdersPage = () => {
                 <div className="space-y-3">
                   {editFormData.items.map((item, index) => (
                     <div key={index} className="bg-gray-800/50 rounded-lg p-3 space-y-2">
-                      <Input placeholder={t('invoices.description')} value={item.description} onChange={(e) => handleEditItemChange(index, 'description', e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
+                      <Input
+                        placeholder={t('invoices.description')}
+                        value={item.description}
+                        onChange={(e) => handleEditItemChange(index, 'description', e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                         <div>
                           <Label className="text-gray-500 text-xs">{t('invoices.quantity')}</Label>
-                          <Input type="number" min="0" step="0.01" value={item.quantity} onChange={(e) => handleEditItemChange(index, 'quantity', e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.quantity}
+                            onChange={(e) => handleEditItemChange(index, 'quantity', e.target.value)}
+                            className="bg-gray-800 border-gray-700 text-white"
+                          />
                         </div>
                         <div>
                           <Label className="text-gray-500 text-xs">{t('invoices.unitPrice')}</Label>
-                          <Input type="number" min="0" step="0.01" value={item.unit_price} onChange={(e) => handleEditItemChange(index, 'unit_price', e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.unit_price}
+                            onChange={(e) => handleEditItemChange(index, 'unit_price', e.target.value)}
+                            className="bg-gray-800 border-gray-700 text-white"
+                          />
                         </div>
                         <div>
                           <Label className="text-gray-500 text-xs">{t('invoices.taxRate')}</Label>
-                          <Input type="number" min="0" step="0.01" value={item.tax_rate} onChange={(e) => handleEditItemChange(index, 'tax_rate', e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.tax_rate}
+                            onChange={(e) => handleEditItemChange(index, 'tax_rate', e.target.value)}
+                            className="bg-gray-800 border-gray-700 text-white"
+                          />
                         </div>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => removeEditItem(index)} disabled={editFormData.items.length <= 1} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeEditItem(index)}
+                          disabled={editFormData.items.length <= 1}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
                   ))}
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={addEditItem} className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addEditItem}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full"
+                >
                   <Plus className="w-4 h-4 mr-2" /> {t('purchaseOrdersPage.addLine')}
                 </Button>
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-300">{t('timesheets.notes')}</Label>
-                <Textarea value={editFormData.notes} onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })} placeholder={t('purchaseOrdersPage.notesPlaceholder')} className="bg-gray-800 border-gray-700 text-white min-h-[60px]" />
+                <Textarea
+                  value={editFormData.notes}
+                  onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                  placeholder={t('purchaseOrdersPage.notesPlaceholder')}
+                  className="bg-gray-800 border-gray-700 text-white min-h-[60px]"
+                />
               </div>
               <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => { setEditPO(null); setEditFormData(null); }} className="border-gray-700 text-gray-300 hover:bg-gray-800">{t('common.cancel')}</Button>
-                <Button type="submit" disabled={editSubmitting || !editFormData.client_id} className="bg-orange-500 hover:bg-orange-600 text-white">
-                  {editSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Pencil className="w-4 h-4 mr-2" />}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setEditPO(null);
+                    setEditFormData(null);
+                  }}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                >
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={editSubmitting || !editFormData.client_id}
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  {editSubmitting ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Pencil className="w-4 h-4 mr-2" />
+                  )}
                   Enregistrer
                 </Button>
               </DialogFooter>
@@ -904,12 +1146,19 @@ const PurchaseOrdersPage = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer ce bon de commande ?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              {deleteTarget && (<>Vous allez supprimer <strong className="text-white">"{deleteTarget.po_number}"</strong> ({formatCurrency(deleteTarget.total || 0)}). Cette action est irréversible.</>)}
+              {deleteTarget && (
+                <>
+                  Vous allez supprimer <strong className="text-white">"{deleteTarget.po_number}"</strong> (
+                  {formatCurrency(deleteTarget.total || 0)}). Cette action est irréversible.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-700">Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700 text-white">Supprimer</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700 text-white">
+              Supprimer
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -918,4 +1167,3 @@ const PurchaseOrdersPage = () => {
 };
 
 export default PurchaseOrdersPage;
-

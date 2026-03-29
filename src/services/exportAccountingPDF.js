@@ -1,3 +1,4 @@
+import { getLocale } from '@/utils/dateLocale';
 
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
@@ -8,13 +9,13 @@ const PDF_OPTIONS = {
   filename: 'report.pdf',
   image: { type: 'jpeg', quality: 0.98 },
   html2canvas: { scale: 2 },
-  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
 };
 
 function createHeader(title, companyInfo, period) {
   const companyName = companyInfo?.company_name || 'Ma Société';
   const periodStr = period
-    ? `Du ${new Date(period.startDate).toLocaleDateString('fr-FR')} au ${new Date(period.endDate).toLocaleDateString('fr-FR')}`
+    ? `Du ${new Date(period.startDate).toLocaleDateString(getLocale())} au ${new Date(period.endDate).toLocaleDateString(getLocale())}`
     : '';
 
   return `
@@ -22,13 +23,13 @@ function createHeader(title, companyInfo, period) {
       <h1 style="margin:0;font-size:22px;color:#1F2937;">${title}</h1>
       <p style="margin:5px 0 0;font-size:14px;color:#6B7280;">${companyName}</p>
       ${periodStr ? `<p style="margin:3px 0 0;font-size:12px;color:#9CA3AF;">${periodStr}</p>` : ''}
-      <p style="margin:3px 0 0;font-size:10px;color:#9CA3AF;">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+      <p style="margin:3px 0 0;font-size:10px;color:#9CA3AF;">Généré le ${new Date().toLocaleDateString(getLocale())} à ${new Date().toLocaleTimeString(getLocale())}</p>
     </div>
   `;
 }
 
 function formatAmount(n) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0);
+  return new Intl.NumberFormat(getLocale(), { style: 'currency', currency: 'EUR' }).format(n || 0);
 }
 
 function createContainer(html) {
@@ -60,30 +61,52 @@ export async function exportBalanceSheetPDF(balanceSheet, companyInfo, period) {
 
   function fmtCur(n) {
     try {
-      return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n || 0);
-    } catch { return formatAmount(n); }
+      return new Intl.NumberFormat(getLocale(), {
+        style: 'currency',
+        currency: cur,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(n || 0);
+    } catch {
+      return formatAmount(n);
+    }
   }
 
-  const renderSyscohadaSide = (sections) => sections.map(sec => `
+  const renderSyscohadaSide = (sections) =>
+    sections
+      .map(
+        (sec) => `
     <tr><td colspan="3" style="padding:6px 4px 3px;font-weight:bold;background:#F3F4F6;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;color:#374151;">${sec.label}</td>
     <td style="padding:6px 4px 3px;text-align:right;background:#F3F4F6;font-weight:bold;font-family:monospace;font-size:9px;color:#374151;">${fmtCur(sec.total)}</td></tr>
-    ${(sec.groups || []).map(g => `
+    ${(sec.groups || [])
+      .map(
+        (g) => `
       <tr><td colspan="3" style="padding:4px 4px 2px 10px;font-weight:600;color:#B45309;font-size:8px;text-transform:uppercase;">
         <span style="font-family:monospace;margin-right:4px;">${g.classCode}</span>${g.className}
       </td>
       <td style="padding:4px 4px 2px;text-align:right;font-family:monospace;font-size:8px;color:#B45309;font-weight:600;">${fmtCur(g.subtotal)}</td></tr>
-      ${g.accounts.map(a => `
+      ${g.accounts
+        .map(
+          (a) => `
         <tr${a.balance === 0 ? ' style="opacity:0.5;"' : ''}>
           <td style="padding:2px 4px 2px 20px;font-family:monospace;color:#6B7280;font-size:7px;width:10%;">${a.account_code}</td>
           <td colspan="2" style="padding:2px 4px;font-size:8px;color:#1F2937;">${a.account_name}</td>
           <td style="padding:2px 4px;text-align:right;font-family:monospace;font-size:8px;">${fmtCur(a.balance)}</td>
         </tr>
-      `).join('')}
-    `).join('')}
-  `).join('');
+      `
+        )
+        .join('')}
+    `
+      )
+      .join('')}
+  `
+      )
+      .join('');
 
   // Company header with full info
-  const addr = [companyInfo?.address, companyInfo?.postal_code, companyInfo?.city, companyInfo?.country].filter(Boolean).join(', ');
+  const addr = [companyInfo?.address, companyInfo?.postal_code, companyInfo?.city, companyInfo?.country]
+    .filter(Boolean)
+    .join(', ');
   const regNum = companyInfo?.registration_number || companyInfo?.siret || '';
   const vatNum = companyInfo?.vat_number || '';
   const now = new Date();
@@ -95,14 +118,16 @@ export async function exportBalanceSheetPDF(balanceSheet, companyInfo, period) {
       ${regNum ? `<p style="margin:1px 0 0;font-size:9px;color:#9CA3AF;">N° ${regNum}${vatNum ? ` — TVA: ${vatNum}` : ''}</p>` : ''}
       <h2 style="margin:10px 0 0;font-size:16px;color:#1F2937;">BILAN COMPTABLE SYSCOHADA</h2>
       <p style="margin:2px 0 0;font-size:10px;color:#6B7280;">
-        Exercice du ${new Date(period.startDate).toLocaleDateString('fr-FR')} au ${new Date(period.endDate).toLocaleDateString('fr-FR')}
+        Exercice du ${new Date(period.startDate).toLocaleDateString(getLocale())} au ${new Date(period.endDate).toLocaleDateString(getLocale())}
       </p>
       <p style="margin:1px 0 0;font-size:8px;color:#9CA3AF;">
-        Édité le ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR')} — Devise: ${cur}
+        Édité le ${now.toLocaleDateString(getLocale())} à ${now.toLocaleTimeString(getLocale())} — Devise: ${cur}
       </p>
     </div>
 
-    ${syscohada ? `
+    ${
+      syscohada
+        ? `
     <table style="width:100%;border-collapse:collapse;">
       <tr>
         <td style="width:50%;vertical-align:top;padding-right:8px;">
@@ -133,7 +158,9 @@ export async function exportBalanceSheetPDF(balanceSheet, companyInfo, period) {
         </td>
       </tr>
     </table>
-    ` : '<p>Aucune donnée SYSCOHADA disponible</p>'}
+    `
+        : '<p>Aucune donnée SYSCOHADA disponible</p>'
+    }
 
     <div style="margin-top:12px;padding:8px;border:1px solid ${balanced ? '#10B981' : '#EF4444'};border-radius:4px;background:${balanced ? '#ECFDF5' : '#FEF2F2'};font-size:10px;">
       <strong>${balanced ? '✓ Bilan équilibré' : '⚠ Bilan déséquilibré'}</strong> —
@@ -141,7 +168,7 @@ export async function exportBalanceSheetPDF(balanceSheet, companyInfo, period) {
       ${!balanced ? ` | Écart: ${fmtCur(Math.abs(totalAssets - totalPassif))}` : ''}
     </div>
     <p style="margin-top:10px;text-align:center;font-size:7px;color:#9CA3AF;">
-      Document généré par CashPilot — ${now.toLocaleDateString('fr-FR')} ${now.toLocaleTimeString('fr-FR')}
+      Document généré par CashPilot — ${now.toLocaleDateString(getLocale())} ${now.toLocaleTimeString(getLocale())}
     </p>
   `;
 
@@ -216,14 +243,18 @@ export async function exportVATDeclarationPDF(vatData, companyInfo, period) {
 export async function exportTaxEstimationPDF(taxData, companyInfo, period) {
   const { netIncome, taxEstimate } = taxData;
 
-  const detailRows = (taxEstimate?.details || []).map(d => `
+  const detailRows = (taxEstimate?.details || [])
+    .map(
+      (d) => `
     <tr>
       <td style="padding:8px;">${d.label}</td>
       <td style="padding:8px;text-align:right;font-family:monospace;">${formatAmount(d.taxableAmount)}</td>
       <td style="padding:8px;text-align:center;">${(d.rate * 100).toFixed(0)}%</td>
       <td style="padding:8px;text-align:right;font-family:monospace;font-weight:bold;">${formatAmount(d.tax)}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 
   const html = `
     ${createHeader("Estimation d'Impôt", companyInfo, period)}
@@ -261,24 +292,38 @@ export async function exportTaxEstimationPDF(taxData, companyInfo, period) {
 
 export async function exportReconciliationPDF(reconciliationData, companyInfo, period) {
   const {
-    bankName, accountNumber,
-    openingBalance, closingBalance,
-    totalLines, matchedLines, unmatchedLines, ignoredLines,
-    totalCredits, totalDebits, matchedCredits, matchedDebits,
-    difference, unmatchedDetails = []
+    bankName,
+    accountNumber,
+    openingBalance,
+    closingBalance,
+    totalLines,
+    matchedLines,
+    unmatchedLines,
+    ignoredLines,
+    totalCredits,
+    totalDebits,
+    matchedCredits: _matchedCredits,
+    matchedDebits: _matchedDebits,
+    difference,
+    unmatchedDetails = [],
   } = reconciliationData;
 
   const matchRate = totalLines > 0 ? Math.round((matchedLines / totalLines) * 1000) / 10 : 0;
 
-  const unmatchedRows = unmatchedDetails.slice(0, 30).map(line => `
+  const unmatchedRows = unmatchedDetails
+    .slice(0, 30)
+    .map(
+      (line) => `
     <tr>
-      <td style="padding:6px 5px;font-size:10px;">${line.transaction_date ? new Date(line.transaction_date).toLocaleDateString('fr-FR') : '—'}</td>
+      <td style="padding:6px 5px;font-size:10px;">${line.transaction_date ? new Date(line.transaction_date).toLocaleDateString(getLocale()) : '—'}</td>
       <td style="padding:6px 5px;font-size:10px;max-width:250px;overflow:hidden;text-overflow:ellipsis;">${line.description || '—'}</td>
       <td style="padding:6px 5px;text-align:right;font-family:monospace;font-size:10px;color:${line.amount >= 0 ? '#16A34A' : '#DC2626'};">
         ${formatAmount(line.amount)}
       </td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 
   const html = `
     ${createHeader('Rapport de Rapprochement Bancaire', companyInfo, period)}
@@ -324,7 +369,9 @@ export async function exportReconciliationPDF(reconciliationData, companyInfo, p
       </tr>
     </table>
 
-    ${unmatchedDetails.length > 0 ? `
+    ${
+      unmatchedDetails.length > 0
+        ? `
       <h2 style="font-size:14px;color:#F59E0B;margin:15px 0 8px;">Détail des lignes non rapprochées</h2>
       <table style="width:100%;border-collapse:collapse;">
         <thead>
@@ -337,7 +384,9 @@ export async function exportReconciliationPDF(reconciliationData, companyInfo, p
         <tbody>${unmatchedRows}</tbody>
       </table>
       ${unmatchedDetails.length > 30 ? `<p style="font-size:9px;color:#9CA3AF;margin-top:5px;">... et ${unmatchedDetails.length - 30} autres lignes</p>` : ''}
-    ` : ''}
+    `
+        : ''
+    }
   `;
 
   const el = createContainer(html);
@@ -350,7 +399,7 @@ export async function exportReconciliationPDF(reconciliationData, companyInfo, p
 
 export async function exportFinancialDiagnosticPDF(diagnostic, companyInfo, period, viewSnapshot = null) {
   if (!diagnostic || !diagnostic.valid) {
-    console.error('Diagnostic invalide pour l\'export PDF');
+    console.error("Diagnostic invalide pour l'export PDF");
     return;
   }
 
@@ -365,7 +414,9 @@ export async function exportFinancialDiagnosticPDF(diagnostic, companyInfo, peri
   const renderSnapshotSection = () => {
     if (snapshotCards.length === 0) return '';
 
-    const rows = snapshotCards.map((card, index) => `
+    const rows = snapshotCards
+      .map(
+        (card, index) => `
       <tr style="${index % 2 === 0 ? 'background:#F9FAFB;' : ''}">
         <td style="padding:7px;font-size:10px;">${card.section || '-'}</td>
         <td style="padding:7px;font-size:10px;font-weight:600;">${card.title || '-'}</td>
@@ -373,7 +424,9 @@ export async function exportFinancialDiagnosticPDF(diagnostic, companyInfo, peri
         <td style="padding:7px;text-align:right;font-family:monospace;font-size:10px;">${card.formattedComparisonValue || '-'}</td>
         <td style="padding:7px;text-align:right;font-family:monospace;font-size:10px;">${card.formattedBenchmarkValue || '-'}</td>
       </tr>
-    `).join('');
+    `
+      )
+      .join('');
 
     return `
       <h2 style="font-size:16px;color:#0F172A;border-bottom:2px solid #0F172A;padding-bottom:5px;margin:20px 0 10px;">
@@ -551,7 +604,7 @@ export async function exportFinancialDiagnosticPDF(diagnostic, companyInfo, peri
         </tr>
         <tr style="background:#F9FAFB;">
           <td style="padding:6px;">Autonomie Financière</td>
-          <td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${(1 / (1 + ratios.leverage.financialLeverage) * 100).toFixed(1)}%</td>
+          <td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${((1 / (1 + ratios.leverage.financialLeverage)) * 100).toFixed(1)}%</td>
           <td style="padding:6px;text-align:right;font-size:10px;color:${ratios.leverage.financialLeverage < 1.0 ? '#10B981' : ratios.leverage.financialLeverage < 2.0 ? '#F59E0B' : '#EF4444'};">
             ${ratios.leverage.financialLeverage < 1.0 ? 'Indépendant' : ratios.leverage.financialLeverage < 2.0 ? 'Acceptable' : 'Dépendant'}
           </td>
@@ -581,25 +634,36 @@ export async function exportFinancialAnnexesPDF(annexesData, companyInfo, period
 
   function fmtCur(n) {
     try {
-      return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n || 0);
-    } catch { return formatAmount(n); }
+      return new Intl.NumberFormat(getLocale(), {
+        style: 'currency',
+        currency: cur,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(n || 0);
+    } catch {
+      return formatAmount(n);
+    }
   }
 
   function groupByPrefix(prefix) {
-    return tb.filter(t => t.account_code && t.account_code.startsWith(prefix) && Math.abs(t.balance) >= 0.01);
+    return tb.filter((t) => t.account_code && t.account_code.startsWith(prefix) && Math.abs(t.balance) >= 0.01);
   }
 
   function renderAccountRows(accounts) {
     if (!accounts || accounts.length === 0) {
       return '<tr><td colspan="3" style="padding:6px;font-style:italic;color:#9CA3AF;">Aucune donnee</td></tr>';
     }
-    return accounts.map(a => `
+    return accounts
+      .map(
+        (a) => `
       <tr>
         <td style="padding:4px 6px;font-family:monospace;font-size:9px;color:#6B7280;">${a.account_code}</td>
         <td style="padding:4px 6px;font-size:10px;">${a.account_name || '-'}</td>
         <td style="padding:4px 6px;text-align:right;font-family:monospace;font-size:10px;">${fmtCur(a.balance)}</td>
       </tr>
-    `).join('');
+    `
+      )
+      .join('');
   }
 
   function sectionHeader(num, title, color) {
@@ -610,14 +674,28 @@ export async function exportFinancialAnnexesPDF(annexesData, companyInfo, period
 
   const immobilisations = groupByPrefix('2');
   const stocks = groupByPrefix('3');
-  const creances = tb.filter(t => t.account_code?.startsWith('4') && t.account_type === 'asset' && Math.abs(t.balance) >= 0.01);
-  const dettes = tb.filter(t => t.account_code?.startsWith('4') && t.account_type === 'liability' && Math.abs(t.balance) >= 0.01);
+  const creances = tb.filter(
+    (t) => t.account_code?.startsWith('4') && t.account_type === 'asset' && Math.abs(t.balance) >= 0.01
+  );
+  const dettes = tb.filter(
+    (t) => t.account_code?.startsWith('4') && t.account_type === 'liability' && Math.abs(t.balance) >= 0.01
+  );
   const tresorerie = groupByPrefix('5');
-  const ca = tb.filter(t => t.account_code?.startsWith('70') && Math.abs(t.balance) >= 0.01);
-  const charges = tb.filter(t => t.account_code && ['60','61','62','63','64','65'].some(p => t.account_code.startsWith(p)) && Math.abs(t.balance) >= 0.01);
+  const ca = tb.filter((t) => t.account_code?.startsWith('70') && Math.abs(t.balance) >= 0.01);
+  const charges = tb.filter(
+    (t) =>
+      t.account_code &&
+      ['60', '61', '62', '63', '64', '65'].some((p) => t.account_code.startsWith(p)) &&
+      Math.abs(t.balance) >= 0.01
+  );
 
-  const sum = arr => arr.reduce((s, a) => s + (a.balance || 0), 0);
-  const planName = companyInfo?.country === 'OHADA' ? 'SYSCOHADA Révisé' : companyInfo?.country === 'BE' ? 'PCMN Belge' : 'PCG Français';
+  const sum = (arr) => arr.reduce((s, a) => s + (a.balance || 0), 0);
+  const planName =
+    companyInfo?.country === 'OHADA'
+      ? 'SYSCOHADA Révisé'
+      : companyInfo?.country === 'BE'
+        ? 'PCMN Belge'
+        : 'PCG Français';
 
   const tableStyle = 'width:100%;border-collapse:collapse;margin-bottom:10px;';
 
@@ -683,7 +761,7 @@ export async function exportFinancialAnnexesPDF(annexesData, companyInfo, period
     <p style="font-size:10px;font-style:italic;color:#9CA3AF;">Néant. Aucun engagement hors bilan identifié à la date de clôture.</p>
 
     <div style="margin-top:20px;padding-top:10px;border-top:1px solid #E5E7EB;text-align:center;">
-      <p style="font-size:8px;color:#9CA3AF;">Notes aux états financiers générées par CashPilot — ${new Date().toLocaleDateString('fr-FR')}</p>
+      <p style="font-size:8px;color:#9CA3AF;">Notes aux états financiers générées par CashPilot — ${new Date().toLocaleDateString(getLocale())}</p>
     </div>
   `;
 

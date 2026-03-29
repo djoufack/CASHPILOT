@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useSupplierInvoices } from '@/hooks/useSupplierInvoices';
 import { useCompany } from '@/hooks/useCompany';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { exportSupplierInvoicePDF, exportSupplierInvoiceHTML } from '@/services/exportSupplierRecords';
 import UploadInvoiceModal from '@/components/UploadInvoiceModal';
 import { Button } from '@/components/ui/button';
+import { formatNumber } from '@/utils/dateLocale';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -15,7 +16,20 @@ import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
 import RejectApprovalDialog from '@/components/suppliers/RejectApprovalDialog';
-import { Plus, Trash2, Sparkles, FileText, List, CalendarDays, CalendarClock, Kanban, ExternalLink, Eye, Pencil, Download } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Sparkles,
+  FileText,
+  List,
+  CalendarDays,
+  CalendarClock,
+  Kanban,
+  ExternalLink,
+  Eye,
+  Pencil,
+  Download,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -181,7 +195,7 @@ const SupplierInvoices = ({ supplierId, supplier }) => {
       payment_status: ps,
       statusLabel: t(`supplierInvoices.status${ps.charAt(0).toUpperCase()}${ps.slice(1)}`),
       statusColor: colorMap[ps] || 'bg-gray-500/20 text-gray-400',
-      amount: `${parseFloat(inv.total_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${inv.currency || 'EUR'}`,
+      amount: `${formatNumber(parseFloat(inv.total_amount || 0), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${inv.currency || 'EUR'}`,
     };
   });
 
@@ -213,10 +227,20 @@ const SupplierInvoices = ({ supplierId, supplier }) => {
     if (!invoice) return null;
     return (
       <>
-        <Button size="sm" variant="ghost" className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 h-7 px-2 text-xs" onClick={() => handleExportPdf(invoice)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 h-7 px-2 text-xs"
+          onClick={() => handleExportPdf(invoice)}
+        >
           <Download className="w-3 h-3" />
         </Button>
-        <Button size="sm" variant="ghost" className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 h-7 px-2 text-xs" onClick={() => handleExportHtml(invoice)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 h-7 px-2 text-xs"
+          onClick={() => handleExportHtml(invoice)}
+        >
           <FileText className="w-3 h-3" />
         </Button>
       </>
@@ -235,16 +259,28 @@ const SupplierInvoices = ({ supplierId, supplier }) => {
 
       <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
         <TabsList className="bg-gray-800 border border-gray-700 mb-4">
-          <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+          <TabsTrigger
+            value="list"
+            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+          >
             <List className="w-4 h-4 mr-2" /> {t('common.list') || 'List'}
           </TabsTrigger>
-          <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+          <TabsTrigger
+            value="calendar"
+            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+          >
             <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendar'}
           </TabsTrigger>
-          <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+          <TabsTrigger
+            value="agenda"
+            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+          >
             <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
           </TabsTrigger>
-          <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+          <TabsTrigger
+            value="kanban"
+            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+          >
             <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
           </TabsTrigger>
         </TabsList>
@@ -278,7 +314,11 @@ const SupplierInvoices = ({ supplierId, supplier }) => {
                       <td className="py-2 px-3 font-medium text-white">{inv.invoice_number}</td>
                       <td className="py-2 px-3 text-gray-300">{inv.invoice_date}</td>
                       <td className="py-2 px-3 text-right text-white">
-                        {parseFloat(inv.total_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {inv.currency || 'EUR'}
+                        {formatNumber(parseFloat(inv.total_amount || 0), {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{' '}
+                        {inv.currency || 'EUR'}
                       </td>
                       <td className="py-2 px-3 text-center">
                         <Select value={inv.payment_status} onValueChange={(val) => updateStatus(inv.id, val)}>
@@ -302,8 +342,12 @@ const SupplierInvoices = ({ supplierId, supplier }) => {
                           </SelectTrigger>
                           <SelectContent className="bg-gray-800 border-gray-700 text-white">
                             <SelectItem value="pending">{t('supplierInvoices.approvalPending', 'Pending')}</SelectItem>
-                            <SelectItem value="approved">{t('supplierInvoices.approvalApproved', 'Approved')}</SelectItem>
-                            <SelectItem value="rejected">{t('supplierInvoices.approvalRejected', 'Rejected')}</SelectItem>
+                            <SelectItem value="approved">
+                              {t('supplierInvoices.approvalApproved', 'Approved')}
+                            </SelectItem>
+                            <SelectItem value="rejected">
+                              {t('supplierInvoices.approvalRejected', 'Rejected')}
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </td>
@@ -335,16 +379,40 @@ const SupplierInvoices = ({ supplierId, supplier }) => {
                       </td>
                       <td className="py-2 px-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 h-7 w-7 p-0" onClick={() => setViewingInvoice(inv)} title="Visualiser">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-blue-400 hover:text-blue-300 h-7 w-7 p-0"
+                            onClick={() => setViewingInvoice(inv)}
+                            title="Visualiser"
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-orange-400 hover:text-orange-300 h-7 w-7 p-0" onClick={() => openEditModal(inv)} title="Modifier">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-orange-400 hover:text-orange-300 h-7 w-7 p-0"
+                            onClick={() => openEditModal(inv)}
+                            title="Modifier"
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300 h-7 w-7 p-0" onClick={() => handleExportPdf(inv)} title="Export PDF">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-purple-400 hover:text-purple-300 h-7 w-7 p-0"
+                            onClick={() => handleExportPdf(inv)}
+                            title="Export PDF"
+                          >
                             <Download className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300 h-7 w-7 p-0" onClick={() => handleExportHtml(inv)} title="Export HTML">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-cyan-400 hover:text-cyan-300 h-7 w-7 p-0"
+                            onClick={() => handleExportHtml(inv)}
+                            title="Export HTML"
+                          >
                             <FileText className="h-4 w-4" />
                           </Button>
                           <Button
@@ -409,7 +477,9 @@ const SupplierInvoices = ({ supplierId, supplier }) => {
       <Dialog open={!!viewingInvoice} onOpenChange={(open) => !open && setViewingInvoice(null)}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-xl">
           <DialogHeader>
-            <DialogTitle>{t('common.view', 'Visualiser')} - {viewingInvoice?.invoice_number}</DialogTitle>
+            <DialogTitle>
+              {t('common.view', 'Visualiser')} - {viewingInvoice?.invoice_number}
+            </DialogTitle>
           </DialogHeader>
           {viewingInvoice && (
             <div className="space-y-3 text-sm">
@@ -421,7 +491,11 @@ const SupplierInvoices = ({ supplierId, supplier }) => {
                 <div>
                   <p className="text-gray-400">{t('supplierInvoices.amount')}</p>
                   <p className="font-semibold">
-                    {parseFloat(viewingInvoice.total_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {viewingInvoice.currency || 'EUR'}
+                    {formatNumber(parseFloat(viewingInvoice.total_amount || 0), {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{' '}
+                    {viewingInvoice.currency || 'EUR'}
                   </p>
                 </div>
                 <div>
@@ -449,34 +523,66 @@ const SupplierInvoices = ({ supplierId, supplier }) => {
       <Dialog open={!!editingInvoice} onOpenChange={(open) => !open && closeEditModal()}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-xl">
           <DialogHeader>
-            <DialogTitle>{t('common.edit', 'Modifier')} - {editingInvoice?.invoice_number}</DialogTitle>
+            <DialogTitle>
+              {t('common.edit', 'Modifier')} - {editingInvoice?.invoice_number}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={submitEdit} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>{t('supplierInvoices.invoiceNumber')}</Label>
-                <Input className="bg-gray-800 border-gray-700" value={editForm.invoice_number} onChange={(e) => setEditForm((prev) => ({ ...prev, invoice_number: e.target.value }))} required />
+                <Input
+                  className="bg-gray-800 border-gray-700"
+                  value={editForm.invoice_number}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, invoice_number: e.target.value }))}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t('supplierInvoices.amount')}</Label>
-                <Input className="bg-gray-800 border-gray-700" type="number" value={editForm.total_amount} onChange={(e) => setEditForm((prev) => ({ ...prev, total_amount: e.target.value }))} />
+                <Input
+                  className="bg-gray-800 border-gray-700"
+                  type="number"
+                  value={editForm.total_amount}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, total_amount: e.target.value }))}
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t('supplierInvoices.date')}</Label>
-                <Input className="bg-gray-800 border-gray-700" type="date" value={editForm.invoice_date} onChange={(e) => setEditForm((prev) => ({ ...prev, invoice_date: e.target.value }))} required />
+                <Input
+                  className="bg-gray-800 border-gray-700"
+                  type="date"
+                  value={editForm.invoice_date}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, invoice_date: e.target.value }))}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t('supplierInvoices.dueDate', 'Date echeance')}</Label>
-                <Input className="bg-gray-800 border-gray-700" type="date" value={editForm.due_date} onChange={(e) => setEditForm((prev) => ({ ...prev, due_date: e.target.value }))} />
+                <Input
+                  className="bg-gray-800 border-gray-700"
+                  type="date"
+                  value={editForm.due_date}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, due_date: e.target.value }))}
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t('common.currency', 'Devise')}</Label>
-                <Input className="bg-gray-800 border-gray-700" value={editForm.currency} onChange={(e) => setEditForm((prev) => ({ ...prev, currency: e.target.value }))} />
+                <Input
+                  className="bg-gray-800 border-gray-700"
+                  value={editForm.currency}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, currency: e.target.value }))}
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t('supplierInvoices.status')}</Label>
-                <Select value={editForm.payment_status} onValueChange={(val) => setEditForm((prev) => ({ ...prev, payment_status: val }))}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue /></SelectTrigger>
+                <Select
+                  value={editForm.payment_status}
+                  onValueChange={(val) => setEditForm((prev) => ({ ...prev, payment_status: val }))}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent className="bg-gray-900 border-gray-700 text-white">
                     <SelectItem value="pending">{t('supplierInvoices.statusPending')}</SelectItem>
                     <SelectItem value="paid">{t('supplierInvoices.statusPaid')}</SelectItem>

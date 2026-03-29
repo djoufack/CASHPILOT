@@ -1,3 +1,5 @@
+import { getLocale } from '@/utils/dateLocale';
+
 export const asNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -13,7 +15,7 @@ export const shiftDateInput = (dateInput, { years = 0, months = 0, days = 0 } = 
 };
 
 export const formatMoney = (value, currency) =>
-  new Intl.NumberFormat('fr-FR', {
+  new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency,
   }).format(asNumber(value));

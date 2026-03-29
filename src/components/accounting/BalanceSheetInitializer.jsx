@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAccounting } from '@/hooks/useAccounting';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { formatNumber } from '@/utils/dateLocale';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   createOpeningBalanceEntries,
@@ -113,7 +114,7 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
   const handleSave = async () => {
     if (!validation.isBalanced) {
       setError(
-        `Le bilan n'est pas equilibre. Difference: ${validation.difference.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
+        `Le bilan n'est pas equilibre. Difference: ${formatNumber(validation.difference, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
       );
       return;
     }
@@ -288,16 +289,15 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
               {validation.isBalanced ? 'Bilan equilibre' : 'Bilan non equilibre'}
             </div>
             <div className="text-xs text-gray-400">
-              Actif:{' '}
-              {validation.totalAssets.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+              Actif: {formatNumber(validation.totalAssets, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
               {currency} | Passif:{' '}
-              {validation.totalLiabilitiesEquity.toLocaleString('fr-FR', {
+              {formatNumber(validation.totalLiabilitiesEquity, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}{' '}
               {currency}
               {!validation.isBalanced &&
-                ` | Difference: ${validation.difference.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`}
+                ` | Difference: ${formatNumber(validation.difference, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`}
             </div>
           </div>
         </div>

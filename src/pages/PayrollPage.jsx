@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { usePayroll } from '@/hooks/usePayroll';
+import { getLocale, formatDate as formatDateLocale } from '@/utils/dateLocale';
 import { useCompany } from '@/hooks/useCompany';
 import { usePayrollCountryConnectors } from '@/hooks/usePayrollCountryConnectors';
 import { buildPayrollCountryConnectorInsights } from '@/services/hrPayrollCountryConnectorInsights';
@@ -39,18 +40,18 @@ import { PAYROLL_STATUSES } from '@/config/statusMappings';
 /* ---- Helpers ---- */
 
 const fmtCur = (v, c = 'EUR') =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: c }).format(Number(v || 0));
+  new Intl.NumberFormat(getLocale(), { style: 'currency', currency: c }).format(Number(v || 0));
 
 const fmtDate = (v) => {
   if (!v) return '-';
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('fr-FR');
+  return Number.isNaN(d.getTime()) ? '-' : formatDateLocale(d);
 };
 
 const fmtMonth = (v) => {
   if (!v) return '-';
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+  return Number.isNaN(d.getTime()) ? '-' : formatDateLocale(d, { month: 'short', year: 'numeric' });
 };
 
 const empLabel = (e) => e?.full_name || `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || e?.id || '-';

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSupplierProducts } from '@/hooks/useSupplierProducts';
 import { useCompany } from '@/hooks/useCompany';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { exportSupplierProductPDF, exportSupplierProductHTML } from '@/services/exportSupplierRecords';
 import { Button } from '@/components/ui/button';
+import { getLocale } from '@/utils/dateLocale';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -29,7 +30,8 @@ const SupplierProducts = ({ supplierId, supplier }) => {
   const { toast } = useToast();
   const { company } = useCompany();
   const { settings: invoiceSettings } = useInvoiceSettings();
-  const { products, categories, loading, createProduct, updateProduct, deleteProduct } = useSupplierProducts(supplierId);
+  const { products, categories, loading, createProduct, updateProduct, deleteProduct } =
+    useSupplierProducts(supplierId);
   const { importFromSupplier } = useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingProduct, setViewingProduct] = useState(null);
@@ -40,7 +42,7 @@ const SupplierProducts = ({ supplierId, supplier }) => {
 
   const formatMoney = (value) => {
     const amount = Number(value || 0);
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat(getLocale(), {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,
@@ -51,8 +53,18 @@ const SupplierProducts = ({ supplierId, supplier }) => {
   const getStockSnapshot = (product) => {
     const stock = Number(product?.stock_quantity || 0);
     const minStock = Number(product?.min_stock_level || 0);
-    if (stock <= 0) return { label: 'Rupture', className: 'bg-red-500/20 text-red-300 border-red-500/40', reorderQty: Math.max(minStock, 1) };
-    if (stock <= minStock) return { label: 'Stock bas', className: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40', reorderQty: Math.max(minStock - stock, 1) };
+    if (stock <= 0)
+      return {
+        label: 'Rupture',
+        className: 'bg-red-500/20 text-red-300 border-red-500/40',
+        reorderQty: Math.max(minStock, 1),
+      };
+    if (stock <= minStock)
+      return {
+        label: 'Stock bas',
+        className: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+        reorderQty: Math.max(minStock - stock, 1),
+      };
     return { label: 'Stock OK', className: 'bg-green-500/20 text-green-300 border-green-500/40', reorderQty: 0 };
   };
 
@@ -93,9 +105,7 @@ const SupplierProducts = ({ supplierId, supplier }) => {
   };
 
   const handleDelete = async (product) => {
-    const confirmed = window.confirm(
-      t('supplierProducts.confirmDelete', 'Supprimer ce produit fournisseur ?'),
-    );
+    const confirmed = window.confirm(t('supplierProducts.confirmDelete', 'Supprimer ce produit fournisseur ?'));
     if (!confirmed) return;
     await deleteProduct(product.id);
   };
@@ -128,10 +138,13 @@ const SupplierProducts = ({ supplierId, supplier }) => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gradient">{t('supplierProducts.title')}</h3>
-        <Dialog open={isModalOpen} onOpenChange={(open) => {
-          setIsModalOpen(open);
-          if (!open) resetForm();
-        }}>
+        <Dialog
+          open={isModalOpen}
+          onOpenChange={(open) => {
+            setIsModalOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={openCreateModal}>
               <Plus className="mr-2 h-4 w-4" /> {t('supplierProducts.addProduct')}
@@ -140,7 +153,9 @@ const SupplierProducts = ({ supplierId, supplier }) => {
           <DialogContent className="bg-gray-800 border-gray-700 text-white">
             <DialogHeader>
               <DialogTitle>
-                {editingProductId ? t('supplierProducts.editProduct', 'Modifier le produit') : t('supplierProducts.addProduct')}
+                {editingProductId
+                  ? t('supplierProducts.editProduct', 'Modifier le produit')
+                  : t('supplierProducts.addProduct')}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -164,7 +179,11 @@ const SupplierProducts = ({ supplierId, supplier }) => {
                       <SelectValue placeholder={t('supplierProducts.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                      {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -219,7 +238,9 @@ const SupplierProducts = ({ supplierId, supplier }) => {
       <Dialog open={!!viewingProduct} onOpenChange={(open) => !open && setViewingProduct(null)}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-xl">
           <DialogHeader>
-            <DialogTitle>{t('common.view', 'Visualiser')} - {viewingProduct?.product_name}</DialogTitle>
+            <DialogTitle>
+              {t('common.view', 'Visualiser')} - {viewingProduct?.product_name}
+            </DialogTitle>
           </DialogHeader>
           {viewingProduct && (
             <div className="space-y-3 text-sm">
@@ -296,10 +317,14 @@ const SupplierProducts = ({ supplierId, supplier }) => {
                   <TableCell className="text-gray-300">{formatMoney(product.unit_price)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className={stockSnapshot.label !== 'Stock OK' ? 'text-red-400 font-bold' : 'text-green-400'}>
+                      <span
+                        className={stockSnapshot.label !== 'Stock OK' ? 'text-red-400 font-bold' : 'text-green-400'}
+                      >
                         {product.stock_quantity}
                       </span>
-                      {stockSnapshot.label !== 'Stock OK' && <AlertTriangle className="h-3 w-3 text-red-500 animate-pulse" />}
+                      {stockSnapshot.label !== 'Stock OK' && (
+                        <AlertTriangle className="h-3 w-3 text-red-500 animate-pulse" />
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -312,16 +337,40 @@ const SupplierProducts = ({ supplierId, supplier }) => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300" onClick={() => setViewingProduct(product)} title="Visualiser">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-400 hover:text-blue-300"
+                        onClick={() => setViewingProduct(product)}
+                        title="Visualiser"
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-orange-400 hover:text-orange-300" onClick={() => openEditModal(product)} title="Modifier">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-orange-400 hover:text-orange-300"
+                        onClick={() => openEditModal(product)}
+                        title="Modifier"
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300" onClick={() => handleExportPdf(product)} title="Export PDF">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-purple-400 hover:text-purple-300"
+                        onClick={() => handleExportPdf(product)}
+                        title="Export PDF"
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300" onClick={() => handleExportHtml(product)} title="Export HTML">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-cyan-400 hover:text-cyan-300"
+                        onClick={() => handleExportHtml(product)}
+                        title="Export HTML"
+                      >
                         <FileText className="h-4 w-4" />
                       </Button>
                       <Button
@@ -349,7 +398,9 @@ const SupplierProducts = ({ supplierId, supplier }) => {
             })}
             {!loading && products.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-gray-500 py-6">{t('supplierProducts.noProducts')}</TableCell>
+                <TableCell colSpan={8} className="text-center text-gray-500 py-6">
+                  {t('supplierProducts.noProducts')}
+                </TableCell>
               </TableRow>
             )}
           </TableBody>

@@ -1,3 +1,4 @@
+import { getLocale } from '@/utils/dateLocale';
 import { saveElementAsPdf, saveElementAsPdfBytes } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
 import DOMPurify from 'dompurify';
@@ -117,7 +118,7 @@ export const generateInvoiceHTML = (invoice, companyInfo) => {
             <div>
               <h1 style="margin:0 0 12px 0; font-size:44px; line-height:1; font-weight:900; color:#0b1324;">FACTURE</h1>
               <p style="margin:0 0 6px 0; font-size:14px;"><strong>N° :</strong> ${invoiceNumber}</p>
-              <p style="margin:0; font-size:14px;"><strong>Date :</strong> ${issueDate ? new Date(issueDate).toLocaleDateString('fr-FR') : 'N/A'}</p>
+              <p style="margin:0; font-size:14px;"><strong>Date :</strong> ${issueDate ? new Date(issueDate).toLocaleDateString(getLocale()) : 'N/A'}</p>
             </div>
             <div style="font-size:13px; line-height:1.45;">
               <p style="margin:0 0 8px 0; font-weight:700; text-transform:uppercase;">Facturé à</p>
@@ -223,11 +224,11 @@ export const generateQuoteHTML = (quote, companyInfo) => {
   ].filter(Boolean);
 
   const quoteNumber = quote.quote_number || 'N/A';
-  const issueDate = quote.date ? new Date(quote.date).toLocaleDateString('fr-FR') : 'N/A';
+  const issueDate = quote.date ? new Date(quote.date).toLocaleDateString(getLocale()) : 'N/A';
   // quotes DB column is 'valid_until'; fall back to 'due_date' for legacy records
   const validityDate =
     quote.valid_until || quote.due_date
-      ? new Date(quote.valid_until || quote.due_date).toLocaleDateString('fr-FR')
+      ? new Date(quote.valid_until || quote.due_date).toLocaleDateString(getLocale())
       : 'N/A';
   const taxRate = toFiniteNumber(quote.tax_rate || quote.taxRate);
   const noteText =
@@ -377,7 +378,7 @@ const generateDeliveryNoteHTML = (deliveryNote, companyInfo) => {
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #f0f9ff; padding: 15px; border-radius: 8px;">
         <div>
-          <p style="margin: 5px 0; color: #666;">Date de livraison: <strong>${deliveryNote.date ? new Date(deliveryNote.date).toLocaleDateString('fr-FR') : 'N/A'}</strong></p>
+          <p style="margin: 5px 0; color: #666;">Date de livraison: <strong>${deliveryNote.date ? new Date(deliveryNote.date).toLocaleDateString(getLocale()) : 'N/A'}</strong></p>
           <p style="margin: 5px 0; color: #666;">Transporteur: <strong>${deliveryNote.carrier || 'N/A'}</strong></p>
         </div>
         <div>
@@ -427,7 +428,7 @@ const generateDeliveryNoteHTML = (deliveryNote, companyInfo) => {
       </div>
 
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-        <p style="margin: 0;">Document généré par CashPilot - ${new Date().toLocaleString('fr-FR')}</p>
+        <p style="margin: 0;">Document généré par CashPilot - ${new Date().toLocaleString(getLocale())}</p>
       </div>
     </div>
   `;
@@ -463,7 +464,7 @@ const generateCreditNoteHTML = (creditNote, companyInfo) => {
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #fef2f2; padding: 15px; border-radius: 8px;">
         <div>
-          <p style="margin: 5px 0; color: #666;">Date: <strong>${creditNote.date ? new Date(creditNote.date).toLocaleDateString('fr-FR') : 'N/A'}</strong></p>
+          <p style="margin: 5px 0; color: #666;">Date: <strong>${creditNote.date ? new Date(creditNote.date).toLocaleDateString(getLocale()) : 'N/A'}</strong></p>
           <p style="margin: 5px 0; color: #666;">Facture liée: <strong>${creditNote.related_invoice_number || 'N/A'}</strong></p>
         </div>
         <div>
@@ -526,7 +527,7 @@ const generateCreditNoteHTML = (creditNote, companyInfo) => {
       }
 
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-        <p style="margin: 0;">Document généré par CashPilot - ${new Date().toLocaleString('fr-FR')}</p>
+        <p style="margin: 0;">Document généré par CashPilot - ${new Date().toLocaleString(getLocale())}</p>
       </div>
     </div>
   `;
@@ -565,8 +566,8 @@ const generatePurchaseOrderHTML = (purchaseOrder, companyInfo) => {
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #faf5ff; padding: 15px; border-radius: 8px;">
         <div>
-          <p style="margin: 5px 0; color: #666;">Date de commande: <strong>${purchaseOrder.date ? new Date(purchaseOrder.date).toLocaleDateString('fr-FR') : 'N/A'}</strong></p>
-          <p style="margin: 5px 0; color: #666;">Date de livraison: <strong>${purchaseOrder.delivery_date ? new Date(purchaseOrder.delivery_date).toLocaleDateString('fr-FR') : 'N/A'}</strong></p>
+          <p style="margin: 5px 0; color: #666;">Date de commande: <strong>${purchaseOrder.date ? new Date(purchaseOrder.date).toLocaleDateString(getLocale()) : 'N/A'}</strong></p>
+          <p style="margin: 5px 0; color: #666;">Date de livraison: <strong>${purchaseOrder.delivery_date ? new Date(purchaseOrder.delivery_date).toLocaleDateString(getLocale()) : 'N/A'}</strong></p>
         </div>
         <div>
           <p style="margin: 5px 0; color: #666;">Statut: <strong style="color: #8b5cf6;">${purchaseOrder.status || 'pending'}</strong></p>
@@ -628,7 +629,7 @@ const generatePurchaseOrderHTML = (purchaseOrder, companyInfo) => {
       }
 
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-        <p style="margin: 0;">Document généré par CashPilot - ${new Date().toLocaleString('fr-FR')}</p>
+        <p style="margin: 0;">Document généré par CashPilot - ${new Date().toLocaleString(getLocale())}</p>
       </div>
     </div>
   `;

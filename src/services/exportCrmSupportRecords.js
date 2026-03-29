@@ -1,3 +1,4 @@
+import { formatDateTime } from '@/utils/dateLocale';
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { buildStandaloneTemplateHtml, resolveInvoiceExportSettings } from '@/services/invoiceTemplateExport';
@@ -11,13 +12,6 @@ const toLabel = (value) => {
   if (normalized === 'resolved') return 'Résolu';
   if (normalized === 'closed') return 'Clôturé';
   return 'Ouvert';
-};
-
-const formatDateTime = (value) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString('fr-FR');
 };
 
 const downloadHtmlFile = (html, filename) => {

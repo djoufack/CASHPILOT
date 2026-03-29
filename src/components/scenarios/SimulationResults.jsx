@@ -3,7 +3,7 @@
  * Displays simulation results with charts and key metrics
  */
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -33,21 +33,19 @@ import {
   Waves,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getLocale } from '@/utils/dateLocale';
 import { exportScenarioSimulationPDF } from '@/services/exportScenarioPDF';
 import { useToast } from '@/components/ui/use-toast';
 
 const DARK_CARD = 'border-white/10 bg-slate-950/80 text-white shadow-[0_24px_80px_rgba(2,6,23,0.45)]';
-const STAT_CARD =
-  'border-white/10 bg-gradient-to-br from-slate-900/95 via-slate-950/95 to-slate-950/70 text-white';
+const STAT_CARD = 'border-white/10 bg-gradient-to-br from-slate-900/95 via-slate-950/95 to-slate-950/70 text-white';
 
 const isVariableSeries = (results, key) => {
   if (!Array.isArray(results) || results.length < 2) {
     return false;
   }
 
-  const values = results
-    .map((result) => Number(result?.[key] ?? 0))
-    .filter((value) => Number.isFinite(value));
+  const values = results.map((result) => Number(result?.[key] ?? 0)).filter((value) => Number.isFinite(value));
 
   if (values.length < 2) {
     return false;
@@ -72,7 +70,7 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
     } catch (error) {
       console.error('Export error:', error);
       toast({
-        title: 'Erreur d\'export',
+        title: "Erreur d'export",
         description: error.message || 'Impossible de générer le PDF',
         variant: 'destructive',
       });
@@ -80,7 +78,7 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
   };
 
   const formatCurrency = (value) =>
-    new Intl.NumberFormat('fr-FR', {
+    new Intl.NumberFormat(getLocale(), {
       style: 'currency',
       currency,
       notation: 'compact',
@@ -88,7 +86,7 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
     }).format(Number(value) || 0);
 
   const formatFullCurrency = (value) =>
-    new Intl.NumberFormat('fr-FR', {
+    new Intl.NumberFormat(getLocale(), {
       style: 'currency',
       currency,
       maximumFractionDigits: 0,
@@ -121,8 +119,7 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
       insights.push({
         tone: 'success',
         title: 'Courbe de revenus dynamique',
-        description:
-          `Le chiffre d'affaires évolue bien sur la période. Vous pouvez maintenant comparer son impact sur la trésorerie et la marge.`,
+        description: `Le chiffre d'affaires évolue bien sur la période. Vous pouvez maintenant comparer son impact sur la trésorerie et la marge.`,
       });
     }
 
@@ -130,8 +127,7 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
       insights.push({
         tone: 'neutral',
         title: 'Trésorerie peu sensible',
-        description:
-          `Ajoutez des hypothèses de délais de paiement, de BFR ou d'investissement pour faire varier davantage la trésorerie.`,
+        description: `Ajoutez des hypothèses de délais de paiement, de BFR ou d'investissement pour faire varier davantage la trésorerie.`,
       });
     }
 
@@ -251,7 +247,9 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
               )}
             </div>
             <p className="text-sm text-slate-400">Croissance du CA</p>
-            <p className={`mt-2 text-3xl font-semibold ${summary.revenue.growth >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+            <p
+              className={`mt-2 text-3xl font-semibold ${summary.revenue.growth >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}
+            >
               {summary.revenue.growth >= 0 ? '+' : ''}
               {summary.revenue.growth.toFixed(1)}%
             </p>
@@ -274,12 +272,8 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
               )}
             </div>
             <p className="text-sm text-slate-400">Trésorerie finale</p>
-            <p className="mt-2 text-3xl font-semibold text-white">
-              {formatCurrency(lastPeriod.cashBalance)}
-            </p>
-            <p className="mt-3 text-xs text-slate-500">
-              Variation: {formatCurrency(summary.cashBalance.change)}
-            </p>
+            <p className="mt-2 text-3xl font-semibold text-white">{formatCurrency(lastPeriod.cashBalance)}</p>
+            <p className="mt-3 text-xs text-slate-500">Variation: {formatCurrency(summary.cashBalance.change)}</p>
           </CardContent>
         </Card>
 
@@ -296,9 +290,7 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
               )}
             </div>
             <p className="text-sm text-slate-400">Marge EBITDA finale</p>
-            <p className="mt-2 text-3xl font-semibold text-white">
-              {formatPercent(lastPeriod.ebitdaMargin)}
-            </p>
+            <p className="mt-2 text-3xl font-semibold text-white">{formatPercent(lastPeriod.ebitdaMargin)}</p>
             <p className="mt-3 text-xs text-slate-500">
               {summary.ebitdaMargin.change >= 0 ? '+' : ''}
               {summary.ebitdaMargin.change.toFixed(1)} pts
@@ -319,9 +311,7 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
               )}
             </div>
             <p className="text-sm text-slate-400">Marge nette finale</p>
-            <p className="mt-2 text-3xl font-semibold text-white">
-              {formatPercent(lastPeriod.netMargin)}
-            </p>
+            <p className="mt-2 text-3xl font-semibold text-white">{formatPercent(lastPeriod.netMargin)}</p>
             <p className="mt-3 text-xs text-slate-500">
               {summary.netMargin.change >= 0 ? '+' : ''}
               {summary.netMargin.change.toFixed(1)} pts
@@ -364,16 +354,28 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
         <CardContent>
           <Tabs value={activeChart} onValueChange={setActiveChart}>
             <TabsList className="mb-6 grid w-full grid-cols-2 gap-2 border border-white/10 bg-slate-900/90 p-1 md:grid-cols-4">
-              <TabsTrigger value="revenue" className="text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+              <TabsTrigger
+                value="revenue"
+                className="text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+              >
                 Revenus & Marges
               </TabsTrigger>
-              <TabsTrigger value="cash" className="text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+              <TabsTrigger
+                value="cash"
+                className="text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+              >
                 Trésorerie
               </TabsTrigger>
-              <TabsTrigger value="profitability" className="text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+              <TabsTrigger
+                value="profitability"
+                className="text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+              >
                 Rentabilité
               </TabsTrigger>
-              <TabsTrigger value="balance" className="text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+              <TabsTrigger
+                value="balance"
+                className="text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+              >
                 Bilan
               </TabsTrigger>
             </TabsList>
@@ -414,14 +416,7 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
                     strokeWidth={2}
                     name="Dépenses"
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="ebitda"
-                    stroke="#34d399"
-                    strokeWidth={2}
-                    dot={false}
-                    name="EBITDA"
-                  />
+                  <Line type="monotone" dataKey="ebitda" stroke="#34d399" strokeWidth={2} dot={false} name="EBITDA" />
                 </AreaChart>
               </ResponsiveContainer>
 
@@ -449,9 +444,32 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
                   <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={formatCurrency} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ color: '#cbd5e1' }} />
-                  <Line type="monotone" dataKey="cashBalance" stroke="#34d399" strokeWidth={3} name="Solde de trésorerie" dot={false} />
-                  <Line type="monotone" dataKey="operatingCashFlow" stroke="#4f8cff" strokeWidth={2} name="Flux opérationnel" strokeDasharray="5 5" dot={false} />
-                  <Line type="monotone" dataKey="caf" stroke="#c084fc" strokeWidth={2} name="CAF" strokeDasharray="3 3" dot={false} />
+                  <Line
+                    type="monotone"
+                    dataKey="cashBalance"
+                    stroke="#34d399"
+                    strokeWidth={3}
+                    name="Solde de trésorerie"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="operatingCashFlow"
+                    stroke="#4f8cff"
+                    strokeWidth={2}
+                    name="Flux opérationnel"
+                    strokeDasharray="5 5"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="caf"
+                    stroke="#c084fc"
+                    strokeWidth={2}
+                    name="CAF"
+                    strokeDasharray="3 3"
+                    dot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
 
@@ -462,7 +480,9 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
                 </div>
                 <div className="rounded-2xl border border-blue-400/20 bg-blue-500/10 p-4 text-center">
                   <p className="text-xs font-medium uppercase tracking-[0.18em] text-blue-200">Flux opérationnel</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">{formatCurrency(lastPeriod.operatingCashFlow)}</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {formatCurrency(lastPeriod.operatingCashFlow)}
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-4 text-center">
                   <p className="text-xs font-medium uppercase tracking-[0.18em] text-fuchsia-200">CAF</p>
@@ -476,12 +496,37 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
                 <LineChart data={results}>
                   <CartesianGrid stroke="rgba(148,163,184,0.18)" strokeDasharray="3 3" />
                   <XAxis dataKey="period_label" stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                  <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(value) => `${Number(value || 0).toFixed(0)}%`} />
+                  <YAxis
+                    stroke="#94a3b8"
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    tickFormatter={(value) => `${Number(value || 0).toFixed(0)}%`}
+                  />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ color: '#cbd5e1' }} />
-                  <Line type="monotone" dataKey="ebitdaMargin" stroke="#34d399" strokeWidth={2.5} name="Marge EBITDA %" dot={false} />
-                  <Line type="monotone" dataKey="operatingMargin" stroke="#4f8cff" strokeWidth={2.5} name="Marge opérationnelle %" dot={false} />
-                  <Line type="monotone" dataKey="netMargin" stroke="#c084fc" strokeWidth={2.5} name="Marge nette %" dot={false} />
+                  <Line
+                    type="monotone"
+                    dataKey="ebitdaMargin"
+                    stroke="#34d399"
+                    strokeWidth={2.5}
+                    name="Marge EBITDA %"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="operatingMargin"
+                    stroke="#4f8cff"
+                    strokeWidth={2.5}
+                    name="Marge opérationnelle %"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="netMargin"
+                    stroke="#c084fc"
+                    strokeWidth={2.5}
+                    name="Marge nette %"
+                    dot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
 
@@ -535,7 +580,9 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
                 </div>
                 <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-4 text-center">
                   <p className="text-xs font-medium uppercase tracking-[0.18em] text-fuchsia-200">Ratio D/E</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">{Number(lastPeriod.debtToEquity || 0).toFixed(2)}</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {Number(lastPeriod.debtToEquity || 0).toFixed(2)}
+                  </p>
                 </div>
               </div>
             </TabsContent>

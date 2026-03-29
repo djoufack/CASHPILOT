@@ -1,3 +1,4 @@
+import { getLocale } from '@/utils/dateLocale';
 /**
  * PDF Export Service for Financial Scenarios
  * Generates PDF reports for simulation results and comparisons
@@ -12,12 +13,12 @@ const PDF_OPTIONS = {
   filename: 'scenario-report.pdf',
   image: { type: 'jpeg', quality: 0.98 },
   html2canvas: { scale: 2 },
-  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
 };
 
 function createHeader(title, scenarioName, period) {
   const periodStr = period
-    ? `Du ${new Date(period.base_date).toLocaleDateString('fr-FR')} au ${new Date(period.end_date).toLocaleDateString('fr-FR')}`
+    ? `Du ${new Date(period.base_date).toLocaleDateString(getLocale())} au ${new Date(period.end_date).toLocaleDateString(getLocale())}`
     : '';
 
   return `
@@ -25,7 +26,7 @@ function createHeader(title, scenarioName, period) {
       <h1 style="margin:0;font-size:22px;color:#1F2937;">${title}</h1>
       <p style="margin:5px 0 0;font-size:14px;color:#6B7280;">${scenarioName}</p>
       ${periodStr ? `<p style="margin:3px 0 0;font-size:12px;color:#9CA3AF;">${periodStr}</p>` : ''}
-      <p style="margin:3px 0 0;font-size:10px;color:#9CA3AF;">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+      <p style="margin:3px 0 0;font-size:10px;color:#9CA3AF;">Généré le ${new Date().toLocaleDateString(getLocale())} à ${new Date().toLocaleTimeString(getLocale())}</p>
     </div>
   `;
 }
@@ -34,7 +35,7 @@ function createHeader(title, scenarioName, period) {
 let _activeCurrency = 'EUR';
 
 function formatCurrency(amount) {
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency: _activeCurrency,
   }).format(amount || 0);
@@ -85,11 +86,15 @@ export async function exportScenarioSimulationPDF(scenario, results, assumptions
     ${createHeader('Rapport de Simulation Financière', scenario.name, scenario)}
 
     <!-- Description -->
-    ${scenario.description ? `
+    ${
+      scenario.description
+        ? `
       <div style="margin-bottom:20px;padding:10px;background:#F3F4F6;border-left:4px solid #3B82F6;">
         <p style="margin:0;font-size:12px;color:#4B5563;">${scenario.description}</p>
       </div>
-    ` : ''}
+    `
+        : ''
+    }
 
     <!-- Summary Section -->
     <h2 style="font-size:16px;color:#1F2937;margin:20px 0 10px;border-bottom:2px solid #E5E7EB;padding-bottom:5px;">
@@ -126,7 +131,9 @@ export async function exportScenarioSimulationPDF(scenario, results, assumptions
     </div>
 
     <!-- Assumptions Section -->
-    ${assumptions && assumptions.length > 0 ? `
+    ${
+      assumptions && assumptions.length > 0
+        ? `
       <h2 style="font-size:16px;color:#1F2937;margin:20px 0 10px;border-bottom:2px solid #E5E7EB;padding-bottom:5px;">
         Hypothèses Appliquées
       </h2>
@@ -140,7 +147,9 @@ export async function exportScenarioSimulationPDF(scenario, results, assumptions
           </tr>
         </thead>
         <tbody>
-          ${assumptions.map((assumption, index) => `
+          ${assumptions
+            .map(
+              (assumption, index) => `
             <tr style="${index % 2 === 0 ? 'background:#F9FAFB;' : ''}">
               <td style="padding:8px;font-size:11px;">${assumption.name}</td>
               <td style="padding:8px;font-size:11px;">${assumption.category}</td>
@@ -149,10 +158,14 @@ export async function exportScenarioSimulationPDF(scenario, results, assumptions
                 ${JSON.stringify(assumption.parameters)}
               </td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
-    ` : ''}
+    `
+        : ''
+    }
 
     <!-- Results Table -->}
     <h2 style="font-size:16px;color:#1F2937;margin:20px 0 10px;border-bottom:2px solid #E5E7EB;padding-bottom:5px;">
@@ -171,7 +184,9 @@ export async function exportScenarioSimulationPDF(scenario, results, assumptions
         </tr>
       </thead>
       <tbody>
-        ${results.map((period, index) => `
+        ${results
+          .map(
+            (period, index) => `
           <tr style="${index % 2 === 0 ? 'background:#F9FAFB;' : ''}">
             <td style="padding:4px;font-weight:${index === results.length - 1 ? 'bold' : 'normal'};">
               ${period.period_label}
@@ -195,7 +210,9 @@ export async function exportScenarioSimulationPDF(scenario, results, assumptions
               ${formatCurrency(period.cashBalance)}
             </td>
           </tr>
-        `).join('')}
+        `
+          )
+          .join('')}
       </tbody>
     </table>
 
@@ -269,7 +286,14 @@ export async function exportScenarioSimulationPDF(scenario, results, assumptions
 // SCENARIO COMPARISON PDF
 // ============================================================================
 
-export async function exportScenarioComparisonPDF(scenario1, scenario2, results1, results2, comparison, { currency = 'EUR' } = {}) {
+export async function exportScenarioComparisonPDF(
+  scenario1,
+  scenario2,
+  results1,
+  results2,
+  comparison,
+  { currency = 'EUR' } = {}
+) {
   _activeCurrency = currency;
 
   if (!comparison) {
@@ -327,9 +351,10 @@ export async function exportScenarioComparisonPDF(scenario1, scenario2, results1
         </tr>
       </thead>
       <tbody>
-        ${results1.map((r1, index) => {
-          const r2 = results2[index];
-          return `
+        ${results1
+          .map((r1, index) => {
+            const r2 = results2[index];
+            return `
             <tr style="${index % 2 === 0 ? 'background:#F9FAFB;' : ''}">
               <td style="padding:4px;">${r1.period_label}</td>
               <td style="padding:4px;text-align:right;font-family:monospace;">${formatCurrency(r1.revenue)}</td>
@@ -340,7 +365,8 @@ export async function exportScenarioComparisonPDF(scenario1, scenario2, results1
               <td style="padding:4px;text-align:right;font-family:monospace;">${formatCurrency(r2.netIncome)}</td>
             </tr>
           `;
-        }).join('')}
+          })
+          .join('')}
       </tbody>
     </table>
 
@@ -429,11 +455,15 @@ export function exportScenarioSimulationHTML(scenario, results, assumptions, { c
   const content = `
     ${createHeader('Rapport de Simulation Financière', scenario.name, scenario)}
 
-    ${scenario.description ? `
+    ${
+      scenario.description
+        ? `
       <div style="margin-bottom:20px;padding:10px;background:#F3F4F6;border-left:4px solid #3B82F6;">
         <p style="margin:0;font-size:12px;color:#4B5563;">${scenario.description}</p>
       </div>
-    ` : ''}
+    `
+        : ''
+    }
 
     <h2>Résumé Exécutif</h2>
     <div class="stat-grid">
@@ -460,7 +490,9 @@ export function exportScenarioSimulationHTML(scenario, results, assumptions, { c
       </div>
     </div>
 
-    ${assumptions && assumptions.length > 0 ? `
+    ${
+      assumptions && assumptions.length > 0
+        ? `
       <h2>Hypothèses Appliquées</h2>
       <table>
         <thead>
@@ -472,17 +504,23 @@ export function exportScenarioSimulationHTML(scenario, results, assumptions, { c
           </tr>
         </thead>
         <tbody>
-          ${assumptions.map(assumption => `
+          ${assumptions
+            .map(
+              (assumption) => `
             <tr>
               <td>${assumption.name}</td>
               <td>${assumption.category}</td>
               <td>${assumption.assumption_type}</td>
               <td style="font-family:monospace;font-size:10px;">${JSON.stringify(assumption.parameters)}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
-    ` : ''}
+    `
+        : ''
+    }
 
     <h2>Projection Mois par Mois</h2>
     <table>
@@ -498,7 +536,9 @@ export function exportScenarioSimulationHTML(scenario, results, assumptions, { c
         </tr>
       </thead>
       <tbody>
-        ${results.map((period, index) => `
+        ${results
+          .map(
+            (period, index) => `
           <tr>
             <td style="font-weight:${index === results.length - 1 ? 'bold' : 'normal'};">${period.period_label}</td>
             <td style="text-align:right;font-family:monospace;">${formatCurrency(period.revenue)}</td>
@@ -514,7 +554,9 @@ export function exportScenarioSimulationHTML(scenario, results, assumptions, { c
               ${formatCurrency(period.cashBalance)}
             </td>
           </tr>
-        `).join('')}
+        `
+          )
+          .join('')}
       </tbody>
     </table>
 
@@ -548,7 +590,14 @@ export function exportScenarioSimulationHTML(scenario, results, assumptions, { c
   downloadHTML(content, filename);
 }
 
-export function exportScenarioComparisonHTML(scenario1, scenario2, results1, results2, comparison, { currency = 'EUR' } = {}) {
+export function exportScenarioComparisonHTML(
+  scenario1,
+  scenario2,
+  results1,
+  results2,
+  comparison,
+  { currency = 'EUR' } = {}
+) {
   _activeCurrency = currency;
 
   if (!comparison) {
@@ -600,9 +649,10 @@ export function exportScenarioComparisonHTML(scenario1, scenario2, results1, res
         </tr>
       </thead>
       <tbody>
-        ${results1.map((r1, index) => {
-          const r2 = results2[index];
-          return `
+        ${results1
+          .map((r1, index) => {
+            const r2 = results2[index];
+            return `
             <tr>
               <td>${r1.period_label}</td>
               <td style="text-align:right;font-family:monospace;">${formatCurrency(r1.revenue)}</td>
@@ -613,7 +663,8 @@ export function exportScenarioComparisonHTML(scenario1, scenario2, results1, res
               <td style="text-align:right;font-family:monospace;">${formatCurrency(r2.netIncome)}</td>
             </tr>
           `;
-        }).join('')}
+          })
+          .join('')}
       </tbody>
     </table>
 

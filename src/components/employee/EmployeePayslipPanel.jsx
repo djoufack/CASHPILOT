@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { getLocale, formatDate } from '@/utils/dateLocale';
 import { FileText, Briefcase, Loader2 } from 'lucide-react';
 
 const CONTRACT_TYPE_COLORS = {
@@ -14,7 +15,7 @@ const CONTRACT_TYPE_COLORS = {
 const formatMoney = (value, currency = 'EUR') => {
   const num = Number(value);
   if (!Number.isFinite(num)) return '---';
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -107,7 +108,7 @@ const EmployeePayslipPanel = ({ contracts, loading }) => {
                   {t('employee.payslip.startDate', 'Date de debut')}
                 </span>
                 <span className="text-sm font-medium text-white">
-                  {new Date(activeContract.start_date).toLocaleDateString('fr-FR', {
+                  {formatDate(activeContract.start_date, {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
@@ -123,7 +124,7 @@ const EmployeePayslipPanel = ({ contracts, loading }) => {
                   {t('employee.payslip.endDate', 'Date de fin')}
                 </span>
                 <span className="text-sm font-medium text-white">
-                  {new Date(activeContract.end_date).toLocaleDateString('fr-FR', {
+                  {formatDate(activeContract.end_date, {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',

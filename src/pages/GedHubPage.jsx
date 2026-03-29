@@ -17,6 +17,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getLocale, formatDate as formatDateLocale } from '@/utils/dateLocale';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -58,7 +59,7 @@ const formatAmount = (amount, currency = 'EUR') => {
   if (amount == null) return '-';
   const numeric = Number(amount);
   if (!Number.isFinite(numeric)) return '-';
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -70,7 +71,7 @@ const toDate = (value) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString('fr-FR');
+  return formatDateLocale(date);
 };
 const isSupplierDocumentType = (value) => value === 'supplier_invoices';
 const isAccountingDocumentType = (value) => value === 'invoices' || value === 'supplier_invoices';

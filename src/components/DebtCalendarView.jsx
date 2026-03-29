@@ -1,4 +1,3 @@
-import React from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import format from 'date-fns/format';
 import parse from 'date-fns/parse';
@@ -6,11 +5,12 @@ import startOfWeek from 'date-fns/startOfWeek';
 import getDay from 'date-fns/getDay';
 import enUS from 'date-fns/locale/en-US';
 import fr from 'date-fns/locale/fr';
+import { formatNumber } from '@/utils/dateLocale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-const locales = { 'en-US': enUS, 'fr': fr };
+const locales = { 'en-US': enUS, fr: fr };
 
 const localizer = dateFnsLocalizer({
   format,
@@ -24,9 +24,9 @@ const DebtCalendarView = ({ receivables = [], payables = [], onSelectDate, onSel
   const { t } = useTranslation();
 
   // Transform receivables into calendar events
-  const receivableEvents = receivables.map(r => ({
+  const receivableEvents = receivables.map((r) => ({
     id: r.id,
-    title: `↓ ${r.debtor_name} — ${parseFloat(r.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`,
+    title: `↓ ${r.debtor_name} — ${formatNumber(parseFloat(r.amount), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`,
     start: r.due_date ? new Date(r.due_date) : new Date(r.date_lent),
     end: r.due_date ? new Date(r.due_date) : new Date(r.date_lent),
     allDay: true,
@@ -34,9 +34,9 @@ const DebtCalendarView = ({ receivables = [], payables = [], onSelectDate, onSel
   }));
 
   // Transform payables into calendar events
-  const payableEvents = payables.map(p => ({
+  const payableEvents = payables.map((p) => ({
     id: p.id,
-    title: `↑ ${p.creditor_name} — ${parseFloat(p.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`,
+    title: `↑ ${p.creditor_name} — ${formatNumber(parseFloat(p.amount), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`,
     start: p.due_date ? new Date(p.due_date) : new Date(p.date_borrowed),
     end: p.due_date ? new Date(p.due_date) : new Date(p.date_borrowed),
     allDay: true,

@@ -15,6 +15,7 @@ import {
   Briefcase,
 } from 'lucide-react';
 import { usePeopleAnalytics } from '@/hooks/usePeopleAnalytics';
+import { formatNumber } from '@/utils/dateLocale';
 
 /* ------------------------------------------------------------------ */
 /*  Palette helpers (Design DNA: dark glassmorphism)                   */
@@ -398,11 +399,11 @@ function SalaryBenchmarkSection({ state, onRefresh }) {
 
             {/* Labels */}
             <div className="flex justify-between mt-2 text-[11px] text-gray-500">
-              <span>Min {min.toLocaleString('fr-FR')} &euro;</span>
-              <span>P25 {p25.toLocaleString('fr-FR')} &euro;</span>
-              <span className="text-orange-400 font-medium">P50 {p50.toLocaleString('fr-FR')} &euro;</span>
-              <span>P75 {p75.toLocaleString('fr-FR')} &euro;</span>
-              <span>Max {max.toLocaleString('fr-FR')} &euro;</span>
+              <span>Min {formatNumber(min)} &euro;</span>
+              <span>P25 {formatNumber(p25)} &euro;</span>
+              <span className="text-orange-400 font-medium">P50 {formatNumber(p50)} &euro;</span>
+              <span>P75 {formatNumber(p75)} &euro;</span>
+              <span>Max {formatNumber(max)} &euro;</span>
             </div>
           </div>
         );

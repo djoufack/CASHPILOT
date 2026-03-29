@@ -11,6 +11,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { formatNumber } from '@/utils/dateLocale';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useWhatsApp } from '@/hooks/useWhatsApp';
@@ -35,7 +36,7 @@ export default function WhatsAppSendButton({
     setPhoneNumber(clientPhone ?? '');
     setSendStatus(null);
 
-    const formattedAmount = `${amount?.toLocaleString('fr-FR') ?? '0'} ${currency}`;
+    const formattedAmount = `${formatNumber(amount) ?? '0'} ${currency}`;
     setPreview(
       `Bonjour ${clientName ?? 'Client'},\n\n` +
         `Veuillez trouver ci-dessous les details de votre facture :\n` +

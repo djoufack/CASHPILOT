@@ -6,6 +6,7 @@ import { useClients } from '@/hooks/useClients';
 import { useProducts } from '@/hooks/useProducts';
 import { useServices } from '@/hooks/useServices';
 import ProductPicker from './ProductPicker';
+import { formatNumber } from '@/utils/dateLocale';
 import ServicePicker from './ServicePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -749,7 +750,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
                         }`}
                       />
                       <span className="text-white truncate">{item.description}</span>
-                      <span className="text-gray-500 shrink-0">x{Number(item.quantity).toLocaleString('fr-FR')}</span>
+                      <span className="text-gray-500 shrink-0">x{formatNumber(Number(item.quantity))}</span>
                     </div>
                     <span className="text-gray-300 font-medium shrink-0 ml-3">
                       {formatCurrency(item.amount || Number(item.quantity) * Number(item.unitPrice), currency)}

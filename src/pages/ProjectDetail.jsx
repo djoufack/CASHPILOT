@@ -5,6 +5,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useTasksForProject } from '@/hooks/useTasksForProject';
 import { useProjectStatus } from '@/hooks/useProjectStatus';
 import { useProjectProfitability } from '@/hooks/useProjectProfitability';
+import { formatNumber } from '@/utils/dateLocale';
 import { buildProjectGanttDependencyInsights } from '@/services/projectGanttDependencyInsights';
 import { buildProjectBudgetVsActualInsights } from '@/services/projectBudgetVsActualInsights';
 import GanttView from '@/components/GanttView';
@@ -496,21 +497,17 @@ const ProjectDetail = () => {
               <Card className="bg-white/5 border-white/10">
                 <CardContent className="pt-4">
                   <p className="text-xs text-gray-400 mb-1">{t('projects.profitability.laborCost')}</p>
-                  <p className="text-2xl font-bold text-white">{profitability.laborCost.toLocaleString('fr-FR')} €</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    + {profitability.totalExpenses.toLocaleString('fr-FR')} € charges
-                  </p>
+                  <p className="text-2xl font-bold text-white">{formatNumber(profitability.laborCost)} €</p>
+                  <p className="text-xs text-gray-500 mt-1">+ {formatNumber(profitability.totalExpenses)} € charges</p>
                 </CardContent>
               </Card>
               <Card className="bg-white/5 border-white/10">
                 <CardContent className="pt-4">
                   <p className="text-xs text-gray-400 mb-1">{t('projects.profitability.revenue')}</p>
-                  <p className="text-2xl font-bold text-green-400">
-                    {profitability.totalRevenue.toLocaleString('fr-FR')} €
-                  </p>
+                  <p className="text-2xl font-bold text-green-400">{formatNumber(profitability.totalRevenue)} €</p>
                   {profitability.pendingRevenue > 0 && (
                     <p className="text-xs text-yellow-500 mt-1">
-                      + {profitability.pendingRevenue.toLocaleString('fr-FR')} € en attente
+                      + {formatNumber(profitability.pendingRevenue)} € en attente
                     </p>
                   )}
                 </CardContent>
@@ -523,7 +520,7 @@ const ProjectDetail = () => {
                   >
                     {profitability.grossMarginPct}%
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">{profitability.grossMargin.toLocaleString('fr-FR')} €</p>
+                  <p className="text-xs text-gray-500 mt-1">{formatNumber(profitability.grossMargin)} €</p>
                 </CardContent>
               </Card>
             </div>
@@ -539,13 +536,13 @@ const ProjectDetail = () => {
                       <div className="rounded-lg border border-white/10 bg-black/20 p-3">
                         <p className="text-xs uppercase tracking-wider text-gray-500">Budget CA</p>
                         <p className="mt-1 text-lg font-semibold text-white">
-                          {projectBudgetInsights.summary.budgetRevenue.toLocaleString('fr-FR')} €
+                          {formatNumber(projectBudgetInsights.summary.budgetRevenue)} €
                         </p>
                       </div>
                       <div className="rounded-lg border border-white/10 bg-black/20 p-3">
                         <p className="text-xs uppercase tracking-wider text-gray-500">Réel CA</p>
                         <p className="mt-1 text-lg font-semibold text-emerald-300">
-                          {projectBudgetInsights.summary.actualRevenue.toLocaleString('fr-FR')} €
+                          {formatNumber(projectBudgetInsights.summary.actualRevenue)} €
                         </p>
                       </div>
                       <div className="rounded-lg border border-white/10 bg-black/20 p-3">
@@ -555,7 +552,7 @@ const ProjectDetail = () => {
                             projectBudgetInsights.summary.revenueVariance >= 0 ? 'text-emerald-300' : 'text-rose-300'
                           }`}
                         >
-                          {projectBudgetInsights.summary.revenueVariance.toLocaleString('fr-FR')} €
+                          {formatNumber(projectBudgetInsights.summary.revenueVariance)} €
                         </p>
                       </div>
                       <div className="rounded-lg border border-white/10 bg-black/20 p-3">
@@ -565,7 +562,7 @@ const ProjectDetail = () => {
                             projectBudgetInsights.summary.marginVariance >= 0 ? 'text-emerald-300' : 'text-rose-300'
                           }`}
                         >
-                          {projectBudgetInsights.summary.marginVariance.toLocaleString('fr-FR')} €
+                          {formatNumber(projectBudgetInsights.summary.marginVariance)} €
                         </p>
                       </div>
                     </div>
@@ -624,7 +621,7 @@ const ProjectDetail = () => {
                         borderRadius: '8px',
                       }}
                       labelStyle={{ color: '#fff' }}
-                      formatter={(v) => [`${v.toLocaleString('fr-FR')} €`]}
+                      formatter={(v) => [`${formatNumber(v)} €`]}
                     />
                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                       <Cell fill="#6366f1" />

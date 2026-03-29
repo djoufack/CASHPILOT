@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatDate } from '@/utils/dateLocale';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useCredits } from '@/hooks/useCredits';
 import { useEntitlements } from '@/hooks/useEntitlements';
@@ -320,7 +321,7 @@ const PricingPage = () => {
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">Essai complet actif</p>
             <p className="mt-2 text-lg font-semibold text-white">Tous les services sont ouverts pendant 30 jours.</p>
             <p className="mt-1 text-sm text-emerald-100/80">
-              Fin de l'essai le {new Date(trialEndsAt).toLocaleDateString('fr-FR')}.
+              Fin de l'essai le {formatDate(trialEndsAt)}.
               {trialDaysRemaining > 0
                 ? ` Il reste ${trialDaysRemaining} jour${trialDaysRemaining > 1 ? 's' : ''}.`
                 : ''}

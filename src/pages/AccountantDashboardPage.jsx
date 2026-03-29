@@ -20,9 +20,10 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccountantView } from '@/hooks/useAccountantView';
 import AccountantNotes from '@/components/accountant/AccountantNotes';
+import { getLocale, formatDate as formatDateLocale } from '@/utils/dateLocale';
 
 const formatMoney = (amount, currency = 'EUR') =>
-  new Intl.NumberFormat('fr-FR', {
+  new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -33,7 +34,7 @@ const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('fr-FR');
+  return formatDateLocale(d);
 };
 
 export default function AccountantDashboardPage() {

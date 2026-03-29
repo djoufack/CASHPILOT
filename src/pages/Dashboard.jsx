@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatDate } from '@/utils/dateLocale';
 import { normalizeRole } from '@/lib/roles';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useTimesheets } from '@/hooks/useTimesheets';
@@ -648,7 +649,7 @@ const Dashboard = () => {
         label: timesheet.task?.name || t('dashboard.untitledTask'),
         subtitle: timesheet.project?.name || t('dashboard.noProject'),
         durationLabel: `${Math.floor(timesheet.duration_minutes / 60)}h ${timesheet.duration_minutes % 60}m`,
-        dateLabel: new Date(timesheet.date).toLocaleDateString('fr-FR'),
+        dateLabel: formatDate(timesheet.date),
       })),
     }),
     [

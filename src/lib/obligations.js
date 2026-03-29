@@ -1,3 +1,4 @@
+import { getLocale } from '@/utils/dateLocale';
 import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
 import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
 
@@ -11,7 +12,10 @@ const DUE_BUCKET_PRIORITY = {
   unscheduled: 4,
 };
 
-const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
+const normalizeStatus = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase();
 
 export const parseDueDate = (value) => {
   if (!value) return null;
@@ -38,12 +42,12 @@ export const getDueBucket = (value, lookaheadDays = OBLIGATION_LOOKAHEAD_DAYS) =
   return 'upcoming';
 };
 
-export const formatDueDate = (value, locale = 'fr-FR') => {
+export const formatDueDate = (value, locale = getLocale()) => {
   const dueDate = parseDueDate(value);
   return dueDate ? dueDate.toLocaleDateString(locale) : 'Sans echeance';
 };
 
-export const formatMoney = (amount, currency = 'EUR', locale = 'fr-FR') => {
+export const formatMoney = (amount, currency = 'EUR', locale = getLocale()) => {
   const numericValue = Number(amount || 0);
 
   try {
@@ -106,7 +110,7 @@ export const sortObligations = (items) => {
 };
 
 export const buildNotificationPayloads = (snapshot, options = {}) => {
-  const { locale = 'fr-FR' } = options;
+  const { locale = getLocale() } = options;
   const receivablesLabel = formatMoney(snapshot.summary.receivables.amount, snapshot.currency, locale);
   const payablesLabel = formatMoney(snapshot.summary.payables.amount, snapshot.currency, locale);
 
@@ -116,9 +120,10 @@ export const buildNotificationPayloads = (snapshot, options = {}) => {
     payloads.push({
       type: 'obligation_receivables',
       title: 'Factures clients impayees',
-      message: snapshot.summary.receivables.overdueCount > 0
-        ? `${snapshot.summary.receivables.count} facture(s) client impayee(s), dont ${snapshot.summary.receivables.overdueCount} en retard. ${receivablesLabel} a encaisser.`
-        : `${snapshot.summary.receivables.count} facture(s) client encore impayee(s). ${receivablesLabel} a encaisser.`,
+      message:
+        snapshot.summary.receivables.overdueCount > 0
+          ? `${snapshot.summary.receivables.count} facture(s) client impayee(s), dont ${snapshot.summary.receivables.overdueCount} en retard. ${receivablesLabel} a encaisser.`
+          : `${snapshot.summary.receivables.count} facture(s) client encore impayee(s). ${receivablesLabel} a encaisser.`,
     });
   }
 
@@ -126,9 +131,10 @@ export const buildNotificationPayloads = (snapshot, options = {}) => {
     payloads.push({
       type: 'obligation_payables',
       title: 'Factures fournisseurs a payer',
-      message: snapshot.summary.payables.overdueCount > 0
-        ? `${snapshot.summary.payables.count} facture(s) fournisseur a traiter, dont ${snapshot.summary.payables.overdueCount} en retard. ${payablesLabel} a payer.`
-        : `${snapshot.summary.payables.count} facture(s) fournisseur en attente. ${payablesLabel} a payer.`,
+      message:
+        snapshot.summary.payables.overdueCount > 0
+          ? `${snapshot.summary.payables.count} facture(s) fournisseur a traiter, dont ${snapshot.summary.payables.overdueCount} en retard. ${payablesLabel} a payer.`
+          : `${snapshot.summary.payables.count} facture(s) fournisseur en attente. ${payablesLabel} a payer.`,
     });
   }
 
@@ -136,9 +142,10 @@ export const buildNotificationPayloads = (snapshot, options = {}) => {
     payloads.push({
       type: 'obligation_quotes',
       title: 'Devis a preparer',
-      message: snapshot.summary.quoteTasks.overdueCount > 0
-        ? `${snapshot.summary.quoteTasks.count} tache(s) demandent encore un devis, dont ${snapshot.summary.quoteTasks.overdueCount} deja en retard.`
-        : `${snapshot.summary.quoteTasks.count} tache(s) demandent encore un devis.`,
+      message:
+        snapshot.summary.quoteTasks.overdueCount > 0
+          ? `${snapshot.summary.quoteTasks.count} tache(s) demandent encore un devis, dont ${snapshot.summary.quoteTasks.overdueCount} deja en retard.`
+          : `${snapshot.summary.quoteTasks.count} tache(s) demandent encore un devis.`,
     });
   }
 
@@ -146,7 +153,7 @@ export const buildNotificationPayloads = (snapshot, options = {}) => {
 };
 
 export const fetchObligationSnapshot = async (supabase, userId, options = {}) => {
-  const { lookaheadDays = OBLIGATION_LOOKAHEAD_DAYS, locale = 'fr-FR', companyId = null } = options;
+  const { lookaheadDays = OBLIGATION_LOOKAHEAD_DAYS, locale = getLocale(), companyId = null } = options;
 
   if (!supabase || !userId) {
     return {
@@ -162,7 +169,8 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
 
   let invoiceQuery = supabase
     .from('invoices')
-    .select(`
+    .select(
+      `
       id,
       invoice_number,
       due_date,
@@ -172,24 +180,16 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
       balance_due,
       company_id,
       client:clients(id, company_name, contact_name)
-    `)
+    `
+    )
     .eq('user_id', userId)
     .order('due_date', { ascending: true, nullsFirst: false });
 
-  let companyQuery = supabase
-    .from('company')
-    .select('accounting_currency')
-    .eq('user_id', userId);
+  let companyQuery = supabase.from('company').select('accounting_currency').eq('user_id', userId);
 
-  let suppliersQuery = supabase
-    .from('suppliers')
-    .select('id, company_name, company_id')
-    .eq('user_id', userId);
+  let suppliersQuery = supabase.from('suppliers').select('id, company_name, company_id').eq('user_id', userId);
 
-  let projectsQuery = supabase
-    .from('projects')
-    .select('id, name, client_id, company_id')
-    .eq('user_id', userId);
+  let projectsQuery = supabase.from('projects').select('id, name, client_id, company_id').eq('user_id', userId);
 
   if (companyId) {
     invoiceQuery = invoiceQuery.eq('company_id', companyId);
@@ -222,7 +222,8 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
     ? await (() => {
         let query = supabase
           .from('supplier_invoices')
-          .select(`
+          .select(
+            `
             id,
             invoice_number,
             due_date,
@@ -232,7 +233,8 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
             supplier_id,
             company_id,
             supplier:suppliers!supplier_invoices_supplier_id_fkey(id, company_name)
-          `)
+          `
+          )
           .in('supplier_id', supplierIds)
           .order('due_date', { ascending: true, nullsFirst: false });
 
@@ -270,10 +272,7 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
   const projectRows = ownedProjectRows || [];
   const clientIds = [...new Set(projectRows.map((project) => project.client_id).filter(Boolean))];
   const { data: clientRows, error: clientError } = clientIds.length
-    ? await supabase
-        .from('clients')
-        .select('id, company_name, contact_name')
-        .in('id', clientIds)
+    ? await supabase.from('clients').select('id, company_name, contact_name').in('id', clientIds)
     : { data: [], error: null };
 
   if (clientError) throw clientError;
@@ -282,49 +281,45 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
   const clientsById = new Map((clientRows || []).map((client) => [client.id, client]));
   const currency = resolveAccountingCurrency(companyRows);
 
-  const customerObligations = (invoiceData || [])
-    .filter(isOpenCustomerInvoice)
-    .map((invoice) => {
-      const clientName = invoice.client?.company_name || invoice.client?.contact_name || 'Client';
-      const dueBucket = getDueBucket(invoice.due_date, lookaheadDays);
-      const amount = Number(invoice.balance_due ?? invoice.total_ttc ?? 0);
+  const customerObligations = (invoiceData || []).filter(isOpenCustomerInvoice).map((invoice) => {
+    const clientName = invoice.client?.company_name || invoice.client?.contact_name || 'Client';
+    const dueBucket = getDueBucket(invoice.due_date, lookaheadDays);
+    const amount = Number(invoice.balance_due ?? invoice.total_ttc ?? 0);
 
-      return {
-        id: `receivable:${invoice.id}`,
-        entityId: invoice.id,
-        category: 'receivable',
-        title: invoice.invoice_number || 'Facture client',
-        subtitle: clientName,
-        dueDate: invoice.due_date,
-        dueBucket,
-        amount,
-        amountLabel: formatMoney(amount, currency, locale),
-        href: '/app/invoices',
-        ctaLabel: 'Ouvrir les factures',
-      };
-    });
+    return {
+      id: `receivable:${invoice.id}`,
+      entityId: invoice.id,
+      category: 'receivable',
+      title: invoice.invoice_number || 'Facture client',
+      subtitle: clientName,
+      dueDate: invoice.due_date,
+      dueBucket,
+      amount,
+      amountLabel: formatMoney(amount, currency, locale),
+      href: '/app/invoices',
+      ctaLabel: 'Ouvrir les factures',
+    };
+  });
 
-  const supplierObligations = (supplierInvoiceData || [])
-    .filter(isOpenSupplierInvoice)
-    .map((invoice) => {
-      const supplierName = invoice.supplier?.company_name || supplierNamesById.get(invoice.supplier_id) || 'Fournisseur';
-      const dueBucket = getDueBucket(invoice.due_date, lookaheadDays);
-      const amount = Number(invoice.total_amount ?? invoice.total_ttc ?? 0);
+  const supplierObligations = (supplierInvoiceData || []).filter(isOpenSupplierInvoice).map((invoice) => {
+    const supplierName = invoice.supplier?.company_name || supplierNamesById.get(invoice.supplier_id) || 'Fournisseur';
+    const dueBucket = getDueBucket(invoice.due_date, lookaheadDays);
+    const amount = Number(invoice.total_amount ?? invoice.total_ttc ?? 0);
 
-      return {
-        id: `payable:${invoice.id}`,
-        entityId: invoice.id,
-        category: 'payable',
-        title: invoice.invoice_number || 'Facture fournisseur',
-        subtitle: supplierName,
-        dueDate: invoice.due_date,
-        dueBucket,
-        amount,
-        amountLabel: formatMoney(amount, currency, locale),
-        href: '/app/supplier-invoices',
-        ctaLabel: 'Ouvrir les achats',
-      };
-    });
+    return {
+      id: `payable:${invoice.id}`,
+      entityId: invoice.id,
+      category: 'payable',
+      title: invoice.invoice_number || 'Facture fournisseur',
+      subtitle: supplierName,
+      dueDate: invoice.due_date,
+      dueBucket,
+      amount,
+      amountLabel: formatMoney(amount, currency, locale),
+      href: '/app/supplier-invoices',
+      ctaLabel: 'Ouvrir les achats',
+    };
+  });
 
   const quoteTaskObligations = quoteTaskRows
     .filter((task) => !task.quote_id)
@@ -352,11 +347,7 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
       };
     });
 
-  const obligations = sortObligations([
-    ...customerObligations,
-    ...supplierObligations,
-    ...quoteTaskObligations,
-  ]);
+  const obligations = sortObligations([...customerObligations, ...supplierObligations, ...quoteTaskObligations]);
 
   return {
     currency,

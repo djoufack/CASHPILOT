@@ -6,6 +6,7 @@ import { useProducts, useProductCategories } from '@/hooks/useProducts';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useInventoryWarehouses, useInventoryLots } from '@/hooks/useInventoryWarehouses';
 import { useCompany } from '@/hooks/useCompany';
+import { formatDate } from '@/utils/dateLocale';
 import { getCurrencySymbol } from '@/utils/currencyService';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatNumber } from '@/utils/calculations';
@@ -1816,7 +1817,7 @@ const StockManagement = () => {
                         {history.map((h) => (
                           <TableRow key={h.id} className="border-gray-800">
                             <TableCell className="text-gray-400">
-                              {new Date(h.created_at).toLocaleDateString('fr-FR', {
+                              {formatDate(h.created_at, {
                                 day: '2-digit',
                                 month: '2-digit',
                                 year: 'numeric',

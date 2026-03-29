@@ -3,16 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { Send, Trash2, Loader2, Bot, User, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCfoChat } from '@/hooks/useCfoChat';
+import { getLocale, formatDateTime, formatTime } from '@/utils/dateLocale';
 
 const SOURCE_EVIDENCE_TYPE = 'source_evidence';
 
 const formatMoney = (value) =>
-  new Intl.NumberFormat('fr-FR', {
+  new Intl.NumberFormat(getLocale(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(Number(value || 0));
 
-const formatCount = (value) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(value || 0));
+const formatCount = (value) =>
+  new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 0 }).format(Number(value || 0));
 
 const getSourceEvidence = (toolCalls) => {
   if (!Array.isArray(toolCalls)) return null;
@@ -181,7 +183,7 @@ const CfoChatPanel = () => {
                       </div>
                       {sourceEvidence.generated_at && (
                         <div className="mt-2 text-[10px] text-cyan-100/60">
-                          Généré le {new Date(sourceEvidence.generated_at).toLocaleString('fr-FR')}
+                          Généré le {formatDateTime(sourceEvidence.generated_at)}
                         </div>
                       )}
                     </div>
@@ -189,7 +191,7 @@ const CfoChatPanel = () => {
                 })()}
               {msg.timestamp && (
                 <div className="text-xs text-gray-500 mt-2">
-                  {new Date(msg.timestamp).toLocaleTimeString('fr-FR', {
+                  {formatTime(msg.timestamp, {
                     hour: '2-digit',
                     minute: '2-digit',
                   })}

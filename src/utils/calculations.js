@@ -1,5 +1,4 @@
-
-import React from "react";
+import { getLocale } from '@/utils/dateLocale';
 
 /**
  * Calculate duration between start and end time
@@ -9,23 +8,23 @@ import React from "react";
  */
 export const calculateDuration = (startTime, endTime) => {
   if (!startTime || !endTime) return '0:00';
-  
+
   const [startHour, startMin] = startTime.split(':').map(Number);
   const [endHour, endMin] = endTime.split(':').map(Number);
-  
+
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
-  
+
   let diffMinutes = endMinutes - startMinutes;
-  
+
   // Handle overnight shifts
   if (diffMinutes < 0) {
     diffMinutes += 24 * 60;
   }
-  
+
   const hours = Math.floor(diffMinutes / 60);
   const minutes = diffMinutes % 60;
-  
+
   return `${hours}:${minutes.toString().padStart(2, '0')}`;
 };
 
@@ -37,17 +36,17 @@ export const calculateDuration = (startTime, endTime) => {
 export const durationToHours = (duration) => {
   if (!duration) return 0;
   const [hours, minutes] = duration.split(':').map(Number);
-  return hours + (minutes / 60);
+  return hours + minutes / 60;
 };
 
 /**
- * Format a number with thousand separators (fr-FR locale)
+ * Format a number with thousand separators (locale-aware)
  * @param {number} amount - Number to format
  * @param {number} decimals - Decimal places (default 2)
  * @returns {string} Formatted number (e.g., "4 471 875,00")
  */
 export const formatNumber = (amount, decimals = 2) => {
-  return (Number(amount) || 0).toLocaleString('fr-FR', {
+  return (Number(amount) || 0).toLocaleString(getLocale(), {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -63,11 +62,11 @@ export const calculateInvoiceTotal = (items, taxRate) => {
   const subtotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
   const taxAmount = subtotal * taxRate;
   const total = subtotal + taxAmount;
-  
+
   return {
     subtotal: Number(subtotal.toFixed(2)),
     taxAmount: Number(taxAmount.toFixed(2)),
-    total: Number(total.toFixed(2))
+    total: Number(total.toFixed(2)),
   };
 };
 
@@ -79,7 +78,7 @@ export const calculateInvoiceTotal = (items, taxRate) => {
  */
 export const formatCurrency = (amount, currency = 'EUR') => {
   try {
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat(getLocale(), {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,
@@ -87,7 +86,7 @@ export const formatCurrency = (amount, currency = 'EUR') => {
     }).format(Number(amount) || 0);
   } catch {
     // Fallback for unknown currencies
-    const formatted = (Number(amount) || 0).toLocaleString('fr-FR', {
+    const formatted = (Number(amount) || 0).toLocaleString(getLocale(), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
@@ -108,7 +107,7 @@ export const calculateItemDiscount = (item) => {
   if (!item.discount_type || item.discount_type === 'none' || !item.discount_value) return 0;
   const lineTotal = Number(item.quantity) * Number(item.unitPrice || item.unit_price);
   if (item.discount_type === 'percentage') {
-    return Number((lineTotal * Number(item.discount_value) / 100).toFixed(2));
+    return Number(((lineTotal * Number(item.discount_value)) / 100).toFixed(2));
   }
   return Number(Number(item.discount_value).toFixed(2));
 };
@@ -124,7 +123,7 @@ export const calculateInvoiceTotalWithDiscount = (items, taxRate, globalDiscount
   let subtotal = 0;
   let totalItemDiscounts = 0;
 
-  items.forEach(item => {
+  items.forEach((item) => {
     const lineTotal = Number(item.quantity) * Number(item.unitPrice || item.unit_price || 0);
     const itemDiscount = calculateItemDiscount(item);
     subtotal += lineTotal;
@@ -136,7 +135,7 @@ export const calculateInvoiceTotalWithDiscount = (items, taxRate, globalDiscount
   let globalDiscountAmount = 0;
   if (globalDiscount && globalDiscount.type !== 'none' && globalDiscount.value > 0) {
     if (globalDiscount.type === 'percentage') {
-      globalDiscountAmount = subtotalAfterItemDiscounts * Number(globalDiscount.value) / 100;
+      globalDiscountAmount = (subtotalAfterItemDiscounts * Number(globalDiscount.value)) / 100;
     } else {
       globalDiscountAmount = Number(globalDiscount.value);
     }
@@ -153,7 +152,7 @@ export const calculateInvoiceTotalWithDiscount = (items, taxRate, globalDiscount
     globalDiscountAmount: Number(globalDiscountAmount.toFixed(2)),
     totalHT: Number(totalHT.toFixed(2)),
     taxAmount: Number(taxAmount.toFixed(2)),
-    totalTTC: Number(totalTTC.toFixed(2))
+    totalTTC: Number(totalTTC.toFixed(2)),
   };
 };
 
@@ -174,7 +173,9 @@ export const calculateBalanceDue = (totalTTC, amountPaid) => {
  * @returns {Array} Array of { invoiceId, allocatedAmount }
  */
 export const allocateLumpSumPayment = (amount, pendingInvoices) => {
-  const sorted = [...pendingInvoices].sort((a, b) => new Date(a.date || a.created_at) - new Date(b.date || b.created_at));
+  const sorted = [...pendingInvoices].sort(
+    (a, b) => new Date(a.date || a.created_at) - new Date(b.date || b.created_at)
+  );
   const allocations = [];
   let remaining = Number(amount);
 
@@ -185,7 +186,7 @@ export const allocateLumpSumPayment = (amount, pendingInvoices) => {
     const allocated = Math.min(remaining, balance);
     allocations.push({
       invoiceId: invoice.id,
-      allocatedAmount: Number(allocated.toFixed(2))
+      allocatedAmount: Number(allocated.toFixed(2)),
     });
     remaining -= allocated;
   }
@@ -234,9 +235,7 @@ export const generateInvoiceNumber = async (supabaseClient, userId) => {
 
   // Fallback: localStorage (backward compatibility)
   const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-  const currentMonthInvoices = invoices.filter(inv =>
-    inv.invoiceNumber?.startsWith(prefix)
-  );
+  const currentMonthInvoices = invoices.filter((inv) => inv.invoiceNumber?.startsWith(prefix));
 
   const sequence = (currentMonthInvoices.length + 1).toString().padStart(3, '0');
   return `${prefix}-${sequence}`;
@@ -299,7 +298,7 @@ export const getInvoiceAmount = (invoice) => {
  * @returns {Array} Filtered items
  */
 export const filterByMonth = (items, month, year, dateField = 'date') => {
-  return items.filter(item => {
+  return items.filter((item) => {
     const d = new Date(item[dateField] || item.created_at);
     return d.getMonth() === month && d.getFullYear() === year;
   });

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getLocale, formatDate } from '@/utils/dateLocale';
 import { FileText, Download, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 
 const formatPeriod = (start, end) => {
@@ -26,7 +27,7 @@ const formatPeriod = (start, end) => {
 const formatMoney = (value, currency = 'EUR') => {
   const num = Number(value);
   if (!Number.isFinite(num)) return '---';
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -99,7 +100,7 @@ const PayslipRow = ({ payslip, isExpanded, onToggle }) => {
             {payslip.generated_at && (
               <div className="col-span-2">
                 <span className="text-gray-400">{t('employee.payslip.generatedAt', 'Genere le')}:</span>
-                <span className="text-white ml-1">{new Date(payslip.generated_at).toLocaleDateString('fr-FR')}</span>
+                <span className="text-white ml-1">{formatDate(payslip.generated_at)}</span>
               </div>
             )}
           </div>

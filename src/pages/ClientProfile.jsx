@@ -5,6 +5,7 @@ import { useClients } from '@/hooks/useClients';
 import { useInvoices } from '@/hooks/useInvoices';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { formatDate } from '@/utils/dateLocale';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/calculations';
 import { ArrowLeft, Mail, Phone, Globe, MapPin, FileText, CreditCard, Loader2 } from 'lucide-react';
@@ -222,9 +223,7 @@ const ClientProfile = () => {
                 <div key={inv.id} className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
                   <div>
                     <p className="text-gradient font-medium text-sm">{inv.invoice_number}</p>
-                    <p className="text-xs text-gray-500">
-                      {inv.date ? new Date(inv.date).toLocaleDateString('fr-FR') : '—'}
-                    </p>
+                    <p className="text-xs text-gray-500">{inv.date ? formatDate(inv.date) : '—'}</p>
                   </div>
                   <div className="text-right flex items-center gap-3">
                     <p className="text-gradient font-semibold text-sm">{formatCurrency(inv.total_ttc || 0)}</p>

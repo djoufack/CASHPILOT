@@ -21,6 +21,7 @@ import { usePerformance } from '@/hooks/usePerformance';
 import { buildHrManagerWorkflowInsights } from '@/services/hrManagerWorkflowInsights';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { formatDate as formatDateLocale } from '@/utils/dateLocale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -105,7 +106,7 @@ const employeeName = (emp) => emp?.full_name || emp?.id || '-';
 const formatDate = (v) => {
   if (!v) return '-';
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('fr-FR');
+  return Number.isNaN(d.getTime()) ? '-' : formatDateLocale(d);
 };
 
 /* ---------- sub-components ---------- */

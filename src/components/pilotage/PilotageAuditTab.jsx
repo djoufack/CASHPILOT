@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { useAuditComptable } from '@/hooks/useAuditComptable';
+import { getLocale, formatNumber } from '@/utils/dateLocale';
 
 // ---------------------------------------------------------------------------
 // Animation variants (matching other pilotage tabs)
@@ -98,14 +99,7 @@ const ScoreGauge = ({ score, grade }) => {
     <div className="flex flex-col items-center">
       <div className="relative">
         <svg width="140" height="140" className="transform -rotate-90">
-          <circle
-            cx="70"
-            cy="70"
-            r="45"
-            stroke="#374151"
-            strokeWidth="8"
-            fill="none"
-          />
+          <circle cx="70" cy="70" r="45" stroke="#374151" strokeWidth="8" fill="none" />
           <circle
             cx="70"
             cy="70"
@@ -151,10 +145,10 @@ const SummaryBadges = ({ summary }) => {
   );
 };
 
-const CategoryCard = ({ categoryKey, category }) => {
+const CategoryCard = ({ categoryKey: _categoryKey, category }) => {
   const scoreColor = getScoreColor(category.score);
   const textClass = getScoreTextClass(category.score);
-  const bgClass = getScoreBgClass(category.score);
+  const _bgClass = getScoreBgClass(category.score);
   const circumference = 2 * Math.PI * 22;
   const progress = (category.score / 100) * circumference;
 
@@ -166,23 +160,14 @@ const CategoryCard = ({ categoryKey, category }) => {
       <CardContent className="p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h4 className="text-sm font-semibold text-gray-100">
-              {category.label}
-            </h4>
+            <h4 className="text-sm font-semibold text-gray-100">{category.label}</h4>
             <p className="text-xs text-gray-500 mt-0.5">
               {passCount}/{totalCount} checks passed
             </p>
           </div>
           <div className="relative flex-shrink-0">
             <svg width="56" height="56" className="transform -rotate-90">
-              <circle
-                cx="28"
-                cy="28"
-                r="22"
-                stroke="#374151"
-                strokeWidth="4"
-                fill="none"
-              />
+              <circle cx="28" cy="28" r="22" stroke="#374151" strokeWidth="4" fill="none" />
               <circle
                 cx="28"
                 cy="28"
@@ -197,9 +182,7 @@ const CategoryCard = ({ categoryKey, category }) => {
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-xs font-bold ${textClass}`}>
-                {Math.round(category.score)}
-              </span>
+              <span className={`text-xs font-bold ${textClass}`}>{Math.round(category.score)}</span>
             </div>
           </div>
         </div>
@@ -217,8 +200,8 @@ const CategoryCard = ({ categoryKey, category }) => {
                   check.status === 'pass'
                     ? 'bg-green-500/10 text-green-400 border-green-500/30'
                     : check.status === 'warning'
-                    ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
-                    : 'bg-red-500/10 text-red-400 border-red-500/30'
+                      ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                      : 'bg-red-500/10 text-red-400 border-red-500/30'
                 }`}
               >
                 {check.status}
@@ -239,16 +222,12 @@ const RecommendationCard = ({ recommendation }) => {
       <Lightbulb className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full border font-medium ${badgeClass}`}
-          >
+          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${badgeClass}`}>
             {recommendation.priority}
           </span>
           <span className="text-xs text-gray-500">{recommendation.category}</span>
         </div>
-        <p className="text-sm text-gray-300 leading-relaxed">
-          {recommendation.action}
-        </p>
+        <p className="text-sm text-gray-300 leading-relaxed">{recommendation.action}</p>
         <p className="text-xs text-gray-500 mt-1">{recommendation.message}</p>
       </div>
     </div>
@@ -268,13 +247,18 @@ const DataSummaryRow = ({ label, value }) => (
 
 const PilotageAuditTab = ({ startDate, endDate }) => {
   const { t } = useTranslation();
-  const { auditResult, loading, error, runAudit, clearCache } =
-    useAuditComptable({
-      autoLoad: true,
-      defaultPeriodStart: startDate,
-      defaultPeriodEnd: endDate,
-      cacheKey: `cashpilot_audit_cache:${startDate || 'default'}:${endDate || 'default'}`,
-    });
+  const {
+    auditResult,
+    loading,
+    error,
+    runAudit,
+    clearCache: _clearCache,
+  } = useAuditComptable({
+    autoLoad: true,
+    defaultPeriodStart: startDate,
+    defaultPeriodEnd: endDate,
+    cacheKey: `cashpilot_audit_cache:${startDate || 'default'}:${endDate || 'default'}`,
+  });
 
   const handleRunAudit = useCallback(() => {
     if (!startDate || !endDate) return;
@@ -284,7 +268,7 @@ const PilotageAuditTab = ({ startDate, endDate }) => {
   const formattedDate = useMemo(() => {
     if (!auditResult?.generated_at) return null;
     try {
-      return new Intl.DateTimeFormat('fr-FR', {
+      return new Intl.DateTimeFormat(getLocale(), {
         dateStyle: 'medium',
         timeStyle: 'short',
       }).format(new Date(auditResult.generated_at));
@@ -301,29 +285,15 @@ const PilotageAuditTab = ({ startDate, endDate }) => {
   // ---------- Empty state ----------
   if (!loading && !auditResult) {
     return (
-      <motion.div
-        className="space-y-8"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <motion.div className="space-y-8" variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants}>
           <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
             <CardContent className="p-12 flex flex-col items-center justify-center text-center">
               <ShieldCheck className="w-16 h-16 text-gray-600 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-300 mb-2">
-                {t('pilotage.audit.noAudit')}
-              </h3>
-              <p className="text-sm text-gray-500 mb-6 max-w-md">
-                {t('pilotage.audit.title')}
-              </p>
-              {error && (
-                <p className="text-sm text-red-400 mb-4">{error}</p>
-              )}
-              <Button
-                onClick={handleRunAudit}
-                className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
-              >
+              <h3 className="text-lg font-semibold text-gray-300 mb-2">{t('pilotage.audit.noAudit')}</h3>
+              <p className="text-sm text-gray-500 mb-6 max-w-md">{t('pilotage.audit.title')}</p>
+              {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
+              <Button onClick={handleRunAudit} className="bg-orange-500 hover:bg-orange-600 text-white gap-2">
                 <Play className="w-4 h-4" />
                 {t('pilotage.audit.runAudit')}
               </Button>
@@ -337,22 +307,13 @@ const PilotageAuditTab = ({ startDate, endDate }) => {
   // ---------- Loading state ----------
   if (loading) {
     return (
-      <motion.div
-        className="space-y-8"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <motion.div className="space-y-8" variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants}>
           <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
             <CardContent className="p-12 flex flex-col items-center justify-center text-center">
               <Loader2 className="w-12 h-12 text-orange-400 animate-spin mb-4" />
-              <h3 className="text-lg font-semibold text-gray-300">
-                {t('pilotage.audit.auditInProgress')}
-              </h3>
-              <p className="text-sm text-gray-500 mt-2">
-                17 checks across 3 categories...
-              </p>
+              <h3 className="text-lg font-semibold text-gray-300">{t('pilotage.audit.auditInProgress')}</h3>
+              <p className="text-sm text-gray-500 mt-2">17 checks across 3 categories...</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -361,16 +322,10 @@ const PilotageAuditTab = ({ startDate, endDate }) => {
   }
 
   // ---------- Results state ----------
-  const { score, grade, summary, categories, recommendations, data_summary, period } =
-    auditResult;
+  const { score, grade, summary, categories: _categories, recommendations, data_summary, period } = auditResult;
 
   return (
-    <motion.div
-      className="space-y-8"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <motion.div className="space-y-8" variants={containerVariants} initial="hidden" animate="visible">
       {/* Health Score + Summary */}
       <motion.div variants={itemVariants}>
         <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
@@ -410,9 +365,7 @@ const PilotageAuditTab = ({ startDate, endDate }) => {
                 )}
 
                 {/* Error display */}
-                {error && (
-                  <p className="text-sm text-red-400">{error}</p>
-                )}
+                {error && <p className="text-sm text-red-400">{error}</p>}
 
                 {/* Re-run button */}
                 <Button
@@ -434,9 +387,7 @@ const PilotageAuditTab = ({ startDate, endDate }) => {
       <motion.div variants={itemVariants}>
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-orange-400" />
-          <h2 className="text-xl font-bold text-gray-100">
-            {t('pilotage.audit.categories')}
-          </h2>
+          <h2 className="text-xl font-bold text-gray-100">{t('pilotage.audit.categories')}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {categoryEntries.map(([key, category]) => (
@@ -481,25 +432,13 @@ const PilotageAuditTab = ({ startDate, endDate }) => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
-                <DataSummaryRow
-                  label="Accounting Entries"
-                  value={data_summary.entries_count?.toLocaleString('fr-FR') ?? 0}
-                />
-                <DataSummaryRow
-                  label="Accounts"
-                  value={data_summary.accounts_count?.toLocaleString('fr-FR') ?? 0}
-                />
-                <DataSummaryRow
-                  label="Invoices"
-                  value={data_summary.invoices_count?.toLocaleString('fr-FR') ?? 0}
-                />
-                <DataSummaryRow
-                  label="Expenses"
-                  value={data_summary.expenses_count?.toLocaleString('fr-FR') ?? 0}
-                />
+                <DataSummaryRow label="Accounting Entries" value={formatNumber(data_summary.entries_count) ?? 0} />
+                <DataSummaryRow label="Accounts" value={formatNumber(data_summary.accounts_count) ?? 0} />
+                <DataSummaryRow label="Invoices" value={formatNumber(data_summary.invoices_count) ?? 0} />
+                <DataSummaryRow label="Expenses" value={formatNumber(data_summary.expenses_count) ?? 0} />
                 <DataSummaryRow
                   label="Bank Transactions"
-                  value={data_summary.bank_transactions_count?.toLocaleString('fr-FR') ?? 0}
+                  value={formatNumber(data_summary.bank_transactions_count) ?? 0}
                 />
               </div>
             </CardContent>

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatNumber } from '@/utils/dateLocale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
@@ -66,8 +67,7 @@ const firstDayOfCurrentMonth = () => {
   return d.toISOString().slice(0, 10);
 };
 
-const formatMoney = (value) =>
-  Number(value || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatMoney = (value) => formatNumber(Number(value || 0), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const emptyBudgetForm = () => ({
   budget_name: '',
   period_start: defaultStartDate(),
@@ -112,29 +112,29 @@ export default function AnalyticalAccounting() {
       reportingPanel: {
         title: 'KPI analytiques (DB-first)',
         definition: 'Synthèse analytique basée uniquement sur les calculs SQL de la comptabilité analytique.',
-        dataSource: "Fonctions RPC `f_analytical_kpis` et `f_analytical_budget_variances` filtrées par société active.",
-        formula: 'MCV = marge sur coûts variables; Seuil rentabilité = point mort; Résultat analytique = produits analytiques - charges analytiques.',
-        calculationMethod:
-          'Les KPI et écarts budgétaires sont calculés en base puis affichés sans recalcul front-end.',
+        dataSource: 'Fonctions RPC `f_analytical_kpis` et `f_analytical_budget_variances` filtrées par société active.',
+        formula:
+          'MCV = marge sur coûts variables; Seuil rentabilité = point mort; Résultat analytique = produits analytiques - charges analytiques.',
+        calculationMethod: 'Les KPI et écarts budgétaires sont calculés en base puis affichés sans recalcul front-end.',
       },
       mcv: {
         title: 'MCV',
         definition: 'Marge sur coûts variables sur la période analytique.',
-        dataSource: "Champ `kpis.mcv` retourné par `f_analytical_kpis`.",
+        dataSource: 'Champ `kpis.mcv` retourné par `f_analytical_kpis`.',
         formula: 'MCV = Chiffre d affaires analytique - Coûts variables analytiques',
         calculationMethod: 'Valeur calculée côté SQL et affichée telle quelle.',
       },
       seuilRentabilite: {
         title: 'Seuil rentabilité',
         definition: 'Niveau d activité nécessaire pour couvrir les charges.',
-        dataSource: "Champ `kpis.seuil_rentabilite` retourné par `f_analytical_kpis`.",
+        dataSource: 'Champ `kpis.seuil_rentabilite` retourné par `f_analytical_kpis`.',
         formula: 'Seuil = Charges fixes / Taux de marge sur coûts variables',
         calculationMethod: 'Calcul SQL via la fonction analytique puis restitution dans la carte KPI.',
       },
       resultatAnalytique: {
         title: 'Résultat analytique',
         definition: 'Résultat agrégé sur le périmètre analytique sélectionné.',
-        dataSource: "Champ `kpis.resultat_analytique` retourné par `f_analytical_kpis`.",
+        dataSource: 'Champ `kpis.resultat_analytique` retourné par `f_analytical_kpis`.',
         formula: 'Résultat analytique = Produits analytiques - Charges analytiques',
         calculationMethod: 'Calcul SQL puis affichage direct dans la carte KPI.',
       },

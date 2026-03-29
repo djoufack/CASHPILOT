@@ -5,16 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAccountingClosingAssistant } from '@/hooks/useAccountingClosingAssistant';
+import { formatDate as formatDateLocale, formatNumber } from '@/utils/dateLocale';
 
 function formatDate(value) {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString('fr-BE');
+  return formatDateLocale(date);
 }
 
 function asMoney(value) {
-  return Number(value || 0).toLocaleString('fr-BE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return formatNumber(Number(value || 0), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export default function ClosingAssistant({ period }) {

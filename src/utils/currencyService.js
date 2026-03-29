@@ -1,3 +1,4 @@
+import { getLocale } from '@/utils/dateLocale';
 import {
   convertAmountWithDatabaseRate,
   getDatabaseExchangeRate,
@@ -17,7 +18,9 @@ const CACHE_DURATION = 60 * 60 * 1000;
  * @returns {Promise<Object>}
  */
 export const getExchangeRates = async (baseCurrency = 'EUR') => {
-  const normalizedBase = String(baseCurrency || 'EUR').trim().toUpperCase();
+  const normalizedBase = String(baseCurrency || 'EUR')
+    .trim()
+    .toUpperCase();
   const now = Date.now();
   const cached = ratesCache[normalizedBase];
 
@@ -68,7 +71,12 @@ export const fetchExchangeRates = async () => {
  * @returns {string|null}
  */
 export const getRatesLastUpdated = (baseCurrency = 'EUR') => {
-  const cached = ratesCache[String(baseCurrency || 'EUR').trim().toUpperCase()];
+  const cached =
+    ratesCache[
+      String(baseCurrency || 'EUR')
+        .trim()
+        .toUpperCase()
+    ];
   return cached ? cached.date : null;
 };
 
@@ -125,7 +133,7 @@ export const getExchangeRate = async (fromCurrency, toCurrency) => {
  * @param {string} locale
  * @returns {string}
  */
-export const formatCurrency = (amount, currency = 'EUR', locale = 'fr-FR') => {
+export const formatCurrency = (amount, currency = 'EUR', locale = getLocale()) => {
   try {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -148,7 +156,7 @@ export const formatCurrency = (amount, currency = 'EUR', locale = 'fr-FR') => {
  * @param {string} locale
  * @returns {string}
  */
-export const formatCompactCurrency = (amount, currency = 'EUR', locale = 'fr-FR') => {
+export const formatCompactCurrency = (amount, currency = 'EUR', locale = getLocale()) => {
   const value = Math.abs(amount || 0);
   const sign = (amount || 0) < 0 ? '-' : '';
   const symbol = getCurrencySymbol(currency);

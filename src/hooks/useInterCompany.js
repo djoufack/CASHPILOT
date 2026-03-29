@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { formatNumber } from '@/utils/dateLocale';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 const toIsoDate = (value) => new Date(value).toISOString().split('T')[0];
@@ -417,7 +418,7 @@ export function useInterCompany() {
       if (!silent) {
         toast({
           title: 'Eliminations appliquees',
-          description: `${entriesCount} ecritures eliminees pour un total de ${totalEliminated.toLocaleString('fr-FR', {
+          description: `${entriesCount} ecritures eliminees pour un total de ${formatNumber(totalEliminated, {
             minimumFractionDigits: 2,
           })} EUR.`,
         });
@@ -474,12 +475,9 @@ export function useInterCompany() {
 
     toast({
       title: 'Automatisation interco terminee',
-      description: `${processedPeriods} periode(s), ${entriesCount} ecriture(s), ${totalEliminated.toLocaleString(
-        'fr-FR',
-        {
-          minimumFractionDigits: 2,
-        }
-      )} EUR elimines.`,
+      description: `${processedPeriods} periode(s), ${entriesCount} ecriture(s), ${formatNumber(totalEliminated, {
+        minimumFractionDigits: 2,
+      })} EUR elimines.`,
     });
 
     return { processedPeriods, entriesCount, totalEliminated };

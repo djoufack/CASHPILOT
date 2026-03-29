@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Download, FileText, Calculator, TrendingUp, Banknote, Calendar, ChevronRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { formatDate } from '@/utils/dateLocale';
 import { formatCurrency } from '@/utils/calculations';
 import { estimateTax, DEFAULT_TAX_BRACKETS } from '@/utils/accountingCalculations';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
@@ -139,8 +140,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
           </h2>
           {period && (
             <p className="text-sm text-gray-400">
-              Du {new Date(period.startDate).toLocaleDateString('fr-FR')} au{' '}
-              {new Date(period.endDate).toLocaleDateString('fr-FR')}
+              Du {formatDate(period.startDate)} au {formatDate(period.endDate)}
             </p>
           )}
         </div>

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
+import { formatNumber } from '@/utils/dateLocale';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -474,7 +475,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId: _supplierId, onUpload
                         <td className="py-1.5 px-3 text-right text-gray-300">{item.quantity}</td>
                         <td className="py-1.5 px-3 text-right text-gray-300">
                           {item.unit_price != null
-                            ? Number(item.unit_price).toLocaleString('fr-FR', {
+                            ? formatNumber(Number(item.unit_price), {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })
@@ -482,7 +483,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId: _supplierId, onUpload
                         </td>
                         <td className="py-1.5 px-3 text-right text-white">
                           {item.total != null
-                            ? Number(item.total).toLocaleString('fr-FR', {
+                            ? formatNumber(Number(item.total), {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })

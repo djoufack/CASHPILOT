@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getLocale } from '@/utils/dateLocale';
 import { useConsolidation } from '@/hooks/useConsolidation';
 import ConsolidationKpiCards from '@/components/consolidation/ConsolidationKpiCards';
 import CompanyBreakdownChart from '@/components/consolidation/CompanyBreakdownChart';
@@ -458,7 +459,7 @@ export default function ConsolidationDashboardPage() {
 // Helper to format currency inline (avoiding import issues in JSX)
 function formatCurrencyValue(amount, currency = 'EUR') {
   try {
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat(getLocale(), {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,

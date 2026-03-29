@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Smartphone, Loader2, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { formatNumber } from '@/utils/dateLocale';
 
 const PROVIDER_LABELS = {
   orange_money: 'Orange Money',
@@ -126,7 +127,7 @@ export default function MobileMoneyPayPage() {
   }
 
   const providers = paymentLink.providers_available ?? Object.keys(PROVIDER_LABELS);
-  const formattedAmount = `${paymentLink.amount?.toLocaleString('fr-FR') ?? '0'} ${paymentLink.currency ?? 'XAF'}`;
+  const formattedAmount = `${formatNumber(paymentLink.amount) ?? '0'} ${paymentLink.currency ?? 'XAF'}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f1528] to-[#141c33] flex items-center justify-center px-4 py-8">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatNumber } from '@/utils/dateLocale';
 
 const PRICING_METHODS = ['cost_plus', 'comparable', 'resale_minus', 'custom'];
 
@@ -256,10 +257,10 @@ const TransferPricingPanel = ({ rules, onUpdate, onDelete, onAdd }) => {
                     {Number(rule.margin_percent).toFixed(2)}%
                   </td>
                   <td className="py-2 px-3 text-right text-gray-300 font-mono">
-                    {Number(rule.min_amount).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                    {formatNumber(Number(rule.min_amount), { minimumFractionDigits: 2 })}
                   </td>
                   <td className="py-2 px-3 text-right text-gray-300 font-mono">
-                    {Number(rule.max_amount).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                    {formatNumber(Number(rule.max_amount), { minimumFractionDigits: 2 })}
                   </td>
                   <td className="py-2 px-3 text-center">
                     <div className="flex items-center justify-center gap-1">

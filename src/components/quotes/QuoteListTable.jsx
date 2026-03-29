@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Eye, Trash2, FileText, Download, FileSignature, Copy, Loader2, CircleOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
+import { formatDate } from '@/utils/dateLocale';
 import { CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import PaginationControls from '@/components/PaginationControls';
 
@@ -202,7 +203,7 @@ const QuoteListTable = ({
                     {client?.company_name || t('timesheets.noClient')}
                   </td>
                   <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
-                    {quote.date ? new Date(quote.date).toLocaleDateString('fr-FR') : '-'}
+                    {quote.date ? formatDate(quote.date) : '-'}
                   </td>
                   <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-100 font-medium">
                     {formatCurrency(quote.total_ttc || 0)}

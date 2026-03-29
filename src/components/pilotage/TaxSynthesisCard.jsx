@@ -1,11 +1,11 @@
-import React from 'react';
+import { getLocale } from '@/utils/dateLocale';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatCurrency } from '@/utils/currencyService';
 import { Receipt } from 'lucide-react';
 
-const percentFormatter = new Intl.NumberFormat('fr-FR', {
+const percentFormatter = new Intl.NumberFormat(getLocale(), {
   style: 'percent',
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
@@ -32,7 +32,15 @@ const getRegionLabel = (region) => {
   return region;
 };
 
-const TaxRow = ({ label, value, currency, isCurrency = true, isPercentage = false, highlight = false, colorClass = '' }) => {
+const TaxRow = ({
+  label,
+  value,
+  currency,
+  isCurrency = true,
+  isPercentage = false,
+  highlight = false,
+  colorClass = '',
+}) => {
   let formattedValue = '--';
   if (value != null) {
     if (isPercentage) {
@@ -46,14 +54,10 @@ const TaxRow = ({ label, value, currency, isCurrency = true, isPercentage = fals
 
   return (
     <div className="flex items-center justify-between py-2">
-      <span className={`text-sm ${highlight ? 'text-gray-100 font-semibold' : 'text-gray-400'}`}>
-        {label}
-      </span>
+      <span className={`text-sm ${highlight ? 'text-gray-100 font-semibold' : 'text-gray-400'}`}>{label}</span>
       <span
         className={`text-sm font-mono ${
-          highlight
-            ? 'text-gray-100 font-bold text-base'
-            : colorClass || 'text-gray-100'
+          highlight ? 'text-gray-100 font-bold text-base' : colorClass || 'text-gray-100'
         }`}
       >
         {formattedValue}
@@ -85,41 +89,23 @@ const TaxSynthesisCard = ({ data, region }) => {
         ) : (
           <div className="space-y-1">
             {/* Pre-tax income */}
-            <TaxRow
-              label={t('pilotage.tax.resultBeforeTax')}
-              value={taxSynthesis.preTaxIncome}
-              currency={currency}
-            />
+            <TaxRow label={t('pilotage.tax.resultBeforeTax')} value={taxSynthesis.preTaxIncome} currency={currency} />
 
             <div className="border-t border-gray-800/50 my-2" />
 
             {/* Corporate tax (IS) */}
-            <TaxRow
-              label={t('pilotage.tax.taxDue')}
-              value={taxSynthesis.is?.taxDue}
-              currency={currency}
-            />
+            <TaxRow label={t('pilotage.tax.taxDue')} value={taxSynthesis.is?.taxDue} currency={currency} />
 
             {/* Tax credits */}
             <TaxRow
               label={t('pilotage.tax.taxCredits')}
               value={taxSynthesis.credits?.creditAmount}
               currency={currency}
-              colorClass={
-                taxSynthesis.credits?.creditAmount > 0
-                  ? 'text-emerald-400'
-                  : 'text-gray-100'
-              }
+              colorClass={taxSynthesis.credits?.creditAmount > 0 ? 'text-emerald-400' : 'text-gray-100'}
             />
 
             {/* IMF (OHADA only) */}
-            {isOhada && (
-              <TaxRow
-                label={t('pilotage.tax.imf')}
-                value={taxSynthesis.imf?.amount}
-                currency={currency}
-              />
-            )}
+            {isOhada && <TaxRow label={t('pilotage.tax.imf')} value={taxSynthesis.imf?.amount} currency={currency} />}
 
             <div className="border-t border-gray-700 my-3" />
 
@@ -155,9 +141,7 @@ const TaxSynthesisCard = ({ data, region }) => {
             {taxSynthesis.summary && (
               <>
                 <div className="border-t border-gray-800/50 my-2" />
-                <p className="text-xs text-gray-500 italic mt-1">
-                  {taxSynthesis.summary}
-                </p>
+                <p className="text-xs text-gray-500 italic mt-1">{taxSynthesis.summary}</p>
               </>
             )}
           </div>

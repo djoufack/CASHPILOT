@@ -1,5 +1,4 @@
-
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useClients } from '@/hooks/useClients';
 import { useCompany } from '@/hooks/useCompany';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { Plus, Search, Archive } from 'lucide-react';
+import { formatDate } from '@/utils/dateLocale';
 import ExportButton from '@/components/ExportButton';
 import { motion } from 'framer-motion';
 import { validateEmail } from '@/utils/validation';
@@ -29,8 +29,14 @@ const ClientManager = () => {
   const { toast } = useToast();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
-  const { clients, loading, createClient, updateClient, deleteClient, restoreClient, fetchDeletedClients } = useClients();
-  const { checkRegistration, checking: peppolChecking, result: peppolResult, reset: resetPeppolCheck } = usePeppolCheck();
+  const { clients, loading, createClient, updateClient, deleteClient, restoreClient, fetchDeletedClients } =
+    useClients();
+  const {
+    checkRegistration,
+    checking: peppolChecking,
+    result: peppolResult,
+    reset: resetPeppolCheck,
+  } = usePeppolCheck();
   const { countryOptions, currencyOptions } = useReferenceData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -66,7 +72,7 @@ const ClientManager = () => {
     peppol_scheme_id: '0208',
     electronic_invoicing_enabled: false,
     // Notes
-    notes: ''
+    notes: '',
   };
   const [formData, setFormData] = useState(emptyFormData);
 
@@ -94,7 +100,7 @@ const ClientManager = () => {
         peppol_endpoint_id: client.peppol_endpoint_id || '',
         peppol_scheme_id: client.peppol_scheme_id || '0208',
         electronic_invoicing_enabled: client.electronic_invoicing_enabled || false,
-        notes: client.notes || ''
+        notes: client.notes || '',
       });
     } else {
       setEditingClient(null);
@@ -108,7 +114,7 @@ const ClientManager = () => {
 
     // Validation des champs obligatoires
     const missingFields = [];
-    if (!formData.company_name?.trim()) missingFields.push(t('clients.companyName', 'Nom de l\'entreprise'));
+    if (!formData.company_name?.trim()) missingFields.push(t('clients.companyName', "Nom de l'entreprise"));
     if (!formData.contact_name?.trim()) missingFields.push(t('clients.contactName', 'Nom du contact'));
     if (!formData.email?.trim()) missingFields.push(t('clients.email', 'Email'));
 
@@ -116,7 +122,7 @@ const ClientManager = () => {
       toast({
         title: t('validation.missingFields', 'Champs obligatoires manquants'),
         description: `${t('validation.pleaseComplete', 'Veuillez remplir')} : ${missingFields.join(', ')}`,
-        variant: "destructive"
+        variant: 'destructive',
       });
       return;
     }
@@ -125,7 +131,7 @@ const ClientManager = () => {
       toast({
         title: t('validation.invalidEmail', 'Email invalide'),
         description: t('validation.invalidEmailDescription', 'Veuillez saisir une adresse email valide.'),
-        variant: "destructive"
+        variant: 'destructive',
       });
       return;
     }
@@ -155,7 +161,7 @@ const ClientManager = () => {
   const handleRestore = async (client) => {
     const restored = await restoreClient(client.id);
     if (restored) {
-      setArchivedClients(archivedClients.filter(c => c.id !== client.id));
+      setArchivedClients(archivedClients.filter((c) => c.id !== client.id));
     }
   };
 
@@ -181,7 +187,7 @@ const ClientManager = () => {
       { label: escapeHTML(t('peppol.endpointId')), value: escapeHTML(client.peppol_endpoint_id || '-') },
       {
         label: escapeHTML(t('clients.createdAt', 'Créé le')),
-        value: escapeHTML(client.created_at ? new Date(client.created_at).toLocaleDateString('fr-FR') : '-'),
+        value: escapeHTML(client.created_at ? formatDate(client.created_at) : '-'),
       },
     ];
 
@@ -193,60 +199,60 @@ const ClientManager = () => {
         </div>
         <div style="background:white; border:1px solid #e2e8f0; border-radius:10px; padding:18px 20px;">
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px 20px;">
-            ${details.map((row) => `
+            ${details
+              .map(
+                (row) => `
               <div style="border-bottom:1px solid #f1f5f9; padding:8px 0;">
                 <p style="margin:0; font-size:12px; color:#64748b;">${row.label}</p>
                 <p style="margin:4px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">${row.value}</p>
               </div>
-            `).join('')}
+            `
+              )
+              .join('')}
           </div>
-          ${client.notes ? `
+          ${
+            client.notes
+              ? `
             <div style="margin-top:16px; border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc;">
               <p style="margin:0; font-size:12px; color:#64748b;">Notes</p>
               <p style="margin:6px 0 0 0; font-size:14px; color:#0f172a;">${escapeHTML(client.notes)}</p>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
-        <p style="margin-top:14px; font-size:11px; color:#64748b; text-align:center;">${companyName} • ${new Date().toLocaleDateString('fr-FR')}</p>
+        <p style="margin-top:14px; font-size:11px; color:#64748b; text-align:center;">${companyName} • ${formatDate(new Date())}</p>
       </div>
     `;
   };
 
   const handleExportClientPDF = (client) => {
-    guardedAction(
-      CREDIT_COSTS.PDF_REPORT,
-      t('credits.costs.pdfReport', 'Export PDF'),
-      async () => {
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = DOMPurify.sanitize(generateClientSheetHTML(client));
-        await saveElementAsPdf(wrapper, {
-          margin: 0.5,
-          filename: `FicheClient_${client.company_name || 'client'}_${formatDateInput()}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-        });
-      }
-    );
+    guardedAction(CREDIT_COSTS.PDF_REPORT, t('credits.costs.pdfReport', 'Export PDF'), async () => {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = DOMPurify.sanitize(generateClientSheetHTML(client));
+      await saveElementAsPdf(wrapper, {
+        margin: 0.5,
+        filename: `FicheClient_${client.company_name || 'client'}_${formatDateInput()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+      });
+    });
   };
 
   const handleExportClientHTML = (client) => {
-    guardedAction(
-      CREDIT_COSTS.EXPORT_HTML,
-      t('credits.costs.exportHtml'),
-      () => {
-        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Fiche client</title></head><body style="margin:0;">${generateClientSheetHTML(client)}</body></html>`;
-        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `FicheClient_${client.company_name || 'client'}_${formatDateInput()}.html`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }
-    );
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, t('credits.costs.exportHtml'), () => {
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Fiche client</title></head><body style="margin:0;">${generateClientSheetHTML(client)}</body></html>`;
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `FicheClient_${client.company_name || 'client'}_${formatDateInput()}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
   };
 
   const handleConfirmDelete = async () => {
@@ -260,9 +266,10 @@ const ClientManager = () => {
   const pagination = usePagination({ pageSize: 25 });
   const { setTotalCount } = pagination;
 
-  const filteredClients = clients.filter(client =>
-    (client.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (client.contact_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredClients = clients.filter(
+    (client) =>
+      (client.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (client.contact_name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Update pagination when filtered clients change
@@ -302,11 +309,12 @@ const ClientManager = () => {
         <div className="flex gap-2 w-full md:w-auto">
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
-              variant={showArchived ? "default" : "outline"}
+              variant={showArchived ? 'default' : 'outline'}
               onClick={handleToggleArchived}
-              className={showArchived
-                ? "bg-gray-600 hover:bg-gray-500 text-white"
-                : "border-gray-600 text-gray-300 hover:bg-gray-700"
+              className={
+                showArchived
+                  ? 'bg-gray-600 hover:bg-gray-500 text-white'
+                  : 'border-gray-600 text-gray-300 hover:bg-gray-700'
               }
             >
               <Archive className="w-4 h-4 mr-2" />
