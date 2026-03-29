@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
-const MainLayout = lazy(() => import('./components/MainLayout'));
+import MainLayout from './components/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PageLoader from './components/PageLoader';
@@ -203,9 +203,7 @@ const AppRoutes = () => {
         path="/admin/*"
         element={
           <AdminRoute>
-            <Suspense fallback={<PageLoader />}>
-              <MainLayout />
-            </Suspense>
+            <MainLayout />
           </AdminRoute>
         }
       >
@@ -221,9 +219,7 @@ const AppRoutes = () => {
         path="/app"
         element={
           <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <MainLayout />
-            </Suspense>
+            <MainLayout />
           </ProtectedRoute>
         }
       >
