@@ -67,7 +67,6 @@ async function expectRows(label, query, options = {}) {
 
   const rows = [];
   let offset = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const { data, error } = await query.range(offset, offset + pageSize - 1);
     if (error) {

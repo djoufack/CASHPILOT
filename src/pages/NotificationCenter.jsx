@@ -1,31 +1,53 @@
-
-import React from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCheck, Trash2, Bell, AlertTriangle, FileText, Package, Settings, CreditCard, Users, Clock, Receipt } from 'lucide-react';
+import {
+  CheckCheck,
+  Trash2,
+  Bell,
+  AlertTriangle,
+  FileText,
+  Package,
+  Settings,
+  CreditCard,
+  Users,
+  Clock,
+  Receipt,
+} from 'lucide-react';
 
 const NotificationCenter = () => {
+  const { t, i18n } = useTranslation();
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, loading } = useNotifications();
   const navigate = useNavigate();
 
   const getIcon = (type) => {
     switch (type) {
-      case 'stock_alert': return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      case 'stock_alert':
+        return <AlertTriangle className="h-5 w-5 text-red-500" />;
       case 'invoice_received':
-      case 'invoice': return <FileText className="h-5 w-5 text-blue-500" />;
+      case 'invoice':
+        return <FileText className="h-5 w-5 text-blue-500" />;
       case 'order_created':
-      case 'order': return <Package className="h-5 w-5 text-green-500" />;
-      case 'payment': return <CreditCard className="h-5 w-5 text-emerald-500" />;
-      case 'client': return <Users className="h-5 w-5 text-purple-500" />;
-      case 'reminder': return <Clock className="h-5 w-5 text-amber-500" />;
-      case 'obligation_receivables': return <FileText className="h-5 w-5 text-emerald-500" />;
-      case 'obligation_payables': return <Receipt className="h-5 w-5 text-orange-500" />;
-      case 'obligation_quotes': return <Clock className="h-5 w-5 text-violet-500" />;
-      default: return <Bell className="h-5 w-5 text-gray-400" />;
+      case 'order':
+        return <Package className="h-5 w-5 text-green-500" />;
+      case 'payment':
+        return <CreditCard className="h-5 w-5 text-emerald-500" />;
+      case 'client':
+        return <Users className="h-5 w-5 text-purple-500" />;
+      case 'reminder':
+        return <Clock className="h-5 w-5 text-amber-500" />;
+      case 'obligation_receivables':
+        return <FileText className="h-5 w-5 text-emerald-500" />;
+      case 'obligation_payables':
+        return <Receipt className="h-5 w-5 text-orange-500" />;
+      case 'obligation_quotes':
+        return <Clock className="h-5 w-5 text-violet-500" />;
+      default:
+        return <Bell className="h-5 w-5 text-gray-400" />;
     }
   };
 
@@ -37,32 +59,34 @@ const NotificationCenter = () => {
     const diffH = Math.floor(diffMs / 3600000);
     const diffD = Math.floor(diffMs / 86400000);
 
-    if (diffMin < 1) return "À l'instant";
-    if (diffMin < 60) return `Il y a ${diffMin} min`;
-    if (diffH < 24) return `Il y a ${diffH}h`;
-    if (diffD < 7) return `Il y a ${diffD}j`;
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (diffMin < 1) return t('notifications.justNow', "À l'instant");
+    if (diffMin < 60) return t('notifications.minutesAgo', 'Il y a {{count}} min', { count: diffMin });
+    if (diffH < 24) return t('notifications.hoursAgo', 'Il y a {{count}}h', { count: diffH });
+    if (diffD < 7) return t('notifications.daysAgo', 'Il y a {{count}}j', { count: diffD });
+    return date.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   if (loading) {
     return (
       <div className="p-8 min-h-screen bg-gray-950 text-white max-w-4xl mx-auto flex flex-col items-center justify-center gap-4">
         <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-400">Chargement des notifications...</p>
+        <p className="text-gray-400">{t('notifications.loading', 'Chargement des notifications...')}</p>
       </div>
     );
   }
 
   return (
     <div className="p-8 min-h-screen bg-gray-950 text-white max-w-4xl mx-auto space-y-6">
-      <Helmet><title>Notifications | CashPilot</title></Helmet>
+      <Helmet>
+        <title>{t('notifications.title', 'Notifications')} | CashPilot</title>
+      </Helmet>
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold text-gradient">Centre de notifications</h1>
+          <h1 className="text-3xl font-bold text-gradient">{t('notifications.center', 'Centre de notifications')}</h1>
           {unreadCount > 0 && (
             <Badge className="bg-orange-500 text-white text-sm px-2 py-0.5">
-              {unreadCount} non lue{unreadCount > 1 ? 's' : ''}
+              {t('notifications.unreadBadge', '{{count}} non lue', { count: unreadCount })}
             </Badge>
           )}
         </div>
@@ -75,7 +99,7 @@ const NotificationCenter = () => {
               onClick={markAllAsRead}
             >
               <CheckCheck className="h-4 w-4 mr-2" />
-              Tout marquer comme lu
+              {t('notifications.markAllRead', 'Tout marquer comme lu')}
             </Button>
           )}
           <Button
@@ -85,7 +109,7 @@ const NotificationCenter = () => {
             onClick={() => navigate('/settings?tab=notifications')}
           >
             <Settings className="h-4 w-4 mr-2" />
-            Préférences
+            {t('notifications.preferences', 'Préférences')}
           </Button>
         </div>
       </div>
@@ -100,9 +124,7 @@ const NotificationCenter = () => {
             }`}
           >
             <CardContent className="p-4 flex items-start gap-4">
-              <div className="mt-1 bg-gray-800 p-2.5 rounded-full shrink-0">
-                {getIcon(notification.type)}
-              </div>
+              <div className="mt-1 bg-gray-800 p-2.5 rounded-full shrink-0">{getIcon(notification.type)}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start gap-2">
                   <h3 className={`font-semibold truncate ${!notification.is_read ? 'text-white' : 'text-gray-400'}`}>
@@ -120,7 +142,8 @@ const NotificationCenter = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => markAsRead(notification.id)}
-                    title="Marquer comme lu"
+                    title={t('notifications.markRead', 'Marquer comme lu')}
+                    aria-label={t('notifications.markRead', 'Marquer comme lu')}
                     className="hover:bg-gray-800"
                   >
                     <CheckCheck className="h-4 w-4 text-orange-400" />
@@ -130,7 +153,8 @@ const NotificationCenter = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => deleteNotification(notification.id)}
-                  title="Supprimer"
+                  title={t('notifications.delete', 'Supprimer')}
+                  aria-label={t('notifications.delete', 'Supprimer')}
                   className="hover:bg-gray-800"
                 >
                   <Trash2 className="h-4 w-4 text-gray-500 hover:text-red-400" />
@@ -146,9 +170,12 @@ const NotificationCenter = () => {
             <div className="bg-gray-900 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
               <Bell className="h-10 w-10 opacity-30" />
             </div>
-            <p className="text-lg font-medium text-gray-400 mb-2">Aucune notification</p>
+            <p className="text-lg font-medium text-gray-400 mb-2">{t('notifications.empty', 'Aucune notification')}</p>
             <p className="text-sm text-gray-600">
-              Vous recevrez des notifications pour les factures, paiements et alertes importantes.
+              {t(
+                'notifications.emptyDesc',
+                'Vous recevrez des notifications pour les factures, paiements et alertes importantes.'
+              )}
             </p>
           </div>
         )}

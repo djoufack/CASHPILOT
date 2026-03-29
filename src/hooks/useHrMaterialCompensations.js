@@ -261,7 +261,7 @@ export function useHrMaterialCompensations({ projects: externalProjects } = {}) 
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const updateCompensationStatus = useCallback(
     async (compensationId, nextStatus) => {
@@ -284,7 +284,7 @@ export function useHrMaterialCompensations({ projects: externalProjects } = {}) 
       return data;
     },
     [fetchData, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const assignTaskMember = useCallback(
     async ({ taskId, memberId }) => {
@@ -310,7 +310,7 @@ export function useHrMaterialCompensations({ projects: externalProjects } = {}) 
       return data;
     },
     [fetchData, members]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   useEffect(() => {
     fetchData();

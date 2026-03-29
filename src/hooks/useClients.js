@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
@@ -30,14 +29,10 @@ export const useClients = () => {
     async () => {
       if (!user) return [];
       if (!supabase) {
-        console.warn("Supabase not configured");
+        console.warn('Supabase not configured');
         return [];
       }
-      let query = supabase
-        .from('clients')
-        .select('*')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+      let query = supabase.from('clients').select('*').is('deleted_at', null).order('created_at', { ascending: false });
 
       query = applyCompanyScope(query);
 
@@ -48,8 +43,8 @@ export const useClients = () => {
         if (error.code === '42P17' || error.code === '42501') {
           console.warn('RLS policy error fetching clients:', error.message);
           toast({
-            title: "Access restricted",
-            description: "Some data may not be visible due to permission settings.",
+            title: 'Access restricted',
+            description: 'Some data may not be visible due to permission settings.',
           });
           return [];
         }
@@ -63,7 +58,7 @@ export const useClients = () => {
   const fetchClients = async ({ page, pageSize } = {}) => {
     if (!user) return;
     if (!supabase) {
-      console.warn("Supabase not configured");
+      console.warn('Supabase not configured');
       return;
     }
     setLoading(true);
@@ -97,17 +92,17 @@ export const useClients = () => {
         console.warn('RLS policy error fetching clients:', err.message);
         setClients([]);
         toast({
-          title: "Access restricted",
-          description: "Some data may not be visible due to permission settings.",
+          title: 'Access restricted',
+          description: 'Some data may not be visible due to permission settings.',
         });
         return;
       }
 
       setError(err.message);
       toast({
-        title: "Error fetching clients",
+        title: 'Error fetching clients',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -116,7 +111,7 @@ export const useClients = () => {
 
   const createClient = async (clientData) => {
     if (!user) return;
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       // Sanitize user-facing text fields to prevent XSS
@@ -148,16 +143,16 @@ export const useClients = () => {
         email: data.email,
       });
       toast({
-        title: "Success",
-        description: t('messages.success.clientAdded')
+        title: 'Success',
+        description: t('messages.success.clientAdded'),
       });
       return data;
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error creating client",
+        title: 'Error creating client',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -166,7 +161,7 @@ export const useClients = () => {
   };
 
   const updateClient = async (id, clientData) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       const sanitizedData = { ...clientData };
@@ -188,10 +183,10 @@ export const useClients = () => {
 
       if (error) throw error;
 
-      const oldClient = clients.find(c => c.id === id);
+      const oldClient = clients.find((c) => c.id === id);
       logAction('update', 'client', oldClient || null, data);
 
-      setClients(clients.map(c => c.id === id ? data : c));
+      setClients(clients.map((c) => (c.id === id ? data : c)));
       void triggerWebhook('client.updated', {
         id: data.id,
         company_id: data.company_id,
@@ -199,16 +194,16 @@ export const useClients = () => {
         email: data.email,
       });
       toast({
-        title: "Success",
-        description: t('messages.success.clientUpdated')
+        title: 'Success',
+        description: t('messages.success.clientUpdated'),
       });
       return data;
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error updating client",
+        title: 'Error updating client',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -217,21 +212,18 @@ export const useClients = () => {
   };
 
   const deleteClient = async (id) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       // Soft delete: set deleted_at instead of removing the row
-      const { error } = await supabase
-        .from('clients')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
+      const { error } = await supabase.from('clients').update({ deleted_at: new Date().toISOString() }).eq('id', id);
 
       if (error) throw error;
 
-      const deletedClient = clients.find(c => c.id === id);
+      const deletedClient = clients.find((c) => c.id === id);
       logAction('soft_delete', 'client', deletedClient || { id }, null);
 
-      setClients(clients.filter(c => c.id !== id));
+      setClients(clients.filter((c) => c.id !== id));
       if (deletedClient) {
         void triggerWebhook('client.deleted', {
           id: deletedClient.id,
@@ -241,15 +233,15 @@ export const useClients = () => {
         });
       }
       toast({
-        title: "Success",
-        description: t('messages.success.clientDeleted')
+        title: 'Success',
+        description: t('messages.success.clientDeleted'),
       });
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error deleting client",
+        title: 'Error deleting client',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -258,7 +250,7 @@ export const useClients = () => {
   };
 
   const restoreClient = async (id) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -273,16 +265,16 @@ export const useClients = () => {
       logAction('restore', 'client', { id }, data);
 
       toast({
-        title: "Success",
-        description: t('messages.success.clientRestored', 'Client restauré avec succès')
+        title: 'Success',
+        description: t('messages.success.clientRestored', 'Client restauré avec succès'),
       });
       return data;
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error restoring client",
+        title: 'Error restoring client',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -293,12 +285,15 @@ export const useClients = () => {
   const fetchDeletedClients = async () => {
     if (!user || !supabase) return [];
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('clients')
         .select('*')
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false });
 
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     } catch (err) {
@@ -314,10 +309,10 @@ export const useClients = () => {
     totalCount,
     fetchClients,
     createClient,
-    addClient: createClient,  // alias for backward compatibility
+    addClient: createClient, // alias for backward compatibility
     updateClient,
     deleteClient,
     restoreClient,
-    fetchDeletedClients
+    fetchDeletedClients,
   };
 };

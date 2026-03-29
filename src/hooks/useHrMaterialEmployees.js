@@ -150,7 +150,7 @@ export function useHrMaterialEmployees() {
       return insertedMember;
     },
     [user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const createEmployee = useCallback(
     async (payload) => {
@@ -203,7 +203,7 @@ export function useHrMaterialEmployees() {
       return data;
     },
     [fetchData, syncEmployeeToTeamMember, toast, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const toNumber = (value) => {
     const parsed = Number(value);
@@ -236,7 +236,7 @@ export function useHrMaterialEmployees() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const syncAllEmployeesToTeamMembers = useCallback(async () => {
     const currentEmployees = employees || [];

@@ -74,7 +74,7 @@ const LeaveRequestForm = ({ leaveTypes, onSubmit, onClose, submitting }) => {
     const start = new Date(form.startDate);
     const end = new Date(form.endDate);
     if (end < start) return 0;
-    const _diff = (end - start) / (1000 * 60 * 60 * 24) + 1; // eslint-disable-line no-unused-vars
+    const _diff = (end - start) / (1000 * 60 * 60 * 24) + 1;
     // Exclude weekends (rough estimate)
     let days = 0;
     const current = new Date(start);

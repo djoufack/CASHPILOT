@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const escapeHtml = (value) =>
   String(value ?? '')
@@ -28,7 +28,9 @@ export default function GanttView({ tasks = [], viewMode = 'Week', onDateChange,
     import('frappe-gantt').then((mod) => {
       if (!cancelled) setGanttClass(() => mod.default);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -62,9 +64,7 @@ export default function GanttView({ tasks = [], viewMode = 'Week', onDateChange,
       on_progress_change: onProgressChange || (() => {}),
       on_click: onTaskClick || (() => {}),
       custom_popup_html: (task) => {
-        const dependencyTasks = Array.isArray(task.dependency_tasks)
-          ? task.dependency_tasks
-          : [];
+        const dependencyTasks = Array.isArray(task.dependency_tasks) ? task.dependency_tasks : [];
         const dependencyButtonsHtml = dependencyTasks.length
           ? `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;">
               ${dependencyTasks
@@ -100,8 +100,9 @@ export default function GanttView({ tasks = [], viewMode = 'Week', onDateChange,
       },
     });
 
+    const container = containerRef.current;
     return () => {
-      containerRef.current?.removeEventListener('click', handlePopupClick);
+      container?.removeEventListener('click', handlePopupClick);
       ganttRef.current = null;
     };
   }, [tasks, viewMode, GanttClass, onDateChange, onProgressChange, onTaskClick]);
@@ -123,11 +124,5 @@ export default function GanttView({ tasks = [], viewMode = 'Week', onDateChange,
     );
   }
 
-  return (
-    <div
-      ref={containerRef}
-      className="gantt-container overflow-x-auto"
-      style={{ minHeight: '300px' }}
-    />
-  );
+  return <div ref={containerRef} className="gantt-container overflow-x-auto" style={{ minHeight: '300px' }} />;
 }

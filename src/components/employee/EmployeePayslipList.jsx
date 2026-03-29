@@ -5,7 +5,7 @@ import { FileText, Download, ChevronDown, ChevronUp, ExternalLink } from 'lucide
 const formatPeriod = (start, end) => {
   if (!start || !end) return '---';
   const s = new Date(start);
-  const _e = new Date(end); // eslint-disable-line no-unused-vars
+  const _e = new Date(end);
   const monthNames = [
     'Janvier',
     'Fevrier',

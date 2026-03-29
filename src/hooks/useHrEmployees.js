@@ -155,7 +155,7 @@ export function useHrEmployees() {
       return insertedMember;
     },
     [user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const createEmployee = useCallback(
     async (payload) => {
@@ -208,7 +208,7 @@ export function useHrEmployees() {
       return data;
     },
     [fetchData, syncEmployeeToTeamMember, toast, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const createEmployeeContract = useCallback(
     async (payload) => {
@@ -236,7 +236,7 @@ export function useHrEmployees() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const syncAllEmployeesToTeamMembers = useCallback(async () => {
     const currentEmployees = employees || [];
