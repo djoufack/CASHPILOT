@@ -3679,9 +3679,74 @@
     "newProduct": "Nouveau produit",
     "tabs": {
       "cockpit": "Cockpit stock",
+      "warehouses": "Entrepôts & lots",
       "inventory": "Inventaire",
       "history": "Historique",
       "adjustments": "Gestion stock"
+    },
+    "cockpit": {
+      "valuationTitle": "Valorisation FIFO / CMUP et COGS",
+      "valuationSubtitle": "Calcul selon méthode FIFO et coût moyen unitaire pondéré",
+      "fifoStock": "Stock FIFO",
+      "cmupStock": "Stock CMUP",
+      "fifoCogs": "COGS FIFO",
+      "cmupCogs": "COGS CMUP",
+      "replenishmentTitle": "Recommandations de réapprovisionnement intelligentes",
+      "replenishmentSubtitle": "Basé sur la consommation historique et les niveaux de stock",
+      "replenishmentBudget": "Budget réapprovisionnement",
+      "replenishmentBudgetSubtitle": "Estimation du coût total de réapprovisionnement",
+      "noReplenishment": "Aucune recommandation de réapprovisionnement",
+      "itemsToOrder": "Articles à commander",
+      "criticalAlerts": "Alertes critiques",
+      "recommendedBudget": "Budget recommandé",
+      "abcClass": "Classe {{cls}}",
+      "abcProducts": "{{count}} produits ({{share}}%)"
+    },
+    "valuationModes": {
+      "cost": "Coût d'achat",
+      "retail": "Prix de vente",
+      "margin": "Marge"
+    },
+    "valuationTable": {
+      "fifo": "FIFO",
+      "cmup": "CMUP",
+      "fifoCogs": "COGS FIFO",
+      "cmupCogs": "COGS CMUP"
+    },
+    "replenishmentTable": {
+      "product": "Produit",
+      "priority": "Priorité",
+      "stock": "Stock",
+      "dailyConsumption": "Consommation/j",
+      "coverage": "Couverture",
+      "toOrder": "À commander",
+      "orderCost": "Coût commande"
+    },
+    "warehouses": {
+      "title": "Entrepôts",
+      "subtitle": "Gérez vos entrepôts et emplacements de stockage",
+      "activeWarehouses": "Entrepôts actifs",
+      "lots": "Lots",
+      "serializedLots": "Lots sérialisés",
+      "trackedQuantity": "Quantité suivie",
+      "warehouseCode": "Code entrepôt",
+      "warehouseName": "Nom de l'entrepôt",
+      "description": "Description",
+      "descriptionPlaceholder": "Description optionnelle",
+      "setDefault": "Définir par défaut",
+      "createWarehouse": "Créer l'entrepôt",
+      "noWarehouses": "Aucun entrepôt configuré",
+      "noDescription": "Aucune description",
+      "default": "Défaut",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "activate": "Activer",
+      "deactivate": "Désactiver",
+      "lotsTitle": "Lots & numéros de série",
+      "lotsSubtitle": "Suivi par lot et numéro de série",
+      "lotsRegistry": "Registre des lots",
+      "lotsRegistrySubtitle": "Tous les lots et numéros de série enregistrés",
+      "noLots": "Aucun lot enregistré"
     },
     "manualAdjustment": "Ajustement manuel du stock",
     "totalProducts": "Total Produits",
@@ -5511,6 +5576,152 @@
       "autoDisabled": "Initialisation automatique désactivée",
       "initError": "Erreur d'initialisation de la comptabilité",
       "autoToggleError": "Erreur de mise à jour du paramètre"
+    }
+  },
+  "recruitment": {
+    "helmetTitle": "Recrutement | CashPilot",
+    "pageTitle": "Recrutement",
+    "pageSubtitle": "Gérez vos postes ouverts, candidats et entretiens",
+    "loading": "Chargement...",
+    "tabs": {
+      "positions": "Postes",
+      "pipeline": "Pipeline",
+      "candidates": "Candidats",
+      "interviews": "Entretiens"
+    },
+    "kpi": {
+      "openPositions": "Postes ouverts",
+      "candidates": "Candidats",
+      "inPipeline": "En pipeline",
+      "hired": "Embauchés"
+    },
+    "positions": {
+      "searchPlaceholder": "Rechercher un poste...",
+      "btnNew": "Nouveau poste",
+      "btnApply": "Candidater",
+      "noPositions": "Aucun poste disponible.",
+      "candidateCount": "{{count}} candidat(s)",
+      "createdAt": "Créé le {{date}}"
+    },
+    "positionStatus": {
+      "open": "Ouvert",
+      "closed": "Fermé",
+      "draft": "Brouillon",
+      "on_hold": "En pause"
+    },
+    "employmentType": {
+      "full_time": "Temps plein",
+      "part_time": "Temps partiel",
+      "contract": "CDD",
+      "internship": "Stage",
+      "freelance": "Freelance"
+    },
+    "pipeline": {
+      "title": "Pipeline de recrutement",
+      "total": "{{count}} candidature(s)",
+      "noApplication": "Aucune candidature",
+      "backward": "Étape précédente",
+      "forward": "Étape suivante"
+    },
+    "stages": {
+      "new": "Nouveau",
+      "screening": "Présélection",
+      "interview": "Entretien",
+      "technical_test": "Test technique",
+      "offer": "Offre",
+      "hired": "Embauché"
+    },
+    "candidates": {
+      "searchPlaceholder": "Rechercher un candidat...",
+      "btnNew": "Nouveau candidat",
+      "noCandidates": "Aucun candidat enregistré.",
+      "colName": "Nom",
+      "colEmail": "Email",
+      "colPhone": "Téléphone",
+      "colSource": "Source",
+      "colApplications": "Candidatures",
+      "colAdded": "Ajouté le",
+      "unknownCandidate": "Candidat inconnu",
+      "unknownPosition": "Poste inconnu"
+    },
+    "candidateSource": {
+      "website": "Site web",
+      "linkedin": "LinkedIn",
+      "referral": "Recommandation",
+      "job_board": "Jobboard",
+      "agency": "Agence",
+      "other": "Autre"
+    },
+    "interviews": {
+      "searchPlaceholder": "Rechercher un entretien...",
+      "btnSchedule": "Planifier entretien",
+      "noInterviews": "Aucun entretien planifié.",
+      "interviewer": "Intervieweur :",
+      "unknownCandidate": "Candidat inconnu",
+      "unknownPosition": "Poste inconnu"
+    },
+    "interviewType": {
+      "phone": "Téléphone",
+      "video": "Visio",
+      "onsite": "Sur site",
+      "technical": "Technique"
+    },
+    "interviewStatus": {
+      "scheduled": "Planifié",
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "no_show": "Absent"
+    },
+    "dialogs": {
+      "newPosition": {
+        "title": "Nouveau poste",
+        "labelTitle": "Intitulé du poste *",
+        "placeholderTitle": "Ex: Développeur React Senior",
+        "labelDepartment": "Département",
+        "labelLocation": "Localisation",
+        "placeholderLocation": "Paris, France",
+        "labelSalaryMin": "Salaire min (€)",
+        "labelSalaryMax": "Salaire max (€)",
+        "labelEmploymentType": "Type de contrat",
+        "labelStatus": "Statut",
+        "labelDescription": "Description",
+        "placeholderDescription": "Décrivez le poste...",
+        "btnCancel": "Annuler",
+        "btnCreate": "Créer"
+      },
+      "newCandidate": {
+        "title": "Nouveau candidat",
+        "labelFirstName": "Prénom",
+        "labelLastName": "Nom",
+        "labelEmail": "Email",
+        "labelPhone": "Téléphone",
+        "labelSource": "Source",
+        "labelNotes": "Notes",
+        "btnCancel": "Annuler",
+        "btnAdd": "Ajouter"
+      },
+      "newApplication": {
+        "title": "Nouvelle candidature",
+        "labelCandidate": "Candidat",
+        "placeholderCandidate": "Choisir un candidat",
+        "labelPosition": "Poste",
+        "placeholderPosition": "Choisir un poste",
+        "btnCancel": "Annuler",
+        "btnApply": "Candidater"
+      },
+      "scheduleInterview": {
+        "title": "Planifier un entretien",
+        "labelApplication": "Candidature",
+        "placeholderApplication": "Choisir une candidature",
+        "labelType": "Type",
+        "labelDateTime": "Date et heure",
+        "labelNotes": "Notes",
+        "btnCancel": "Annuler",
+        "btnSchedule": "Planifier"
+      }
+    },
+    "toast": {
+      "error": "Erreur"
     }
   }
 }

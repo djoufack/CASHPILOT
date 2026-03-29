@@ -358,16 +358,22 @@ describe('StockManagement', () => {
 
   it('renders FIFO/CMUP/COGS valuation panel', () => {
     render(<StockManagement />);
-    expect(screen.getByText(/Valorisation FIFO \/ CMUP et COGS/i)).toBeTruthy();
+    // The component uses t('stockManagement.cockpit.valuationTitle'); the global
+    // test mock returns the key string as-is (see src/test/setup.js).
+    expect(screen.getByText('stockManagement.cockpit.valuationTitle')).toBeTruthy();
   });
 
   it('renders multi-warehouse and lot/serial tab content', () => {
     render(<StockManagement />);
-    expect(screen.getByText(/Entrepôts & lots/i)).toBeTruthy();
+    // The component uses t('stockManagement.tabs.warehouses'); the global
+    // test mock returns the key string as-is (see src/test/setup.js).
+    expect(screen.getByText('stockManagement.tabs.warehouses')).toBeTruthy();
   });
 
   it('renders smart replenishment recommendation panel', () => {
     render(<StockManagement />);
-    expect(screen.getByText(/Recommandations de réapprovisionnement intelligentes/i)).toBeTruthy();
+    // The component uses t('stockManagement.cockpit.replenishmentTitle'); the global
+    // test mock returns the key string as-is (see src/test/setup.js).
+    expect(screen.getByText('stockManagement.cockpit.replenishmentTitle')).toBeTruthy();
   });
 });

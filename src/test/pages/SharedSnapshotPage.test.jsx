@@ -98,13 +98,13 @@ describe('SharedSnapshotPage', () => {
     render(<SharedSnapshotPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Pilotage partagé')).toBeInTheDocument();
+      // 'Pilotage partagé' appears in both header h1 and snapshot content CardTitle
+      expect(screen.getAllByText('Pilotage partagé').length).toBeGreaterThan(0);
+      expect(screen.getByText('Test Company')).toBeInTheDocument();
+      expect(screen.getByText(/france/i)).toBeInTheDocument();
+      expect(screen.getByText(/b2b_services/i)).toBeInTheDocument();
+      expect(screen.getByText('Revenus')).toBeInTheDocument();
+      expect(screen.getByText('Flux de tresorerie operationnel negatif')).toBeInTheDocument();
     });
-
-    expect(screen.getByText('Test Company')).toBeInTheDocument();
-    expect(screen.getByText(/france/i)).toBeInTheDocument();
-    expect(screen.getByText(/b2b_services/i)).toBeInTheDocument();
-    expect(screen.getByText('Revenus')).toBeInTheDocument();
-    expect(screen.getByText('Flux de tresorerie operationnel negatif')).toBeInTheDocument();
   });
 });
