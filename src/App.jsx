@@ -1,16 +1,18 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
-import AIChatWidget from '@/components/AIChatWidget';
 import ScrollToTop from './components/ScrollToTop';
 import { Toaster } from '@/components/ui/toaster';
 import { useAuth } from '@/contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
-import GDPRConsentBanner from './components/GDPRConsentBanner';
-import CookieConsent from './components/CookieConsent';
 import { useAccountingGuard } from '@/hooks/useAccountingGuard';
-import UserPreferenceSync from '@/components/UserPreferenceSync';
 import { EntitlementsProvider } from '@/contexts/EntitlementsContext';
 import AppRoutes from './routes';
 import './i18n/config';
+
+const AIChatWidget = lazy(() => import('@/components/AIChatWidget'));
+const GDPRConsentBanner = lazy(() => import('./components/GDPRConsentBanner'));
+const CookieConsent = lazy(() => import('./components/CookieConsent'));
+const UserPreferenceSync = lazy(() => import('@/components/UserPreferenceSync'));
 
 // Public legal routes are declared in AppRoutes (path="/privacy", path="/legal").
 
@@ -18,7 +20,11 @@ import './i18n/config';
 const AuthenticatedChatWidget = () => {
   const { user } = useAuth();
   if (!user) return null;
-  return <AIChatWidget />;
+  return (
+    <Suspense fallback={null}>
+      <AIChatWidget />
+    </Suspense>
+  );
 };
 
 // Real-time accounting guard — validates entries and shows toasts
@@ -36,9 +42,15 @@ function App() {
           <AppRoutes />
           <AuthenticatedChatWidget />
           <AccountingGuard />
-          <UserPreferenceSync />
-          <GDPRConsentBanner />
-          <CookieConsent />
+          <Suspense fallback={null}>
+            <UserPreferenceSync />
+          </Suspense>
+          <Suspense fallback={null}>
+            <GDPRConsentBanner />
+          </Suspense>
+          <Suspense fallback={null}>
+            <CookieConsent />
+          </Suspense>
           <Toaster />
         </EntitlementsProvider>
       </ErrorBoundary>
