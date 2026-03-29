@@ -1,9 +1,7 @@
 /**
  * Scenario Builder Page
  * Main interface for creating and managing financial scenarios
- */
-
-import React, { useState } from 'react';
+ */import { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';

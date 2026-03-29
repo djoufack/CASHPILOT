@@ -2246,7 +2246,7 @@ Pilotez CashPilot en langage naturel depuis votre client IA favori via le protoc
    - **Gumloop** : ajoutez un bloc MCP Server avec l'URL
 4. Relancez votre client — les 26 outils sont disponibles
 
-**Authentification :** la cle API est integree directement dans l'URL MCP. Aucun login/logout necessaire.
+**Authentification :** la cle API est transmise via le header `X-API-Key`. Aucun login/logout necessaire.
 
 #### Section 2 : MCP Connector — API Anthropic (distant)
 

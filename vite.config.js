@@ -5,7 +5,10 @@ import { defineConfig } from 'vite';
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
   esbuild: {
-    pure: mode === 'production' ? ['console.log', 'console.warn', 'console.debug', 'console.info'] : [],
+    pure:
+      mode === 'production'
+        ? ['console.log', 'console.warn', 'console.debug', 'console.info', 'console.error', 'console.trace']
+        : [],
   },
   server: {
     port: 3000,
@@ -25,8 +28,8 @@ export default defineConfig(({ mode }) => ({
         manualChunks(id) {
           // Vite virtual helpers → keep in entry chunk (no circular deps)
           if (!id.includes('node_modules/') && !id.includes('/src/i18n/')) return undefined;
-          // Move i18n config + locale JSON into the i18n chunk to avoid inlining translations in entry
-          if (id.includes('/src/i18n/') || id.includes('/src/i18n/locales/')) return 'i18n';
+          // Keep i18n runtime/config in a dedicated chunk. Locale JSON files remain lazy-loaded.
+          if (id.includes('/src/i18n/config.')) return 'i18n';
           if (
             id.includes('node_modules/react/') ||
             id.includes('node_modules/react-dom/') ||

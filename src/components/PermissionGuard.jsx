@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useUserRole } from '@/hooks/useUserRole';
 
 const PermissionGuard = ({ resource, action, children, fallback = null }) => {

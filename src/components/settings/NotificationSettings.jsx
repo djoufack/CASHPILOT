@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';

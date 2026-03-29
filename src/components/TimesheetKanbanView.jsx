@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useTranslation } from 'react-i18next';
 import GenericKanbanView from './GenericKanbanView';
 import { useTimesheets } from '@/hooks/useTimesheets';

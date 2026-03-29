@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useWebhooks, WEBHOOK_EVENTS } from '@/hooks/useWebhooks';

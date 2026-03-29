@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { format, isToday, isTomorrow, isThisWeek, parseISO, isAfter } from 'date-fns';
 import TaskCard from './TaskCard';
 import { motion } from 'framer-motion';

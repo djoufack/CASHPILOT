@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Keyboard } from 'lucide-react';
 import { KEYBOARD_SHORTCUTS } from '@/hooks/useKeyboardShortcuts';

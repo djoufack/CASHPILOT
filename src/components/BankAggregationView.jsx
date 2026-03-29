@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useBankConnections } from '@/hooks/useBankConnections';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { TrendingUp } from 'lucide-react';

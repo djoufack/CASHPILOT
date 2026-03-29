@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, TrendingUp, Droplets, Scale, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import RatioGauge from './RatioGauge';

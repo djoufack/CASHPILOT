@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccounting } from '@/hooks/useAccounting';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';

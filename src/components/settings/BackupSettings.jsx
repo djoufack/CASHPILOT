@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBackupSettings } from '@/hooks/useBackupSettings';
 import { Button } from '@/components/ui/button';

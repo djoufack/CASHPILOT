@@ -39,18 +39,19 @@ Le serveur MCP (Model Context Protocol) de CashPilot vous permet de gerer vos fi
 
 Apres avoir genere votre cle API, CashPilot affiche automatiquement trois formats prets a copier :
 
-1. **URL complete** — pour Claude Desktop, Cursor, Windsurf (collez directement dans "Add MCP Server")
-2. **JSON** — pour Claude Code, VS Code (Cline, Continue, Copilot Chat)
-3. **Cle brute** — pour scripts, ChatGPT, Zapier
+1. **URL serveur MCP** — `https://cashpilot.tech/mcp`
+2. **Header d'authentification** — `X-API-Key: cpk_votre_cle_ici`
+3. **JSON complet** — pour Claude Code, VS Code (Cline, Continue, Copilot Chat)
 
 ---
 
 ##### Claude Desktop / Cursor / Windsurf (URL)
 
-Dans votre client, ajoutez un serveur MCP en collant l'URL complete :
+Dans votre client, ajoutez un serveur MCP avec :
 
 ```
-https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici
+URL: https://cashpilot.tech/mcp
+Header: X-API-Key: cpk_votre_cle_ici
 ```
 
 Relancez le client. Les 169 outils CashPilot apparaitront automatiquement.
@@ -65,7 +66,10 @@ Copiez le JSON dans `~/.claude/settings.local.json` :
 {
   "mcpServers": {
     "cashpilot": {
-      "url": "https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici"
+      "url": "https://cashpilot.tech/mcp",
+      "headers": {
+        "X-API-Key": "cpk_votre_cle_ici"
+      }
     }
   }
 }
@@ -86,7 +90,9 @@ Ouvrir `~/.continue/config.yaml` et ajouter :
 ```yaml
 mcpServers:
   - name: cashpilot
-    url: https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici
+    url: https://cashpilot.tech/mcp
+    headers:
+      X-API-Key: cpk_votre_cle_ici
 ```
 
 **GitHub Copilot Chat** (MCP natif dans VS Code 1.99+) :
@@ -98,7 +104,10 @@ Ouvrir les settings VS Code (`Ctrl+,`) → chercher `mcp` → "Edit in settings.
   "mcp": {
     "servers": {
       "cashpilot": {
-        "url": "https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici"
+        "url": "https://cashpilot.tech/mcp",
+        "headers": {
+          "X-API-Key": "cpk_votre_cle_ici"
+        }
       }
     }
   }
@@ -112,7 +121,7 @@ Ouvrir les settings VS Code (`Ctrl+,`) → chercher `mcp` → "Edit in settings.
 [Rube.app](https://rube.app/) est une plateforme d'automatisation IA qui supporte les connexions MCP. Ajoutez CashPilot comme outil dans vos recettes :
 
 1. Dans Rube, ouvrez les parametres de connexions MCP
-2. Ajoutez un nouveau serveur avec l'URL : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici`
+2. Ajoutez un nouveau serveur avec l'URL `https://cashpilot.tech/mcp` et le header `X-API-Key: cpk_votre_cle_ici`
 3. Les 169 outils CashPilot sont disponibles dans vos recettes d'automatisation
 
 ---
@@ -122,7 +131,7 @@ Ouvrir les settings VS Code (`Ctrl+,`) → chercher `mcp` → "Edit in settings.
 [Mistral Le Chat](https://chat.mistral.ai/) supporte les serveurs MCP distants. Pour connecter CashPilot :
 
 1. Dans Le Chat, ouvrez les parametres → "Outils" ou "MCP Servers"
-2. Ajoutez un serveur MCP avec l'URL : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici`
+2. Ajoutez un serveur MCP avec l'URL `https://cashpilot.tech/mcp` et le header `X-API-Key: cpk_votre_cle_ici`
 3. Mistral pourra interroger et piloter CashPilot en langage naturel
 
 ---
@@ -133,7 +142,8 @@ Ouvrir les settings VS Code (`Ctrl+,`) → chercher `mcp` → "Edit in settings.
 
 1. Ajoutez un noeud **"MCP Client"** dans votre workflow
 2. Configurez la connexion MCP :
-   - **URL** : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici`
+   - **URL** : `https://cashpilot.tech/mcp`
+   - **Header** : `X-API-Key: cpk_votre_cle_ici`
    - **Transport** : Streamable HTTP
 3. Les 169 outils CashPilot sont disponibles comme actions dans vos workflows n8n
 
@@ -146,7 +156,7 @@ Ouvrir les settings VS Code (`Ctrl+,`) → chercher `mcp` → "Edit in settings.
 [Gumloop](https://www.gumloop.com/) est une plateforme d'automatisation IA visuelle qui supporte les connexions MCP. Pour connecter CashPilot :
 
 1. Dans votre flow Gumloop, ajoutez un bloc MCP Server
-2. Configurez l'URL : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici`
+2. Configurez l'URL `https://cashpilot.tech/mcp` et le header `X-API-Key: cpk_votre_cle_ici`
 3. Les outils CashPilot apparaissent comme actions disponibles dans vos pipelines
 
 ---
@@ -157,7 +167,8 @@ La plupart des clients MCP supportent une URL. Ajoutez un serveur avec :
 
 | Parametre | Valeur |
 |-----------|--------|
-| URL | `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici` |
+| URL | `https://cashpilot.tech/mcp` |
+| Header | `X-API-Key: cpk_votre_cle_ici` |
 | Transport | Streamable HTTP |
 
 ---
@@ -170,11 +181,10 @@ Fermez et rouvrez votre client pour charger le serveur MCP.
 
 ## Connexion
 
-L'authentification est **automatique** via votre cle API, integree directement dans l'URL MCP ou dans le header `X-API-Key`. Aucun login/logout n'est necessaire — CashPilot identifie votre compte des la premiere requete. Toutes les operations sont filtrees par vos propres donnees grace aux politiques de securite (RLS) de Supabase.
+L'authentification est **automatique** via votre cle API transmise dans le header `X-API-Key`. Aucun login/logout n'est necessaire — CashPilot identifie votre compte des la premiere requete. Toutes les operations sont filtrees par vos propres donnees grace aux politiques de securite (RLS) de Supabase.
 
-**Deux methodes d'authentification :**
-- **URL avec cle integree** (recommande) : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle`
-- **Header HTTP** : `X-API-Key: cpk_votre_cle`
+**Methode d'authentification :**
+- **Header HTTP obligatoire** : `X-API-Key: cpk_votre_cle`
 
 ---
 
@@ -544,7 +554,7 @@ Cline :  → get_top_clients avec limit = 3
 
 **1. Installation (une seule fois)**
 
-Sophie genere une cle API depuis le compte CashPilot de son client, puis dans Claude Desktop elle ajoute le serveur MCP en collant l'URL complete (`https://cashpilot.tech/mcp?api_key=cpk_...`). Elle relance l'application. Les 169 outils apparaissent automatiquement.
+Sophie genere une cle API depuis le compte CashPilot de son client, puis dans Claude Desktop elle ajoute le serveur MCP avec l'URL `https://cashpilot.tech/mcp` et le header `X-API-Key: cpk_...`. Elle relance l'application. Les 169 outils apparaissent automatiquement.
 
 **2. Audit trimestriel**
 
@@ -816,7 +826,7 @@ Le serveur MCP CashPilot est deploye en production en tant que Supabase Edge Fun
 
 **URL du serveur :** `https://cashpilot.tech/mcp`
 
-**Authentification :** cle API dans l'URL (`?api_key=cpk_...`) ou dans le header `X-API-Key`.
+**Authentification :** header `X-API-Key: cpk_...`.
 
 **Endpoints :**
 
@@ -829,18 +839,21 @@ Le serveur MCP CashPilot est deploye en production en tant que Supabase Edge Fun
 **Exemple d'appel (curl) :**
 
 ```bash
-# 1. Initialiser une session (cle dans l'URL)
-curl -X POST "https://cashpilot.tech/mcp?api_key=cpk_votre_cle" \
+# 1. Initialiser une session
+curl -X POST "https://cashpilot.tech/mcp" \
+  -H "X-API-Key: cpk_votre_cle" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
 
 # 2. Lister les outils
-curl -X POST "https://cashpilot.tech/mcp?api_key=cpk_votre_cle" \
+curl -X POST "https://cashpilot.tech/mcp" \
+  -H "X-API-Key: cpk_votre_cle" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
 
 # 3. Appeler un outil
-curl -X POST "https://cashpilot.tech/mcp?api_key=cpk_votre_cle" \
+curl -X POST "https://cashpilot.tech/mcp" \
+  -H "X-API-Key: cpk_votre_cle" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_dashboard_kpis","arguments":{}}}'
 ```
@@ -1086,7 +1099,7 @@ curl -H "X-API-Key: votre-cle" \
 
 ## Securite et confidentialite
 
-- **Authentification par cle API** : chaque requete necessite une cle API valide, transmise via l'URL (`?api_key=`) ou le header `X-API-Key`.
+- **Authentification par cle API** : chaque requete necessite une cle API valide, transmise via le header `X-API-Key`.
 - **Isolation des donnees** : chaque requete est filtree par l'identifiant utilisateur associe a la cle API. Vous n'accedez qu'a vos propres donnees.
 - **Serveur stateless** : aucune session n'est stockee cote serveur. Chaque requete est independante et authentifiee individuellement.
 - **Cles API scopees** : les cles API disposent de scopes (`read`, `write`, `delete`) pour un controle granulaire des permissions.

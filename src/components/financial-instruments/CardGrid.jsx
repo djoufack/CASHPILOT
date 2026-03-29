@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useTranslation } from 'react-i18next';
 import { CreditCard, Plus, Pencil, Wifi } from 'lucide-react';
 import { motion } from 'framer-motion';

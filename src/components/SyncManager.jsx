@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

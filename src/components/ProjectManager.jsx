@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
