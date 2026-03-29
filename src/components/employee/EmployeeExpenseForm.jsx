@@ -14,6 +14,7 @@ import {
   Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getLocale, formatDate } from '@/utils/dateLocale';
 
 const EXPENSE_CATEGORIES = [
   'transport',
@@ -29,7 +30,7 @@ const EXPENSE_CATEGORIES = [
 const formatMoney = (value, currency = 'EUR') => {
   const num = Number(value);
   if (!Number.isFinite(num)) return '---';
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -78,7 +79,7 @@ const ExpenseReportCard = ({ report }) => {
       <div className="flex items-center justify-between">
         <span className="text-xs text-gray-400">
           {items.length} {t('employee.expense.items', 'poste(s)')} -
-          {report.submitted_at ? ` ${new Date(report.submitted_at).toLocaleDateString('fr-FR')}` : ''}
+          {report.submitted_at ? ` ${formatDate(report.submitted_at)}` : ''}
         </span>
         <span className="text-sm font-semibold text-white">{formatMoney(report.total_amount, report.currency)}</span>
       </div>

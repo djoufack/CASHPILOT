@@ -14,6 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useQVT } from '@/hooks/useQVT';
+import { formatDate as formatDateLocale } from '@/utils/dateLocale';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,7 +38,7 @@ import {
 const formatDate = (v) => {
   if (!v) return '-';
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('fr-FR');
+  return Number.isNaN(d.getTime()) ? '-' : formatDateLocale(d);
 };
 
 const SURVEY_TYPE_LABELS = {

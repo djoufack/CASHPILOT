@@ -1,4 +1,4 @@
-import React from 'react';
+import { getLocale } from '@/utils/dateLocale';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import RatioInfoPopover from './RatioInfoPopover';
@@ -20,7 +20,7 @@ const RatioGauge = ({
       case 'percentage':
         return `${val.toFixed(1)}%`;
       case 'currency':
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency }).format(val);
+        return new Intl.NumberFormat(getLocale(), { style: 'currency', currency: currency }).format(val);
       case 'number':
       default:
         return val.toFixed(2) + (unit ? ` ${unit}` : '');
@@ -50,7 +50,7 @@ const RatioGauge = ({
       good: 'bg-green-400',
       average: 'bg-yellow-400',
       poor: 'bg-orange-400',
-      critical: 'bg-red-500'
+      critical: 'bg-red-500',
     };
     return colors[quality] || 'bg-gray-400';
   };
@@ -61,7 +61,7 @@ const RatioGauge = ({
       good: 'Bon',
       average: 'Moyen',
       poor: 'Faible',
-      critical: 'Critique'
+      critical: 'Critique',
     };
     return texts[quality] || '-';
   };
@@ -79,13 +79,9 @@ const RatioGauge = ({
 
   const getGaugePercentage = () => {
     if (!value && value !== 0) return 0;
-    const maxThreshold = Math.max(
-      thresholds.excellent || 0,
-      thresholds.good || 0,
-      thresholds.warning || 0,
-      thresholds.poor || 0,
-      value
-    ) * 1.2;
+    const maxThreshold =
+      Math.max(thresholds.excellent || 0, thresholds.good || 0, thresholds.warning || 0, thresholds.poor || 0, value) *
+      1.2;
     return Math.min((value / maxThreshold) * 100, 100);
   };
 
@@ -107,22 +103,14 @@ const RatioGauge = ({
                 <span className="min-w-0 break-words leading-5">{label}</span>
               </span>
             </p>
-            {description && (
-              <p className="text-xs text-gray-500 mt-1">{description}</p>
-            )}
+            {description && <p className="text-xs text-gray-500 mt-1">{description}</p>}
           </div>
-          {trendIcon && (
-            <div className="flex items-center gap-1.5">
-              {trendIcon}
-            </div>
-          )}
+          {trendIcon && <div className="flex items-center gap-1.5">{trendIcon}</div>}
         </div>
 
         {/* Main value */}
         <div className="mb-3">
-          <p className="text-2xl font-bold text-gray-100">
-            {formatValue(value)}
-          </p>
+          <p className="text-2xl font-bold text-gray-100">{formatValue(value)}</p>
         </div>
 
         {/* Gauge bar */}
@@ -142,8 +130,8 @@ const RatioGauge = ({
               quality === 'excellent' || quality === 'good'
                 ? 'bg-green-500/20 text-green-400'
                 : quality === 'average'
-                ? 'bg-yellow-500/20 text-yellow-400'
-                : 'bg-red-500/20 text-red-400'
+                  ? 'bg-yellow-500/20 text-yellow-400'
+                  : 'bg-red-500/20 text-red-400'
             }`}
           >
             {qualityText}
@@ -151,7 +139,8 @@ const RatioGauge = ({
 
           {thresholds.good && (
             <span className="text-xs text-gray-500">
-              Ref: {inverse ? '< ' : '> '}{thresholds.good.toFixed(1)}
+              Ref: {inverse ? '< ' : '> '}
+              {thresholds.good.toFixed(1)}
             </span>
           )}
         </div>

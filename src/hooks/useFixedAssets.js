@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
+import { formatNumber } from '@/utils/dateLocale';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { isMissingColumnError } from '@/lib/supabaseCompatibility';
 
@@ -213,7 +214,7 @@ export function useFixedAssets() {
 
       toast({
         title: t('hooks.fixedAssets.depreciationPosted'),
-        description: `${asset.asset_name} - ${scheduleLine.depreciation_amount.toLocaleString('fr-FR')} €`,
+        description: `${asset.asset_name} - ${formatNumber(scheduleLine.depreciation_amount)} €`,
       });
       await fetchAssets();
     },

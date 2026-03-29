@@ -1,12 +1,11 @@
-
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Upload, FileSpreadsheet, FileText, AlertTriangle, CheckCircle, Loader2, X } from 'lucide-react';
 import { parseBankStatement, getBankStatementPreview } from '@/utils/bankStatementParser';
 import { formatCurrency } from '@/utils/calculations';
+import { formatDate } from '@/utils/dateLocale';
 
 const FRENCH_BANKS = [
   { value: 'credit_mutuel', label: 'Crédit Mutuel' },
@@ -30,7 +29,7 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
   const [step, setStep] = useState('upload'); // upload, parsing, preview, result
   const [file, setFile] = useState(null);
   const [bankName, setBankName] = useState('');
-  const [parsing, setParsing] = useState(false);
+  const [_parsing, setParsing] = useState(false);
   const [parsedData, setParsedData] = useState(null);
   const [preview, setPreview] = useState(null);
   const [importing, setImporting] = useState(false);
@@ -82,9 +81,7 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
 
       // Auto-detect bank name from metadata
       if (parsed.metadata?.bankName && !bankName) {
-        const match = FRENCH_BANKS.find(b =>
-          b.label.toLowerCase().includes(parsed.metadata.bankName.toLowerCase())
-        );
+        const match = FRENCH_BANKS.find((b) => b.label.toLowerCase().includes(parsed.metadata.bankName.toLowerCase()));
         if (match) setBankName(match.value);
       }
 
@@ -113,7 +110,7 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
     if (!parsedData || !file) return;
     setImporting(true);
     try {
-      const selectedBank = FRENCH_BANKS.find(b => b.value === bankName);
+      const selectedBank = FRENCH_BANKS.find((b) => b.value === bankName);
       const metadata = {
         bankName: selectedBank?.label || bankName || parsedData.metadata?.bankName || null,
         accountNumber: parsedData.metadata?.accountNumber || null,
@@ -126,9 +123,7 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
       const success = await onUploadComplete(file, parsedData, metadata);
       setResult({
         success: !!success,
-        message: success
-          ? `${parsedData.lines.length} opérations importées avec succès.`
-          : "Erreur lors de l'import."
+        message: success ? `${parsedData.lines.length} opérations importées avec succès.` : "Erreur lors de l'import.",
       });
       setStep('result');
     } catch (err) {
@@ -164,8 +159,10 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
                   <SelectValue placeholder="Sélectionner votre banque" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
-                  {FRENCH_BANKS.map(b => (
-                    <SelectItem key={b.value} value={b.value} className="text-white">{b.label}</SelectItem>
+                  {FRENCH_BANKS.map((b) => (
+                    <SelectItem key={b.value} value={b.value} className="text-white">
+                      {b.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -176,7 +173,10 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
               className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                 dragOver ? 'border-orange-400 bg-orange-500/10' : 'border-gray-700 hover:border-gray-600'
               }`}
-              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
@@ -190,7 +190,9 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
                 type="file"
                 accept={ACCEPTED_TYPES}
                 className="hidden"
-                onChange={e => { if (e.target.files[0]) handleFileSelect(e.target.files[0]); }}
+                onChange={(e) => {
+                  if (e.target.files[0]) handleFileSelect(e.target.files[0]);
+                }}
               />
             </div>
           </div>
@@ -215,7 +217,8 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
                 <p className="text-sm font-medium truncate">{file?.name}</p>
                 <p className="text-xs text-gray-500">
                   {preview.totalLines} opérations détectées
-                  {preview.metadata?.periodStart && ` • ${preview.metadata.periodStart} au ${preview.metadata.periodEnd}`}
+                  {preview.metadata?.periodStart &&
+                    ` • ${preview.metadata.periodStart} au ${preview.metadata.periodEnd}`}
                 </p>
               </div>
               <Button variant="ghost" size="sm" onClick={reset}>
@@ -232,7 +235,9 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
                 </div>
                 <ul className="mt-1 text-xs text-gray-400 space-y-0.5">
                   {preview.errors.slice(0, 3).map((e, i) => (
-                    <li key={i}>Ligne {e.line} : {e.message}</li>
+                    <li key={i}>
+                      Ligne {e.line} : {e.message}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -271,10 +276,13 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
                   {preview.previewLines.map((line, i) => (
                     <tr key={i} className="border-b border-gray-800/50">
                       <td className="py-1.5 px-2 text-gray-600">{line.lineNumber}</td>
-                      <td className="py-1.5 px-2 text-gray-300">{new Date(line.date).toLocaleDateString('fr-FR')}</td>
+                      <td className="py-1.5 px-2 text-gray-300">{formatDate(line.date)}</td>
                       <td className="py-1.5 px-2 text-gray-300 max-w-[300px] truncate">{line.description}</td>
-                      <td className={`py-1.5 px-2 text-right font-mono ${line.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {line.amount >= 0 ? '+' : ''}{formatCurrency(line.amount)}
+                      <td
+                        className={`py-1.5 px-2 text-right font-mono ${line.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                      >
+                        {line.amount >= 0 ? '+' : ''}
+                        {formatCurrency(line.amount)}
                       </td>
                     </tr>
                   ))}
@@ -298,7 +306,9 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
                 className="bg-orange-500 hover:bg-orange-600 text-white"
               >
                 {importing ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Import en cours...</>
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Import en cours...
+                  </>
                 ) : (
                   `Importer ${preview.totalLines} opérations`
                 )}

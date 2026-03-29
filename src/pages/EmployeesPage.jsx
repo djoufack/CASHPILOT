@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Building2, ChevronRight, Loader2, Pencil, Plus, Search, Trash2, UserCircle, Users } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
+import { formatDate as formatDateLocale } from '@/utils/dateLocale';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import HrCrossNav from '@/components/hr/HrCrossNav';
 const fmtDate = (v) => {
   if (!v) return '-';
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('fr-FR');
+  return Number.isNaN(d.getTime()) ? '-' : formatDateLocale(d);
 };
 
 const STATUS_CLS = {

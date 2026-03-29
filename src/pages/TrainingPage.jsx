@@ -13,6 +13,7 @@ import {
   Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getLocale, formatDate } from '@/utils/dateLocale';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -44,9 +45,9 @@ const fallbackTagCls = 'bg-gray-500/20 text-gray-400 border-gray-500/30';
 
 /* ── helpers ─────────────────────────────────────────────────── */
 const fmtCurrency = (v, cur = 'EUR') =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: cur }).format(v || 0);
+  new Intl.NumberFormat(getLocale(), { style: 'currency', currency: cur }).format(v || 0);
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('fr-FR') : '-');
+const fmtDate = (d) => (d ? formatDate(d) : '-');
 
 const empName = (e) => e?.full_name || [e?.first_name, e?.last_name].filter(Boolean).join(' ') || '-';
 

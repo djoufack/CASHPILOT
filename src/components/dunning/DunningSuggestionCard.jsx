@@ -14,6 +14,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getLocale, formatNumber } from '@/utils/dateLocale';
 
 const CHANNEL_ICONS = {
   email: Mail,
@@ -51,7 +52,7 @@ const URGENCY_CONFIG = {
 
 const formatMoney = (value) => {
   if (value == null) return '0,00';
-  return Number(value).toLocaleString('fr-FR', {
+  return formatNumber(Number(value), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -60,7 +61,7 @@ const formatMoney = (value) => {
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   try {
-    return new Intl.DateTimeFormat('fr-FR', {
+    return new Intl.DateTimeFormat(getLocale(), {
       day: '2-digit',
       month: 'short',
       year: 'numeric',

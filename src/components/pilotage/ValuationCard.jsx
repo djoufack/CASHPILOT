@@ -1,11 +1,11 @@
-import React from 'react';
+import { getLocale } from '@/utils/dateLocale';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatCurrency } from '@/utils/currencyService';
 import { Gem } from 'lucide-react';
 
-const percentFormatter = new Intl.NumberFormat('fr-FR', {
+const percentFormatter = new Intl.NumberFormat(getLocale(), {
   style: 'percent',
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
@@ -54,9 +54,7 @@ const ValuationCard = ({ data }) => {
               <p className="text-3xl font-bold text-orange-400">
                 {midValue != null ? formatCurrency(midValue, currency) : '--'}
               </p>
-              <p className="text-sm text-gray-400 mt-1">
-                {t('pilotage.valuation.multiplesMethod')}
-              </p>
+              <p className="text-sm text-gray-400 mt-1">{t('pilotage.valuation.multiplesMethod')}</p>
               {multiple != null && (
                 <p className="text-xs text-gray-500 mt-0.5">
                   {t('pilotage.valuation.multiple')}: {multiple}x
@@ -111,13 +109,9 @@ const ValuationCard = ({ data }) => {
             {/* DCF Section */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">
-                  {t('pilotage.valuation.dcfMethod')}
-                </span>
+                <span className="text-sm text-gray-400">{t('pilotage.valuation.dcfMethod')}</span>
                 <span className="text-sm font-mono font-semibold text-gray-100">
-                  {dcf?.dcfValue != null
-                    ? formatCurrency(dcf.dcfValue, currency)
-                    : '--'}
+                  {dcf?.dcfValue != null ? formatCurrency(dcf.dcfValue, currency) : '--'}
                 </span>
               </div>
 
@@ -125,21 +119,15 @@ const ValuationCard = ({ data }) => {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-400">WACC</span>
                 <span className="text-sm font-mono text-gray-100">
-                  {waccData?.wacc != null
-                    ? percentFormatter.format(waccData.wacc)
-                    : '--'}
+                  {waccData?.wacc != null ? percentFormatter.format(waccData.wacc) : '--'}
                 </span>
               </div>
 
               {/* Terminal value */}
               {dcf?.terminalValue != null && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">
-                    {t('pilotage.valuation.terminalValue')}
-                  </span>
-                  <span className="text-sm font-mono text-gray-100">
-                    {formatCurrency(dcf.terminalValue, currency)}
-                  </span>
+                  <span className="text-sm text-gray-400">{t('pilotage.valuation.terminalValue')}</span>
+                  <span className="text-sm font-mono text-gray-100">{formatCurrency(dcf.terminalValue, currency)}</span>
                 </div>
               )}
             </div>
@@ -149,9 +137,7 @@ const ValuationCard = ({ data }) => {
               <>
                 <div className="border-t border-gray-800/50" />
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">
-                    {t('pilotage.valuation.consensus')}
-                  </span>
+                  <span className="text-sm text-gray-400">{t('pilotage.valuation.consensus')}</span>
                   <span className="text-sm font-mono text-gray-100">
                     {valuation.consensus.lowValue != null
                       ? formatCurrency(valuation.consensus.lowValue, currency)

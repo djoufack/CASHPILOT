@@ -358,16 +358,16 @@ describe('StockManagement', () => {
 
   it('renders FIFO/CMUP/COGS valuation panel', () => {
     render(<StockManagement />);
-    expect(screen.getByText(/Valorisation FIFO \/ CMUP et COGS/i)).toBeTruthy();
+    expect(screen.getByText('stockManagement.cockpit.valuationTitle')).toBeTruthy();
   });
 
   it('renders multi-warehouse and lot/serial tab content', () => {
     render(<StockManagement />);
-    expect(screen.getByText(/Entrepôts & lots/i)).toBeTruthy();
+    expect(screen.getByText('stockManagement.tabs.warehouses')).toBeTruthy();
   });
 
   it('renders smart replenishment recommendation panel', () => {
     render(<StockManagement />);
-    expect(screen.getByText(/Recommandations de réapprovisionnement intelligentes/i)).toBeTruthy();
+    expect(screen.getByText('stockManagement.cockpit.replenishmentTitle')).toBeTruthy();
   });
 });

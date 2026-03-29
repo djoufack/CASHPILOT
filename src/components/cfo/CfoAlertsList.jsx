@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Bell, AlertTriangle, Info, AlertCircle, X, Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCfoAlerts } from '@/hooks/useCfoAlerts';
+import { formatDate } from '@/utils/dateLocale';
 
 const severityConfig = {
   info: {
@@ -47,7 +48,7 @@ const AlertItem = ({ alert, onMarkRead, onDismiss, t }) => {
           </div>
           <p className="text-xs text-gray-400 leading-relaxed">{alert.message}</p>
           <div className="text-xs text-gray-500 mt-1.5">
-            {new Date(alert.created_at).toLocaleDateString('fr-FR', {
+            {formatDate(alert.created_at, {
               day: 'numeric',
               month: 'short',
               hour: '2-digit',

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { formatDate as formatDateLocale, formatNumber } from '@/utils/dateLocale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Eye, Loader2, Building2, TrendingDown, Package } from 'lucide-react';
 import { useFixedAssets } from '@/hooks/useFixedAssets';
@@ -81,13 +82,13 @@ const typeLabel = (type, t) => {
 
 const fmtAmount = (amount) =>
   typeof amount === 'number'
-    ? amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+    ? formatNumber(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
     : '—';
 
 const fmtDate = (dateStr) => {
   if (!dateStr) return '—';
   try {
-    return new Date(dateStr).toLocaleDateString('fr-FR');
+    return formatDateLocale(dateStr);
   } catch {
     return dateStr;
   }

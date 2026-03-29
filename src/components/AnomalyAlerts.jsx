@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAnomalyDetection } from '@/hooks/useAnomalyDetection';
 import { AlertTriangle, X, RefreshCw, ShieldAlert, Loader2 } from 'lucide-react';
+import { formatDateTime, formatNumber } from '@/utils/dateLocale';
 import { Button } from '@/components/ui/button';
 
 const severityColors = {
@@ -26,9 +27,7 @@ const AnomalyAlerts = ({ autoScan = false }) => {
           <ShieldAlert className="w-5 h-5 text-orange-400" />
           <h3 className="text-lg font-semibold text-white">Détection d'anomalies</h3>
           {anomalies.length > 0 && (
-            <span className="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full">
-              {anomalies.length}
-            </span>
+            <span className="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full">{anomalies.length}</span>
           )}
         </div>
         <Button
@@ -43,11 +42,7 @@ const AnomalyAlerts = ({ autoScan = false }) => {
         </Button>
       </div>
 
-      {lastScan && (
-        <p className="text-xs text-gray-500">
-          Dernier scan: {new Date(lastScan).toLocaleString('fr-FR')}
-        </p>
-      )}
+      {lastScan && <p className="text-xs text-gray-500">Dernier scan: {formatDateTime(lastScan)}</p>}
 
       {anomalies.length === 0 && !loading && (
         <div className="text-center py-8 text-gray-500">
@@ -69,7 +64,10 @@ const AnomalyAlerts = ({ autoScan = false }) => {
                   <p className="font-medium text-sm">{anomaly.title}</p>
                   <p className="text-xs mt-1 opacity-80">{anomaly.description}</p>
                   {anomaly.amount && (
-                    <p className="text-xs mt-1 font-mono">{Number(anomaly.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}&euro;</p>
+                    <p className="text-xs mt-1 font-mono">
+                      {formatNumber(Number(anomaly.amount), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      &euro;
+                    </p>
                   )}
                 </div>
               </div>

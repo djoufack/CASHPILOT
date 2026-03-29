@@ -6,6 +6,7 @@ import CashFlowSummaryCards from '@/components/cashflow/CashFlowSummaryCards';
 import CashFlowChart from '@/components/cashflow/CashFlowChart';
 import CashFlowAlerts from '@/components/cashflow/CashFlowAlerts';
 import { Brain, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, Lightbulb, BarChart3 } from 'lucide-react';
+import { getLocale } from '@/utils/dateLocale';
 import { Button } from '@/components/ui/button';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
@@ -222,7 +223,7 @@ const CashFlowForecastPage = () => {
                           </div>
                           <span className={`text-sm font-bold ${colorMap[key]}`}>
                             {sc.projected_balance != null
-                              ? new Intl.NumberFormat('fr-FR', {
+                              ? new Intl.NumberFormat(getLocale(), {
                                   style: 'currency',
                                   currency: 'EUR',
                                   maximumFractionDigits: 0,

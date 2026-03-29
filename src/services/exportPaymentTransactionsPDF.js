@@ -1,3 +1,4 @@
+import { getLocale } from '@/utils/dateLocale';
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
 import DOMPurify from 'dompurify';
@@ -15,14 +16,20 @@ const setSafeHtml = (element, html) => {
  */
 export const exportPaymentTransactionsPDF = async (transactions, instrumentLabel, dateRange = {}, options = {}) => {
   const currency = options.currency || 'EUR';
-  const fmt = (v) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v || 0);
+  const fmt = (v) =>
+    new Intl.NumberFormat(getLocale(), {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(v || 0);
 
   const totalInflow = transactions
-    .filter(tx => tx.flow_direction === 'inflow' || Number(tx.amount || 0) > 0)
+    .filter((tx) => tx.flow_direction === 'inflow' || Number(tx.amount || 0) > 0)
     .reduce((sum, tx) => sum + Math.abs(Number(tx.amount || 0)), 0);
 
   const totalOutflow = transactions
-    .filter(tx => tx.flow_direction === 'outflow' || Number(tx.amount || 0) < 0)
+    .filter((tx) => tx.flow_direction === 'outflow' || Number(tx.amount || 0) < 0)
     .reduce((sum, tx) => sum + Math.abs(Number(tx.amount || 0)), 0);
 
   const net = totalInflow - totalOutflow;
@@ -45,10 +52,13 @@ export const exportPaymentTransactionsPDF = async (transactions, instrumentLabel
     return `<span style="color: #ef4444; font-weight: 600;">&#9660; Outflow</span>`;
   };
 
-  const periodLabel = [
-    dateRange.startDate ? new Date(dateRange.startDate).toLocaleDateString('fr-FR') : null,
-    dateRange.endDate ? new Date(dateRange.endDate).toLocaleDateString('fr-FR') : null,
-  ].filter(Boolean).join(' - ') || 'All periods';
+  const periodLabel =
+    [
+      dateRange.startDate ? new Date(dateRange.startDate).toLocaleDateString(getLocale()) : null,
+      dateRange.endDate ? new Date(dateRange.endDate).toLocaleDateString(getLocale()) : null,
+    ]
+      .filter(Boolean)
+      .join(' - ') || 'All periods';
 
   const content = `
     <div style="font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px;">
@@ -58,11 +68,15 @@ export const exportPaymentTransactionsPDF = async (transactions, instrumentLabel
         <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">${periodLabel}</p>
       </div>
 
-      ${dateRange.startDate || dateRange.endDate ? `
+      ${
+        dateRange.startDate || dateRange.endDate
+          ? `
         <div style="background: #f5f3ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #8b5cf6;">
           <p style="margin: 0; color: #5b21b6; font-weight: 600;">Period: ${periodLabel}</p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div style="background: #0f1528; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #1e293b;">
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
@@ -98,12 +112,13 @@ export const exportPaymentTransactionsPDF = async (transactions, instrumentLabel
           </tr>
         </thead>
         <tbody>
-          ${transactions.map(tx => {
-            const amount = Number(tx.amount || 0);
-            const direction = tx.flow_direction || (amount >= 0 ? 'inflow' : 'outflow');
-            return `
+          ${transactions
+            .map((tx) => {
+              const amount = Number(tx.amount || 0);
+              const direction = tx.flow_direction || (amount >= 0 ? 'inflow' : 'outflow');
+              return `
               <tr style="border-bottom: 1px solid #374151;">
-                <td style="padding: 10px; color: #374151;">${tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString('fr-FR') : (tx.date ? new Date(tx.date).toLocaleDateString('fr-FR') : 'N/A')}</td>
+                <td style="padding: 10px; color: #374151;">${tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString(getLocale()) : tx.date ? new Date(tx.date).toLocaleDateString(getLocale()) : 'N/A'}</td>
                 <td style="padding: 10px; color: #374151; font-weight: 600;">${tx.counterparty || tx.counterparty_name || 'N/A'}</td>
                 <td style="padding: 10px; color: #6b7280; font-size: 12px;">${tx.description || tx.label || 'N/A'}</td>
                 <td style="padding: 10px; color: #9ca3af; font-family: monospace; font-size: 11px;">${tx.reference || 'N/A'}</td>
@@ -112,12 +127,13 @@ export const exportPaymentTransactionsPDF = async (transactions, instrumentLabel
                 <td style="padding: 10px; text-align: center;">${statusBadge(tx.status)}</td>
               </tr>
             `;
-          }).join('')}
+            })
+            .join('')}
         </tbody>
       </table>
 
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
-        <p style="margin: 0;">Payment Transactions report generated by CashPilot - ${new Date().toLocaleString('fr-FR')}</p>
+        <p style="margin: 0;">Payment Transactions report generated by CashPilot - ${new Date().toLocaleString(getLocale())}</p>
       </div>
     </div>
   `;
@@ -131,7 +147,7 @@ export const exportPaymentTransactionsPDF = async (transactions, instrumentLabel
     filename: `Payment_Transactions_${instrumentLabel ? instrumentLabel.replace(/\s+/g, '_') + '_' : ''}${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
   };
 
   try {

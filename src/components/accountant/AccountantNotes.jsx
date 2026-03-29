@@ -12,6 +12,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatDateTime } from '@/utils/dateLocale';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 
@@ -21,19 +22,6 @@ const entityIcons = {
   accounting_entry: BookOpen,
   report: BarChart3,
   general: StickyNote,
-};
-
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 };
 
 export default function AccountantNotes({

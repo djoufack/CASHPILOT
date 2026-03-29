@@ -3,16 +3,11 @@
  * Compare two or more scenarios side by side with charts and metrics
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { getLocale } from '@/utils/dateLocale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   LineChart,
   Line,
@@ -27,7 +22,6 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, ArrowRight, FileDown } from 'lucide-react';
 import useFinancialScenarios from '@/hooks/useFinancialScenarios';
-import { Badge } from '@/components/ui/badge';
 import { exportScenarioComparisonPDF } from '@/services/exportScenarioPDF';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -43,13 +37,16 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
   const [loading, setLoading] = useState(false);
 
   // Filter completed scenarios
-  const completedScenarios = scenarios.filter(s => s.status === 'completed');
+  const completedScenarios = scenarios.filter((s) => s.status === 'completed');
 
   // Load scenario results
-  const loadScenarioResults = useCallback(async (scenarioId, setResults) => {
-    const results = await getScenarioResults(scenarioId);
-    setResults(results);
-  }, [getScenarioResults]);
+  const loadScenarioResults = useCallback(
+    async (scenarioId, setResults) => {
+      const results = await getScenarioResults(scenarioId);
+      setResults(results);
+    },
+    [getScenarioResults]
+  );
 
   const runComparison = useCallback(async () => {
     setLoading(true);
@@ -82,8 +79,8 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
     if (!comparison || !scenario1Results || !scenario2Results) return;
 
     try {
-      const scenario1 = scenarios.find(s => s.id === scenario1Id);
-      const scenario2 = scenarios.find(s => s.id === scenario2Id);
+      const scenario1 = scenarios.find((s) => s.id === scenario1Id);
+      const scenario2 = scenarios.find((s) => s.id === scenario2Id);
 
       await exportScenarioComparisonPDF(scenario1, scenario2, scenario1Results, scenario2Results, comparison);
 
@@ -94,7 +91,7 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
     } catch (error) {
       console.error('Export error:', error);
       toast({
-        title: 'Erreur d\'export',
+        title: "Erreur d'export",
         description: error.message || 'Impossible de générer le PDF',
         variant: 'destructive',
       });
@@ -103,7 +100,7 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
 
   // Format currency
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat(getLocale(), {
       style: 'currency',
       currency: currency,
       notation: 'compact',
@@ -112,29 +109,28 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
   };
 
   // Merge data for charts
-  const mergedData = scenario1Results && scenario2Results
-    ? scenario1Results.map((r1, index) => ({
-        period: r1.period_label,
-        scenario1_revenue: r1.revenue,
-        scenario2_revenue: scenario2Results[index]?.revenue || 0,
-        scenario1_cash: r1.cashBalance,
-        scenario2_cash: scenario2Results[index]?.cashBalance || 0,
-        scenario1_margin: r1.ebitdaMargin,
-        scenario2_margin: scenario2Results[index]?.ebitdaMargin || 0,
-      }))
-    : [];
+  const mergedData =
+    scenario1Results && scenario2Results
+      ? scenario1Results.map((r1, index) => ({
+          period: r1.period_label,
+          scenario1_revenue: r1.revenue,
+          scenario2_revenue: scenario2Results[index]?.revenue || 0,
+          scenario1_cash: r1.cashBalance,
+          scenario2_cash: scenario2Results[index]?.cashBalance || 0,
+          scenario1_margin: r1.ebitdaMargin,
+          scenario2_margin: scenario2Results[index]?.ebitdaMargin || 0,
+        }))
+      : [];
 
-  const scenario1Name = scenarios.find(s => s.id === scenario1Id)?.name || 'Scénario 1';
-  const scenario2Name = scenarios.find(s => s.id === scenario2Id)?.name || 'Scénario 2';
+  const scenario1Name = scenarios.find((s) => s.id === scenario1Id)?.name || 'Scénario 1';
+  const scenario2Name = scenarios.find((s) => s.id === scenario2Id)?.name || 'Scénario 2';
 
   if (completedScenarios.length < 2) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
           <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Comparaison impossible
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Comparaison impossible</h3>
           <p className="text-gray-600">
             Vous devez avoir au moins 2 scénarios complétés pour effectuer une comparaison
           </p>
@@ -149,9 +145,7 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
       <Card>
         <CardHeader>
           <CardTitle>Comparaison de scénarios</CardTitle>
-          <CardDescription>
-            Sélectionnez deux scénarios complétés pour comparer leurs résultats
-          </CardDescription>
+          <CardDescription>Sélectionnez deux scénarios complétés pour comparer leurs résultats</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
@@ -162,12 +156,8 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
                   <SelectValue placeholder="Sélectionnez..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {completedScenarios.map(scenario => (
-                    <SelectItem
-                      key={scenario.id}
-                      value={scenario.id}
-                      disabled={scenario.id === scenario2Id}
-                    >
+                  {completedScenarios.map((scenario) => (
+                    <SelectItem key={scenario.id} value={scenario.id} disabled={scenario.id === scenario2Id}>
                       {scenario.name}
                     </SelectItem>
                   ))}
@@ -186,12 +176,8 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
                   <SelectValue placeholder="Sélectionnez..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {completedScenarios.map(scenario => (
-                    <SelectItem
-                      key={scenario.id}
-                      value={scenario.id}
-                      disabled={scenario.id === scenario1Id}
-                    >
+                  {completedScenarios.map((scenario) => (
+                    <SelectItem key={scenario.id} value={scenario.id} disabled={scenario.id === scenario1Id}>
                       {scenario.name}
                     </SelectItem>
                   ))}
@@ -218,29 +204,25 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
           <Card>
             <CardHeader>
               <CardTitle>Résumé de la comparaison</CardTitle>
-              <CardDescription>
-                Différences clés entre les deux scénarios
-              </CardDescription>
+              <CardDescription>Différences clés entre les deux scénarios</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Revenue Difference */}
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <div className="flex items-start justify-between mb-2">
-                    <p className="text-sm font-medium text-blue-900">
-                      Différence de CA final
-                    </p>
+                    <p className="text-sm font-medium text-blue-900">Différence de CA final</p>
                     {comparison.summary.finalRevenueDiff >= 0 ? (
                       <TrendingUp className="w-4 h-4 text-green-600" />
                     ) : (
                       <TrendingDown className="w-4 h-4 text-red-600" />
                     )}
                   </div>
-                  <p className={`text-2xl font-bold ${
-                    comparison.summary.finalRevenueDiff >= 0
-                      ? 'text-green-600'
-                      : 'text-red-600'
-                  }`}>
+                  <p
+                    className={`text-2xl font-bold ${
+                      comparison.summary.finalRevenueDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}
+                  >
                     {comparison.summary.finalRevenueDiff >= 0 ? '+' : ''}
                     {formatCurrency(comparison.summary.finalRevenueDiff)}
                   </p>
@@ -252,20 +234,18 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
                 {/* Cash Difference */}
                 <div className="p-4 bg-green-50 rounded-lg">
                   <div className="flex items-start justify-between mb-2">
-                    <p className="text-sm font-medium text-green-900">
-                      Différence de trésorerie
-                    </p>
+                    <p className="text-sm font-medium text-green-900">Différence de trésorerie</p>
                     {comparison.summary.finalCashDiff >= 0 ? (
                       <TrendingUp className="w-4 h-4 text-green-600" />
                     ) : (
                       <TrendingDown className="w-4 h-4 text-red-600" />
                     )}
                   </div>
-                  <p className={`text-2xl font-bold ${
-                    comparison.summary.finalCashDiff >= 0
-                      ? 'text-green-600'
-                      : 'text-red-600'
-                  }`}>
+                  <p
+                    className={`text-2xl font-bold ${
+                      comparison.summary.finalCashDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}
+                  >
                     {comparison.summary.finalCashDiff >= 0 ? '+' : ''}
                     {formatCurrency(comparison.summary.finalCashDiff)}
                   </p>
@@ -277,20 +257,18 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
                 {/* Profit Difference */}
                 <div className="p-4 bg-purple-50 rounded-lg">
                   <div className="flex items-start justify-between mb-2">
-                    <p className="text-sm font-medium text-purple-900">
-                      Différence de résultat net
-                    </p>
+                    <p className="text-sm font-medium text-purple-900">Différence de résultat net</p>
                     {comparison.summary.finalProfitDiff >= 0 ? (
                       <TrendingUp className="w-4 h-4 text-green-600" />
                     ) : (
                       <TrendingDown className="w-4 h-4 text-red-600" />
                     )}
                   </div>
-                  <p className={`text-2xl font-bold ${
-                    comparison.summary.finalProfitDiff >= 0
-                      ? 'text-green-600'
-                      : 'text-red-600'
-                  }`}>
+                  <p
+                    className={`text-2xl font-bold ${
+                      comparison.summary.finalProfitDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}
+                  >
                     {comparison.summary.finalProfitDiff >= 0 ? '+' : ''}
                     {formatCurrency(comparison.summary.finalProfitDiff)}
                   </p>
@@ -313,10 +291,7 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="period" />
                   <YAxis tickFormatter={formatCurrency} />
-                  <Tooltip
-                    formatter={(value) => formatCurrency(value)}
-                    labelStyle={{ color: '#000' }}
-                  />
+                  <Tooltip formatter={(value) => formatCurrency(value)} labelStyle={{ color: '#000' }} />
                   <Legend />
                   <Line
                     type="monotone"
@@ -348,10 +323,7 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="period" />
                   <YAxis tickFormatter={formatCurrency} />
-                  <Tooltip
-                    formatter={(value) => formatCurrency(value)}
-                    labelStyle={{ color: '#000' }}
-                  />
+                  <Tooltip formatter={(value) => formatCurrency(value)} labelStyle={{ color: '#000' }} />
                   <Legend />
                   <Line
                     type="monotone"
@@ -383,10 +355,7 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="period" />
                   <YAxis tickFormatter={(value) => `${value}%`} />
-                  <Tooltip
-                    formatter={(value) => `${value.toFixed(1)}%`}
-                    labelStyle={{ color: '#000' }}
-                  />
+                  <Tooltip formatter={(value) => `${value.toFixed(1)}%`} labelStyle={{ color: '#000' }} />
                   <Legend />
                   <Bar dataKey="scenario1_margin" fill="#3b82f6" name={scenario1Name} />
                   <Bar dataKey="scenario2_margin" fill="#10b981" name={scenario2Name} />
@@ -401,9 +370,7 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Tableau de comparaison détaillé</CardTitle>
-                  <CardDescription>
-                    Évolution mois par mois des différences
-                  </CardDescription>
+                  <CardDescription>Évolution mois par mois des différences</CardDescription>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleExportPDF}>
                   <FileDown className="w-4 h-4 mr-2" />
@@ -427,31 +394,33 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
                     {comparison.revenueDifference.map((item, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-4 py-2 font-medium">{item.date}</td>
-                        <td className={`px-4 py-2 text-right ${
-                          item.difference >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
+                        <td
+                          className={`px-4 py-2 text-right ${item.difference >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                        >
                           {item.difference >= 0 ? '+' : ''}
                           {formatCurrency(item.difference)}
                         </td>
-                        <td className={`px-4 py-2 text-right ${
-                          item.percentDiff >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
+                        <td
+                          className={`px-4 py-2 text-right ${
+                            item.percentDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}
+                        >
                           {item.percentDiff >= 0 ? '+' : ''}
                           {item.percentDiff.toFixed(1)}%
                         </td>
-                        <td className={`px-4 py-2 text-right ${
-                          comparison.cashFlowDifference[index]?.difference >= 0
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}>
+                        <td
+                          className={`px-4 py-2 text-right ${
+                            comparison.cashFlowDifference[index]?.difference >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}
+                        >
                           {comparison.cashFlowDifference[index]?.difference >= 0 ? '+' : ''}
                           {formatCurrency(comparison.cashFlowDifference[index]?.difference || 0)}
                         </td>
-                        <td className={`px-4 py-2 text-right ${
-                          comparison.cashFlowDifference[index]?.percentDiff >= 0
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}>
+                        <td
+                          className={`px-4 py-2 text-right ${
+                            comparison.cashFlowDifference[index]?.percentDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}
+                        >
                           {comparison.cashFlowDifference[index]?.percentDiff >= 0 ? '+' : ''}
                           {(comparison.cashFlowDifference[index]?.percentDiff || 0).toFixed(1)}%
                         </td>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSupplierServices } from '@/hooks/useSupplierServices';
 import { validateServiceCatalogPayload, isGenericServiceName } from '@/utils/serviceCatalogQuality';
@@ -6,6 +6,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { exportSupplierServicePDF, exportSupplierServiceHTML } from '@/services/exportSupplierRecords';
 import { Button } from '@/components/ui/button';
+import { getLocale, formatDate } from '@/utils/dateLocale';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -52,7 +53,7 @@ const SupplierServices = ({ supplierId, supplier }) => {
 
   const formatMoney = (value) => {
     const amount = Number(value || 0);
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat(getLocale(), {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,
@@ -105,9 +106,7 @@ const SupplierServices = ({ supplierId, supplier }) => {
   };
 
   const handleDelete = async (service) => {
-    const confirmed = window.confirm(
-      t('suppliers.services.confirmDelete', 'Supprimer ce service fournisseur ?'),
-    );
+    const confirmed = window.confirm(t('suppliers.services.confirmDelete', 'Supprimer ce service fournisseur ?'));
     if (!confirmed) return;
     await deleteService(service.id);
   };
@@ -140,13 +139,29 @@ const SupplierServices = ({ supplierId, supplier }) => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-gradient">{t('suppliers.services.vendorCatalog', 'Catalogue des services fournisseur')}</h3>
-          <p className="text-sm text-gray-400">{t('suppliers.services.vendorCatalogSubtitle', 'Services achetes aupres de ce fournisseur (cote achats).')}</p>
+          <h3 className="text-lg font-semibold text-gradient">
+            {t('suppliers.services.vendorCatalog', 'Catalogue des services fournisseur')}
+          </h3>
+          <p className="text-sm text-gray-400">
+            {t('suppliers.services.vendorCatalogSubtitle', 'Services achetes aupres de ce fournisseur (cote achats).')}
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Badge className={qualitySnapshot.genericNames > 0 ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'}>
+            <Badge
+              className={
+                qualitySnapshot.genericNames > 0
+                  ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                  : 'bg-green-500/20 text-green-300 border-green-500/30'
+              }
+            >
               Noms generiques: {qualitySnapshot.genericNames}
             </Badge>
-            <Badge className={qualitySnapshot.missingPrice > 0 ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'}>
+            <Badge
+              className={
+                qualitySnapshot.missingPrice > 0
+                  ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                  : 'bg-green-500/20 text-green-300 border-green-500/30'
+              }
+            >
               Prix manquants/invalides: {qualitySnapshot.missingPrice}
             </Badge>
           </div>
@@ -156,10 +171,13 @@ const SupplierServices = ({ supplierId, supplier }) => {
             </p>
           )}
         </div>
-        <Dialog open={isModalOpen} onOpenChange={(open) => {
-          setIsModalOpen(open);
-          if (!open) resetForm();
-        }}>
+        <Dialog
+          open={isModalOpen}
+          onOpenChange={(open) => {
+            setIsModalOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={openCreateModal}>
               <Plus className="mr-2 h-4 w-4" /> {t('suppliers.services.addService')}
@@ -168,7 +186,9 @@ const SupplierServices = ({ supplierId, supplier }) => {
           <DialogContent className="bg-gray-800 border-gray-700 text-white">
             <DialogHeader>
               <DialogTitle>
-                {editingServiceId ? t('suppliers.services.editService', 'Modifier le service') : t('suppliers.services.addService')}
+                {editingServiceId
+                  ? t('suppliers.services.editService', 'Modifier le service')
+                  : t('suppliers.services.addService')}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -239,7 +259,9 @@ const SupplierServices = ({ supplierId, supplier }) => {
       <Dialog open={!!viewingService} onOpenChange={(open) => !open && setViewingService(null)}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-xl">
           <DialogHeader>
-            <DialogTitle>{t('common.view', 'Visualiser')} - {viewingService?.service_name}</DialogTitle>
+            <DialogTitle>
+              {t('common.view', 'Visualiser')} - {viewingService?.service_name}
+            </DialogTitle>
           </DialogHeader>
           {viewingService && (
             <div className="space-y-3 text-sm">
@@ -263,7 +285,7 @@ const SupplierServices = ({ supplierId, supplier }) => {
                 <div>
                   <p className="text-gray-400">Créé le</p>
                   <p className="font-semibold">
-                    {viewingService.created_at ? new Date(viewingService.created_at).toLocaleDateString('fr-FR') : '-'}
+                    {viewingService.created_at ? formatDate(viewingService.created_at) : '-'}
                   </p>
                 </div>
               </div>
@@ -315,16 +337,40 @@ const SupplierServices = ({ supplierId, supplier }) => {
                 <TableCell className="text-gray-400">{service.unit}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300" onClick={() => setViewingService(service)} title="Visualiser">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-blue-400 hover:text-blue-300"
+                      onClick={() => setViewingService(service)}
+                      title="Visualiser"
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-orange-400 hover:text-orange-300" onClick={() => openEditModal(service)} title="Modifier">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-orange-400 hover:text-orange-300"
+                      onClick={() => openEditModal(service)}
+                      title="Modifier"
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300" onClick={() => handleExportPdf(service)} title="Export PDF">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-purple-400 hover:text-purple-300"
+                      onClick={() => handleExportPdf(service)}
+                      title="Export PDF"
+                    >
                       <Download className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300" onClick={() => handleExportHtml(service)} title="Export HTML">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-cyan-400 hover:text-cyan-300"
+                      onClick={() => handleExportHtml(service)}
+                      title="Export HTML"
+                    >
                       <FileText className="h-4 w-4" />
                     </Button>
                     <Button
@@ -342,7 +388,9 @@ const SupplierServices = ({ supplierId, supplier }) => {
             ))}
             {!loading && services.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-500 py-6">{t('suppliers.services.noServices')}</TableCell>
+                <TableCell colSpan={5} className="text-center text-gray-500 py-6">
+                  {t('suppliers.services.noServices')}
+                </TableCell>
               </TableRow>
             )}
           </TableBody>

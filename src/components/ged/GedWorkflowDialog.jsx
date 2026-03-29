@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2, PenSquare, Send, Workflow, XCircle } from 'lucide-react';
+import { formatDateTime } from '@/utils/dateLocale';
 
 const WORKFLOW_STATUS_META = {
   pending_review: {
@@ -28,7 +29,7 @@ const formatTimestamp = (value) => {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString('fr-FR');
+  return formatDateTime(date);
 };
 
 const GedWorkflowDialog = ({

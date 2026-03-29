@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
+import { formatDate } from '@/utils/dateLocale';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useCreditsGuard } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
@@ -1107,13 +1108,11 @@ const SupplierInvoicesPage = () => {
 
                         {/* Date */}
                         <TableCell className="text-gray-400">
-                          {inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('fr-FR') : '—'}
+                          {inv.invoice_date ? formatDate(inv.invoice_date) : '—'}
                         </TableCell>
 
                         {/* Due Date */}
-                        <TableCell className="text-gray-400">
-                          {inv.due_date ? new Date(inv.due_date).toLocaleDateString('fr-FR') : '—'}
-                        </TableCell>
+                        <TableCell className="text-gray-400">{inv.due_date ? formatDate(inv.due_date) : '—'}</TableCell>
 
                         {/* Amount */}
                         <TableCell className="text-right font-semibold text-white">

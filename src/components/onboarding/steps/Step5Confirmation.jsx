@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
+import { formatNumber } from '@/utils/dateLocale';
 import { initializeAccounting, initializeAccountingFromPlan } from '@/services/accountingInitService';
 import { generateOpeningEntries } from '@/services/openingBalanceService';
 import { ArrowLeft, CheckCircle2, Loader2, Rocket, Building2, FileText, PiggyBank, PartyPopper } from 'lucide-react';
@@ -262,7 +263,7 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
                         <div key={key} className="flex justify-between">
                           <span>{t(`onboarding.balances.${key}`, key)}</span>
                           <span style={{ color: '#e8eaf0' }}>
-                            {parseFloat(val).toLocaleString('fr-FR')} {selectedCurrency}
+                            {formatNumber(parseFloat(val))} {selectedCurrency}
                           </span>
                         </div>
                       ))}

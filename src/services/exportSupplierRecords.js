@@ -1,3 +1,4 @@
+import { getLocale } from '@/utils/dateLocale';
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { supabase } from '@/lib/supabase';
@@ -11,7 +12,7 @@ import { escapeHTML as escapeHtml, setSafeHtml } from '@/utils/sanitize';
 
 const formatMoney = (value, currency = 'EUR') => {
   const amount = Number(value || 0);
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -72,7 +73,7 @@ const exportSupplierRecordAsHtml = ({ title, filename, content }) => {
   downloadHtmlFile(html, filename);
 };
 
-const toDisplayDate = (value) => (value ? new Date(value).toLocaleDateString('fr-FR') : '-');
+const toDisplayDate = (value) => (value ? new Date(value).toLocaleDateString(getLocale()) : '-');
 
 const normalizePricingType = (value) => {
   if (value === 'hourly') return 'Horaire';

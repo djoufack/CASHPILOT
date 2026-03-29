@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Eye, Trash2, FileText, Download, FileSignature, Copy, Loader2, CircleOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
+import { formatDate } from '@/utils/dateLocale';
 import { CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import PaginationControls from '@/components/PaginationControls';
 
@@ -127,15 +128,11 @@ const QuoteGalleryView = ({
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
                   <p className="text-gray-400">{t('quotesPage.date')}</p>
-                  <p className="text-gray-200 mt-1">
-                    {quote.date ? new Date(quote.date).toLocaleDateString('fr-FR') : '-'}
-                  </p>
+                  <p className="text-gray-200 mt-1">{quote.date ? formatDate(quote.date) : '-'}</p>
                 </div>
                 <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
                   <p className="text-gray-400">{t('invoices.dueDate')}</p>
-                  <p className="text-gray-200 mt-1">
-                    {quote.due_date ? new Date(quote.due_date).toLocaleDateString('fr-FR') : '-'}
-                  </p>
+                  <p className="text-gray-200 mt-1">{quote.due_date ? formatDate(quote.due_date) : '-'}</p>
                 </div>
               </div>
 

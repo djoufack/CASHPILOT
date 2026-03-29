@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileDown, BookOpen, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
+import { formatDate } from '@/utils/dateLocale';
 
 /**
  * Groups trial balance entries by account class prefix.
@@ -204,8 +205,7 @@ const FinancialAnnexes = ({
                   {period?.startDate && period?.endDate && (
                     <span>
                       {' '}
-                      — Du {new Date(period.startDate).toLocaleDateString('fr-FR')} au{' '}
-                      {new Date(period.endDate).toLocaleDateString('fr-FR')}
+                      — Du {formatDate(period.startDate)} au {formatDate(period.endDate)}
                     </span>
                   )}
                 </p>
@@ -398,7 +398,7 @@ const FinancialAnnexes = ({
           {/* Footer */}
           <div className="mt-8 pt-4 border-t border-gray-700/50 text-center">
             <p className="text-xs text-gray-500">
-              Notes generees automatiquement par CashPilot — {new Date().toLocaleDateString('fr-FR')}
+              Notes generees automatiquement par CashPilot — {formatDate(new Date())}
             </p>
           </div>
         </CardContent>

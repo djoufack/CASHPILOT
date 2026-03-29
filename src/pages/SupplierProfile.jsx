@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { getLocale } from '@/utils/dateLocale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -361,7 +362,7 @@ const SupplierProfile = () => {
                       <Wallet className="w-3 h-3" /> Depenses totalisees
                     </p>
                     <p className="text-2xl font-bold text-purple-300 mt-1">
-                      {new Intl.NumberFormat('fr-FR', {
+                      {new Intl.NumberFormat(getLocale(), {
                         style: 'currency',
                         currency: supplier.currency || 'EUR',
                       }).format(overview.totalSpend || 0)}

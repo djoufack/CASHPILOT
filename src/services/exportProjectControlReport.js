@@ -1,17 +1,11 @@
+import { getLocale, formatDate } from '@/utils/dateLocale';
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { escapeHTML as escapeHtml, setSafeHtml } from '@/utils/sanitize';
 
 const formatCurrency = (value, currency = 'EUR') => {
   const amount = Number(value) || 0;
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount);
-};
-
-const formatDate = (value) => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString('fr-FR');
+  return new Intl.NumberFormat(getLocale(), { style: 'currency', currency }).format(amount);
 };
 
 const buildReportContent = (payload) => {

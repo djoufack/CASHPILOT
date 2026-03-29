@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link2, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react';
+import { formatDate } from '@/utils/dateLocale';
 
 const linkTypeBadge = {
   customer: 'bg-blue-500/20 text-blue-300',
@@ -42,7 +43,7 @@ const InterCompanyLinksList = ({ links, onToggle, onDelete }) => {
                   <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>
                     {t(`intercompany.linkType.${link.link_type}`, link.link_type)}
                   </span>
-                  <span className="text-xs text-gray-500">{new Date(link.created_at).toLocaleDateString('fr-FR')}</span>
+                  <span className="text-xs text-gray-500">{formatDate(link.created_at)}</span>
                 </div>
               </div>
             </div>

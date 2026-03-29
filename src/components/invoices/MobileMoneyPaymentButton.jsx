@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { formatNumber } from '@/utils/dateLocale';
 import { Label } from '@/components/ui/label';
 import { useMobileMoney } from '@/hooks/useMobileMoney';
 
@@ -125,7 +126,7 @@ export default function MobileMoneyPaymentButton({ invoiceId, amount, currency =
               <div className="flex items-center justify-between px-4 py-3 bg-white/5 rounded-lg">
                 <span className="text-gray-400">{t('mobileMoney.amount', 'Montant')}</span>
                 <span className="text-xl font-bold text-white">
-                  {amount?.toLocaleString('fr-FR')} {currency}
+                  {formatNumber(amount)} {currency}
                 </span>
               </div>
 

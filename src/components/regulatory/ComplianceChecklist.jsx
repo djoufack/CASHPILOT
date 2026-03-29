@@ -30,7 +30,7 @@ const ComplianceChecklist = ({ items, onToggle, loading }) => {
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
     try {
-      return new Date(dateStr).toLocaleDateString('fr-FR', {
+      return formatDate(dateStr, {
         day: '2-digit',
         month: 'short',
         year: 'numeric',

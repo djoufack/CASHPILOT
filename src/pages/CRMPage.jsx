@@ -24,6 +24,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getLocale, formatDate as formatDateLocale, formatDateTime as formatDateTimeLocale } from '@/utils/dateLocale';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -66,7 +67,7 @@ const openOpportunityStatuses = new Set(['draft', 'sent', 'pending', 'open']);
 const closedWonQuoteStatuses = new Set(['accepted', 'approved', 'signed']);
 
 const formatMoney = (amount, currency = 'EUR') =>
-  new Intl.NumberFormat('fr-FR', {
+  new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -77,14 +78,14 @@ const formatDate = (rawDate) => {
   if (!rawDate) return '-';
   const parsed = new Date(rawDate);
   if (Number.isNaN(parsed.getTime())) return '-';
-  return parsed.toLocaleDateString('fr-FR');
+  return formatDateLocale(parsed);
 };
 
 const formatDateTime = (rawDate) => {
   if (!rawDate) return '-';
   const parsed = new Date(rawDate);
   if (Number.isNaN(parsed.getTime())) return '-';
-  return parsed.toLocaleString('fr-FR');
+  return formatDateTimeLocale(parsed);
 };
 
 const statusBadgeClass = (status = '') => {

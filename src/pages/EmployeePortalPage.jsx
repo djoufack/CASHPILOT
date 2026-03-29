@@ -13,6 +13,7 @@ import {
   Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getLocale, formatDate } from '@/utils/dateLocale';
 import { useEmployeePortal } from '@/hooks/useEmployeePortal';
 import EmployeeLeavePanel from '@/components/employee/EmployeeLeavePanel';
 import EmployeeExpensePanel from '@/components/employee/EmployeeExpensePanel';
@@ -64,7 +65,7 @@ const PersonalInfoCard = ({ employee }) => {
       icon: Calendar,
       label: t('employee.info.hireDate', "Date d'embauche"),
       value: employee.hire_date
-        ? new Date(employee.hire_date).toLocaleDateString('fr-FR', {
+        ? formatDate(employee.hire_date, {
             day: 'numeric',
             month: 'long',
             year: 'numeric',
@@ -254,7 +255,7 @@ const EmployeePortalPage = () => {
                 value={`${kpis.pendingExpenses.length}`}
                 subtext={
                   kpis.pendingTotal > 0
-                    ? new Intl.NumberFormat('fr-FR', {
+                    ? new Intl.NumberFormat(getLocale(), {
                         style: 'currency',
                         currency: 'EUR',
                         maximumFractionDigits: 0,
@@ -280,7 +281,7 @@ const EmployeePortalPage = () => {
               <KpiCard
                 icon={FileText}
                 label={t('employee.kpi.nextPayday', 'Prochaine paie')}
-                value={kpis.nextPayday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                value={formatDate(kpis.nextPayday, { day: 'numeric', month: 'short' })}
                 subtext={`${kpis.daysUntilPayday} ${t('employee.kpi.daysLeft', 'jours restants')}`}
                 colorClass="bg-gradient-to-br from-amber-500 to-orange-600"
               />

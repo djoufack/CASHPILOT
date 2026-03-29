@@ -14,6 +14,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useBilanSocial } from '@/hooks/useBilanSocial';
+import { getLocale, formatDate } from '@/utils/dateLocale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,16 +30,16 @@ const fmt = (v, decimals = 1) => {
 
 const fmtInt = (v) => {
   const n = Number(v || 0);
-  return Number.isFinite(n) ? Math.round(n).toLocaleString('fr-FR') : '0';
+  return Number.isFinite(n) ? Math.round(n).toLocaleString(getLocale()) : '0';
 };
 
 const fmtCurrency = (v) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(Number(v || 0));
+  new Intl.NumberFormat(getLocale(), { style: 'currency', currency: 'EUR' }).format(Number(v || 0));
 
 const fmtMonth = (dateStr) => {
   if (!dateStr) return '';
   const d = new Date(dateStr);
-  return d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+  return formatDate(d, { month: 'short', year: '2-digit' });
 };
 
 const delta = (current, previous, key) => {
@@ -509,7 +510,7 @@ export default function BilanSocialPage() {
             Tableau de bord des indicateurs sociaux
             {latestSnapshot?.snapshot_date && (
               <span className="ml-2 text-white/30 print:text-gray-400">
-                - Derniere mise a jour : {new Date(latestSnapshot.snapshot_date).toLocaleDateString('fr-FR')}
+                - Derniere mise a jour : {formatDate(latestSnapshot.snapshot_date)}
               </span>
             )}
           </p>

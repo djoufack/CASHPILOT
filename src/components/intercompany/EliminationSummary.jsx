@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
+import { formatNumber, formatDate } from '@/utils/dateLocale';
 
 const statusBadge = {
   draft: 'bg-yellow-500/20 text-yellow-300',
@@ -8,7 +9,7 @@ const statusBadge = {
 };
 
 const formatCurrency = (value) =>
-  Number(value || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  formatNumber(Number(value || 0), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const EliminationSummary = ({ eliminations, loading }) => {
   const { t } = useTranslation();
@@ -84,9 +85,9 @@ const EliminationSummary = ({ eliminations, loading }) => {
               return (
                 <tr key={elim.id} className="border-b border-white/5 hover:bg-white/[0.02]">
                   <td className="py-2 px-3 text-white">
-                    {new Date(elim.period_start).toLocaleDateString('fr-FR')}
+                    {formatDate(elim.period_start)}
                     {' - '}
-                    {new Date(elim.period_end).toLocaleDateString('fr-FR')}
+                    {formatDate(elim.period_end)}
                   </td>
                   <td className="py-2 px-3 text-right text-white font-mono">
                     {formatCurrency(elim.eliminated_amount)} EUR
@@ -98,7 +99,7 @@ const EliminationSummary = ({ eliminations, loading }) => {
                     </span>
                   </td>
                   <td className="py-2 px-3 text-right text-gray-400 text-xs">
-                    {new Date(elim.created_at).toLocaleDateString('fr-FR', {
+                    {formatDate(elim.created_at, {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric',

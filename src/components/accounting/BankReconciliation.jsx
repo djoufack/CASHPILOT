@@ -26,6 +26,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useBankReconciliation } from '@/hooks/useBankReconciliation';
+import { formatDate } from '@/utils/dateLocale';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { normalizeTransactions, searchMatches, getReconciliationSummary } from '@/utils/reconciliationMatcher';
 import { formatCurrency } from '@/utils/calculations';
@@ -290,7 +291,7 @@ const BankReconciliation = ({ period }) => {
                         <td className="py-3 px-4 font-medium">{stmt.bank_name || '—'}</td>
                         <td className="py-3 px-4 text-gray-400 text-xs">
                           {stmt.period_start
-                            ? `${new Date(stmt.period_start).toLocaleDateString('fr-FR')} → ${new Date(stmt.period_end).toLocaleDateString('fr-FR')}`
+                            ? `${formatDate(stmt.period_start)} → ${formatDate(stmt.period_end)}`
                             : '—'}
                         </td>
                         <td className="py-3 px-4 text-gray-400 text-xs max-w-[200px] truncate">{stmt.file_name}</td>
@@ -377,8 +378,7 @@ const BankReconciliation = ({ period }) => {
             </h2>
             {selectedStatement?.period_start && (
               <p className="text-xs text-gray-500">
-                {new Date(selectedStatement.period_start).toLocaleDateString('fr-FR')} au{' '}
-                {new Date(selectedStatement.period_end).toLocaleDateString('fr-FR')}
+                {formatDate(selectedStatement.period_start)} au {formatDate(selectedStatement.period_end)}
               </p>
             )}
           </div>
@@ -493,9 +493,7 @@ const BankReconciliation = ({ period }) => {
               </div>
 
               {/* Date */}
-              <div className="shrink-0 w-[70px] text-xs text-gray-400">
-                {new Date(line.transaction_date).toLocaleDateString('fr-FR')}
-              </div>
+              <div className="shrink-0 w-[70px] text-xs text-gray-400">{formatDate(line.transaction_date)}</div>
 
               {/* Amount icon */}
               <div className="shrink-0">
@@ -609,9 +607,7 @@ const BankReconciliation = ({ period }) => {
                     className="flex items-center gap-3 p-2 bg-gray-800 rounded hover:bg-gray-700 text-xs"
                   >
                     <SourceIcon type={txn.source_type} />
-                    <span className="text-gray-400 w-[60px] shrink-0">
-                      {txn.date ? new Date(txn.date).toLocaleDateString('fr-FR') : '—'}
-                    </span>
+                    <span className="text-gray-400 w-[60px] shrink-0">{txn.date ? formatDate(txn.date) : '—'}</span>
                     <span className="flex-1 truncate text-gray-300">{txn.description}</span>
                     <span className={`font-mono shrink-0 ${txn.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       {formatCurrency(txn.amount)}

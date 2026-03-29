@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { formatDate as formatDateLocale, getLocale } from '@/utils/dateLocale';
 import { useToast } from '@/components/ui/use-toast';
 import { useProjectControl } from '@/hooks/useProjectControl';
 import { useTeamSettings } from '@/hooks/useTeamSettings';
@@ -29,11 +30,11 @@ const formatDate = (value) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString('fr-FR');
+  return formatDateLocale(date);
 };
 
 const formatCurrency = (value, currency = 'EUR') => {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(toNumber(value));
+  return new Intl.NumberFormat(getLocale(), { style: 'currency', currency }).format(toNumber(value));
 };
 
 const monthKey = (value) => {

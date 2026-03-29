@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Target } from 'lucide-react';
+import { getLocale } from '@/utils/dateLocale';
 
-const percentFormatter = new Intl.NumberFormat('fr-FR', {
+const percentFormatter = new Intl.NumberFormat(getLocale(), {
   style: 'percent',
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
@@ -30,9 +31,7 @@ const STATUS_COLORS = {
   gray: 'bg-gray-600',
 };
 
-const StatusDot = ({ status }) => (
-  <span className={`inline-block w-2.5 h-2.5 rounded-full ${STATUS_COLORS[status]}`} />
-);
+const StatusDot = ({ status }) => <span className={`inline-block w-2.5 h-2.5 rounded-full ${STATUS_COLORS[status]}`} />;
 
 const SectorBenchmark = ({ data, sector }) => {
   const { t } = useTranslation();
@@ -116,7 +115,7 @@ const SectorBenchmark = ({ data, sector }) => {
     if (value == null) return '--';
     switch (format) {
       case 'percent':
-        return `${Number(value).toFixed(1)} %`;
+        return percentFormatter.format(Number(value) / 100);
       case 'x':
         return `${Number(value).toFixed(2)}x`;
       case 'days':
@@ -132,11 +131,7 @@ const SectorBenchmark = ({ data, sector }) => {
         <CardTitle className="flex items-center gap-2 text-gray-100">
           <Target className="w-5 h-5 text-orange-400" />
           {t('pilotage.benchmark.title')}
-          {sector && (
-            <span className="ml-2 text-sm font-normal text-gray-400">
-              — {sector}
-            </span>
-          )}
+          {sector && <span className="ml-2 text-sm font-normal text-gray-400">— {sector}</span>}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -147,31 +142,18 @@ const SectorBenchmark = ({ data, sector }) => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-gray-400 border-b border-gray-700">
-                  <th className="text-left py-2 px-3 font-medium">
-                    {t('pilotage.benchmark.ratio')}
-                  </th>
-                  <th className="text-right py-2 px-3 font-medium">
-                    {t('pilotage.benchmark.actual')}
-                  </th>
-                  <th className="text-right py-2 px-3 font-medium">
-                    {t('pilotage.benchmark.target')}
-                  </th>
-                  <th className="text-center py-2 px-3 font-medium">
-                    {t('pilotage.benchmark.status')}
-                  </th>
+                  <th className="text-left py-2 px-3 font-medium">{t('pilotage.benchmark.ratio')}</th>
+                  <th className="text-right py-2 px-3 font-medium">{t('pilotage.benchmark.actual')}</th>
+                  <th className="text-right py-2 px-3 font-medium">{t('pilotage.benchmark.target')}</th>
+                  <th className="text-center py-2 px-3 font-medium">{t('pilotage.benchmark.status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => {
                   const status = evaluateStatus(row.actual, row.target, row.lowerIsBetter);
                   return (
-                    <tr
-                      key={row.key}
-                      className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors"
-                    >
-                      <td className="py-2.5 px-3 text-gray-300">
-                        {row.label}
-                      </td>
+                    <tr key={row.key} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                      <td className="py-2.5 px-3 text-gray-300">{row.label}</td>
                       <td className="py-2.5 px-3 text-right font-mono text-gray-100">
                         {formatValue(row.actual, row.format)}
                       </td>

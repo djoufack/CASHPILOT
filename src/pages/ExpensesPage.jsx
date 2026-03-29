@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
@@ -7,6 +6,7 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useCompany } from '@/hooks/useCompany';
+import { formatDate } from '@/utils/dateLocale';
 import { getCurrencySymbol } from '@/utils/currencyService';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
@@ -17,7 +17,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Search, Receipt, Loader2, Trash2, List, CalendarDays, CalendarClock, Download, FileText, Eye, Pencil, MoreHorizontal } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Receipt,
+  Loader2,
+  Trash2,
+  List,
+  CalendarDays,
+  CalendarClock,
+  Download,
+  FileText,
+  Eye,
+  Pencil,
+  MoreHorizontal,
+} from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
@@ -26,7 +40,16 @@ import { exportExpensesListPDF, exportExpensesListHTML } from '@/services/export
 import ExportButton from '@/components/ExportButton';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { formatDateInput } from '@/utils/dateFormatting';
 import VirtualizedTable from '@/components/VirtualizedTable';
 import SectionErrorBoundary from '@/components/SectionErrorBoundary';
@@ -35,27 +58,60 @@ const ExpenseActions = ({ expense, onView, onEdit, onDelete, onExportPDF, onExpo
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
-      <button onClick={() => setOpen(!open)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+      >
         <MoreHorizontal className="w-4 h-4" />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-8 z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-[160px]">
-            <button onClick={() => { onView(expense); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+            <button
+              onClick={() => {
+                onView(expense);
+                setOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
               <Eye className="w-3.5 h-3.5" /> Visualiser
             </button>
-            <button onClick={() => { onEdit(expense); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+            <button
+              onClick={() => {
+                onEdit(expense);
+                setOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
               <Pencil className="w-3.5 h-3.5" /> Modifier
             </button>
-            <button onClick={() => { onExportPDF(expense); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+            <button
+              onClick={() => {
+                onExportPDF(expense);
+                setOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
               <Download className="w-3.5 h-3.5" /> Export PDF
             </button>
-            <button onClick={() => { onExportHTML(expense); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+            <button
+              onClick={() => {
+                onExportHTML(expense);
+                setOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
               <FileText className="w-3.5 h-3.5" /> Export HTML
             </button>
             <div className="border-t border-gray-700 my-1" />
-            <button onClick={() => { onDelete(expense); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300">
+            <button
+              onClick={() => {
+                onDelete(expense);
+                setOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300"
+            >
               <Trash2 className="w-3.5 h-3.5" /> Supprimer
             </button>
           </div>
@@ -89,7 +145,7 @@ const ExpensesPage = () => {
     category: 'general',
     expense_date: formatDateInput(),
     notes: '',
-    supplier_id: ''
+    supplier_id: '',
   };
   const [formData, setFormData] = useState(emptyForm);
 
@@ -110,23 +166,15 @@ const ExpensesPage = () => {
   };
 
   const handleExportPDF = () => {
-    guardedAction(
-      CREDIT_COSTS.PDF_REPORT,
-      'Expenses List PDF',
-      async () => {
-        await exportExpensesListPDF(filteredExpenses, company, { searchTerm });
-      }
-    );
+    guardedAction(CREDIT_COSTS.PDF_REPORT, 'Expenses List PDF', async () => {
+      await exportExpensesListPDF(filteredExpenses, company, { searchTerm });
+    });
   };
 
   const handleExportHTML = () => {
-    guardedAction(
-      CREDIT_COSTS.EXPORT_HTML,
-      'Expenses List HTML',
-      () => {
-        exportExpensesListHTML(filteredExpenses, company, { searchTerm });
-      }
-    );
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Expenses List HTML', () => {
+      exportExpensesListHTML(filteredExpenses, company, { searchTerm });
+    });
   };
 
   const handleView = (exp) => setViewExpense(exp);
@@ -186,18 +234,26 @@ const ExpensesPage = () => {
   const pagination = usePagination({ pageSize: 25 });
   const { setTotalCount } = pagination;
 
-  const filteredExpenses = useMemo(() => expenses.filter(exp =>
-    (exp.description || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-    (exp.supplier?.company_name || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-    (exp.category || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-  ), [expenses, debouncedSearchTerm]);
+  const filteredExpenses = useMemo(
+    () =>
+      expenses.filter(
+        (exp) =>
+          (exp.description || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          (exp.supplier?.company_name || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          (exp.category || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+      ),
+    [expenses, debouncedSearchTerm]
+  );
 
   // Update pagination when filtered expenses change
   React.useEffect(() => {
     setTotalCount(filteredExpenses.length);
   }, [filteredExpenses.length, setTotalCount]);
 
-  const paginatedExpenses = useMemo(() => filteredExpenses.slice(pagination.from, pagination.to + 1), [filteredExpenses, pagination.from, pagination.to]);
+  const paginatedExpenses = useMemo(
+    () => filteredExpenses.slice(pagination.from, pagination.to + 1),
+    [filteredExpenses, pagination.from, pagination.to]
+  );
 
   const expenseExportColumns = [
     { key: 'description', header: 'Description', width: 30 },
@@ -208,7 +264,10 @@ const ExpensesPage = () => {
     { key: 'notes', header: 'Notes', width: 25 },
   ];
 
-  const totalExpenses = useMemo(() => filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0), [filteredExpenses]);
+  const totalExpenses = useMemo(
+    () => filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0),
+    [filteredExpenses]
+  );
 
   const expenseCategoryColors = {
     general: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
@@ -231,24 +290,32 @@ const ExpensesPage = () => {
     { label: 'Marketing', color: '#ec4899' },
   ];
 
-  const expenseCalendarEvents = useMemo(() => filteredExpenses.map(exp => ({
-    id: exp.id,
-    title: exp.description || exp.category || 'Expense',
-    date: exp.expense_date,
-    status: exp.category || 'general',
-    resource: exp,
-  })), [filteredExpenses]);
+  const expenseCalendarEvents = useMemo(
+    () =>
+      filteredExpenses.map((exp) => ({
+        id: exp.id,
+        title: exp.description || exp.category || 'Expense',
+        date: exp.expense_date,
+        status: exp.category || 'general',
+        resource: exp,
+      })),
+    [filteredExpenses]
+  );
 
-  const expenseAgendaItems = useMemo(() => filteredExpenses.map(exp => ({
-    id: exp.id,
-    title: exp.description || 'Expense',
-    subtitle: exp.supplier?.company_name || exp.category || '',
-    date: exp.expense_date,
-    status: exp.category || 'general',
-    statusLabel: (exp.category || 'general').charAt(0).toUpperCase() + (exp.category || 'general').slice(1),
-    statusColor: 'bg-orange-500/20 text-orange-400',
-    amount: formatCurrency(exp.amount || 0, companyCurrency),
-  })), [filteredExpenses, companyCurrency]);
+  const expenseAgendaItems = useMemo(
+    () =>
+      filteredExpenses.map((exp) => ({
+        id: exp.id,
+        title: exp.description || 'Expense',
+        subtitle: exp.supplier?.company_name || exp.category || '',
+        date: exp.expense_date,
+        status: exp.category || 'general',
+        statusLabel: (exp.category || 'general').charAt(0).toUpperCase() + (exp.category || 'general').slice(1),
+        statusColor: 'bg-orange-500/20 text-orange-400',
+        amount: formatCurrency(exp.amount || 0, companyCurrency),
+      })),
+    [filteredExpenses, companyCurrency]
+  );
 
   if (loading && expenses.length === 0) {
     return (
@@ -316,7 +383,9 @@ const ExpensesPage = () => {
           <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/50">
             <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Moyenne par dépense</p>
             <p className="text-2xl font-bold text-gradient">
-              {filteredExpenses.length > 0 ? formatCurrency(totalExpenses / filteredExpenses.length, companyCurrency) : formatCurrency(0, companyCurrency)}
+              {filteredExpenses.length > 0
+                ? formatCurrency(totalExpenses / filteredExpenses.length, companyCurrency)
+                : formatCurrency(0, companyCurrency)}
             </p>
           </div>
         </div>
@@ -333,118 +402,177 @@ const ExpensesPage = () => {
         </div>
 
         <SectionErrorBoundary section="expense-views">
-        <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
-          <TabsList className="bg-gray-800 border border-gray-700 mb-4">
-            <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-              <List className="w-4 h-4 mr-2" /> {t('common.list') || 'Liste'}
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-              <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendrier'}
-            </TabsTrigger>
-            <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-              <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
-            </TabsTrigger>
-          </TabsList>
+          <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+            <TabsList className="bg-gray-800 border border-gray-700 mb-4">
+              <TabsTrigger
+                value="list"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+              >
+                <List className="w-4 h-4 mr-2" /> {t('common.list') || 'Liste'}
+              </TabsTrigger>
+              <TabsTrigger
+                value="calendar"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+              >
+                <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendrier'}
+              </TabsTrigger>
+              <TabsTrigger
+                value="agenda"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+              >
+                <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="list">
-            {filteredExpenses.length === 0 ? (
-              <div className="text-center py-16">
-                <Receipt className="w-16 h-16 mx-auto text-gray-700 mb-4" />
-                <p className="text-gray-500">Aucune dépense trouvée</p>
-                <Button onClick={() => setIsDialogOpen(true)} className="mt-4 bg-orange-500 hover:bg-orange-600">
-                  <Plus className="w-4 h-4 mr-2" /> Ajouter une dépense
-                </Button>
-              </div>
-            ) : (
-              <div className="bg-gray-900 rounded-xl border border-gray-800/50 overflow-hidden">
-                <VirtualizedTable
-                  data={paginatedExpenses}
-                  rowHeight={56}
-                  maxHeight={700}
-                  threshold={30}
-                  header={
-                    <div className="flex items-center border-b border-gray-800 text-sm">
-                      <div className="p-4 text-gray-400 font-medium" style={{ flex: 1 }}>Date</div>
-                      <div className="p-4 text-gray-400 font-medium" style={{ flex: 2 }}>Description</div>
-                      <div className="p-4 text-gray-400 font-medium hidden md:block" style={{ flex: 1 }}>Catégorie</div>
-                      <div className="p-4 text-gray-400 font-medium hidden lg:block" style={{ flex: 1.5 }}>Fournisseur</div>
-                      <div className="p-4 text-gray-400 font-medium text-right" style={{ flex: 1 }}>Montant</div>
-                      <div className="p-4 text-gray-400 font-medium text-right" style={{ width: 64 }}>Actions</div>
-                    </div>
-                  }
-                  renderRow={(exp, index, style) => (
-                    <div
-                      key={exp.id}
-                      style={style}
-                      className="flex items-center border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors text-sm"
-                    >
-                      <div className="p-4 text-gray-400 truncate" style={{ flex: 1 }}>
-                        {exp.expense_date ? new Date(exp.expense_date).toLocaleDateString('fr-FR') : '—'}
+            <TabsContent value="list">
+              {filteredExpenses.length === 0 ? (
+                <div className="text-center py-16">
+                  <Receipt className="w-16 h-16 mx-auto text-gray-700 mb-4" />
+                  <p className="text-gray-500">Aucune dépense trouvée</p>
+                  <Button onClick={() => setIsDialogOpen(true)} className="mt-4 bg-orange-500 hover:bg-orange-600">
+                    <Plus className="w-4 h-4 mr-2" /> Ajouter une dépense
+                  </Button>
+                </div>
+              ) : (
+                <div className="bg-gray-900 rounded-xl border border-gray-800/50 overflow-hidden">
+                  <VirtualizedTable
+                    data={paginatedExpenses}
+                    rowHeight={56}
+                    maxHeight={700}
+                    threshold={30}
+                    header={
+                      <div className="flex items-center border-b border-gray-800 text-sm">
+                        <div className="p-4 text-gray-400 font-medium" style={{ flex: 1 }}>
+                          Date
+                        </div>
+                        <div className="p-4 text-gray-400 font-medium" style={{ flex: 2 }}>
+                          Description
+                        </div>
+                        <div className="p-4 text-gray-400 font-medium hidden md:block" style={{ flex: 1 }}>
+                          Catégorie
+                        </div>
+                        <div className="p-4 text-gray-400 font-medium hidden lg:block" style={{ flex: 1.5 }}>
+                          Fournisseur
+                        </div>
+                        <div className="p-4 text-gray-400 font-medium text-right" style={{ flex: 1 }}>
+                          Montant
+                        </div>
+                        <div className="p-4 text-gray-400 font-medium text-right" style={{ width: 64 }}>
+                          Actions
+                        </div>
                       </div>
-                      <div className="p-4 text-gradient font-medium truncate" style={{ flex: 2 }}>{exp.description || '—'}</div>
-                      <div className="p-4 text-gray-400 capitalize truncate hidden md:block" style={{ flex: 1 }}>{exp.category || '—'}</div>
-                      <div className="p-4 text-gray-400 truncate hidden lg:block" style={{ flex: 1.5 }}>{exp.supplier?.company_name || '—'}</div>
-                      <div className="p-4 text-right text-gradient font-semibold truncate" style={{ flex: 1 }}>{formatCurrency(exp.amount || 0, companyCurrency)}</div>
-                      <div className="p-4 text-right" style={{ width: 64 }}>
-                        <ExpenseActions
-                          expense={exp}
-                          onView={handleView}
-                          onEdit={handleEdit}
-                          onDelete={setDeleteTarget}
-                          onExportPDF={handleSingleExportPDF}
-                          onExportHTML={handleSingleExportHTML}
-                        />
+                    }
+                    renderRow={(exp, index, style) => (
+                      <div
+                        key={exp.id}
+                        style={style}
+                        className="flex items-center border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors text-sm"
+                      >
+                        <div className="p-4 text-gray-400 truncate" style={{ flex: 1 }}>
+                          {exp.expense_date ? formatDate(exp.expense_date) : '—'}
+                        </div>
+                        <div className="p-4 text-gradient font-medium truncate" style={{ flex: 2 }}>
+                          {exp.description || '—'}
+                        </div>
+                        <div className="p-4 text-gray-400 capitalize truncate hidden md:block" style={{ flex: 1 }}>
+                          {exp.category || '—'}
+                        </div>
+                        <div className="p-4 text-gray-400 truncate hidden lg:block" style={{ flex: 1.5 }}>
+                          {exp.supplier?.company_name || '—'}
+                        </div>
+                        <div className="p-4 text-right text-gradient font-semibold truncate" style={{ flex: 1 }}>
+                          {formatCurrency(exp.amount || 0, companyCurrency)}
+                        </div>
+                        <div className="p-4 text-right" style={{ width: 64 }}>
+                          <ExpenseActions
+                            expense={exp}
+                            onView={handleView}
+                            onEdit={handleEdit}
+                            onDelete={setDeleteTarget}
+                            onExportPDF={handleSingleExportPDF}
+                            onExportHTML={handleSingleExportHTML}
+                          />
+                        </div>
                       </div>
+                    )}
+                  />
+                  <PaginationControls
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalCount={pagination.totalCount}
+                    pageSize={pagination.pageSize}
+                    pageSizeOptions={pagination.pageSizeOptions}
+                    hasNextPage={pagination.hasNextPage}
+                    hasPrevPage={pagination.hasPrevPage}
+                    onNextPage={pagination.nextPage}
+                    onPrevPage={pagination.prevPage}
+                    onGoToPage={pagination.goToPage}
+                    onChangePageSize={pagination.changePageSize}
+                  />
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="calendar">
+              <GenericCalendarView
+                events={expenseCalendarEvents}
+                statusColors={expenseCategoryColors}
+                legend={expenseCalendarLegend}
+                onSelectEvent={(exp) => handleView(exp)}
+              />
+            </TabsContent>
+
+            <TabsContent value="agenda">
+              <GenericAgendaView
+                items={expenseAgendaItems}
+                dateField="date"
+                paidStatuses={[]}
+                renderActions={(item) => {
+                  const exp = expenses.find((e) => e.id === item.id);
+                  if (!exp) return null;
+                  return (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleView(exp)}
+                        className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                        title="Visualiser"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(exp)}
+                        className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                        title="Modifier"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleSingleExportPDF(exp)}
+                        className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                        title="PDF"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleSingleExportHTML(exp)}
+                        className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                        title="HTML"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(exp)}
+                        className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  )}
-                />
-                <PaginationControls
-                  currentPage={pagination.currentPage}
-                  totalPages={pagination.totalPages}
-                  totalCount={pagination.totalCount}
-                  pageSize={pagination.pageSize}
-                  pageSizeOptions={pagination.pageSizeOptions}
-                  hasNextPage={pagination.hasNextPage}
-                  hasPrevPage={pagination.hasPrevPage}
-                  onNextPage={pagination.nextPage}
-                  onPrevPage={pagination.prevPage}
-                  onGoToPage={pagination.goToPage}
-                  onChangePageSize={pagination.changePageSize}
-                />
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="calendar">
-            <GenericCalendarView
-              events={expenseCalendarEvents}
-              statusColors={expenseCategoryColors}
-              legend={expenseCalendarLegend}
-              onSelectEvent={(exp) => handleView(exp)}
-            />
-          </TabsContent>
-
-          <TabsContent value="agenda">
-            <GenericAgendaView
-              items={expenseAgendaItems}
-              dateField="date"
-              paidStatuses={[]}
-              renderActions={(item) => {
-                const exp = expenses.find(e => e.id === item.id);
-                if (!exp) return null;
-                return (
-                  <div className="flex gap-1">
-                    <button onClick={() => handleView(exp)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Visualiser"><Eye className="w-4 h-4" /></button>
-                    <button onClick={() => handleEdit(exp)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Modifier"><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => handleSingleExportPDF(exp)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="PDF"><Download className="w-4 h-4" /></button>
-                    <button onClick={() => handleSingleExportHTML(exp)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="HTML"><FileText className="w-4 h-4" /></button>
-                    <button onClick={() => setDeleteTarget(exp)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                );
-              }}
-            />
-          </TabsContent>
-        </Tabs>
+                  );
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         </SectionErrorBoundary>
       </div>
 
@@ -463,11 +591,13 @@ const ExpensesPage = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Montant</p>
-                  <p className="text-gradient font-bold text-lg">{formatCurrency(viewExpense.amount || 0, companyCurrency)}</p>
+                  <p className="text-gradient font-bold text-lg">
+                    {formatCurrency(viewExpense.amount || 0, companyCurrency)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Date</p>
-                  <p className="text-white">{viewExpense.expense_date ? new Date(viewExpense.expense_date).toLocaleDateString('fr-FR') : '—'}</p>
+                  <p className="text-white">{viewExpense.expense_date ? formatDate(viewExpense.expense_date) : '—'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Catégorie</p>
@@ -490,7 +620,10 @@ const ExpensesPage = () => {
                 {viewExpense.tax_amount != null && (
                   <div>
                     <p className="text-xs text-gray-500 uppercase">TVA</p>
-                    <p className="text-white">{formatCurrency(viewExpense.tax_amount, companyCurrency)} ({((viewExpense.tax_rate || 0) * 100).toFixed(0)}%)</p>
+                    <p className="text-white">
+                      {formatCurrency(viewExpense.tax_amount, companyCurrency)} (
+                      {((viewExpense.tax_rate || 0) * 100).toFixed(0)}%)
+                    </p>
                   </div>
                 )}
               </div>
@@ -501,13 +634,34 @@ const ExpensesPage = () => {
                 </div>
               )}
               <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
-                <Button size="sm" variant="outline" className="border-gray-600" onClick={() => { handleSingleExportPDF(viewExpense); }}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600"
+                  onClick={() => {
+                    handleSingleExportPDF(viewExpense);
+                  }}
+                >
                   <Download className="w-4 h-4 mr-2" /> PDF
                 </Button>
-                <Button size="sm" variant="outline" className="border-gray-600" onClick={() => { handleSingleExportHTML(viewExpense); }}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600"
+                  onClick={() => {
+                    handleSingleExportHTML(viewExpense);
+                  }}
+                >
                   <FileText className="w-4 h-4 mr-2" /> HTML
                 </Button>
-                <Button size="sm" onClick={() => { handleEdit(viewExpense); setViewExpense(null); }} className="bg-orange-500 hover:bg-orange-600">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    handleEdit(viewExpense);
+                    setViewExpense(null);
+                  }}
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
                   <Pencil className="w-4 h-4 mr-2" /> Modifier
                 </Button>
               </DialogFooter>
@@ -517,7 +671,13 @@ const ExpensesPage = () => {
       </Dialog>
 
       {/* Edit Expense Dialog */}
-      <Dialog open={!!editExpense} onOpenChange={() => { setEditExpense(null); setFormData(emptyForm); }}>
+      <Dialog
+        open={!!editExpense}
+        onOpenChange={() => {
+          setEditExpense(null);
+          setFormData(emptyForm);
+        }}
+      >
         <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gradient">Modifier la dépense</DialogTitle>
@@ -526,20 +686,42 @@ const ExpensesPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 sm:col-span-2">
                 <Label>Description *</Label>
-                <Input value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required placeholder="Achat de fournitures..." className="bg-gray-700 border-gray-600" />
+                <Input
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  required
+                  placeholder="Achat de fournitures..."
+                  className="bg-gray-700 border-gray-600"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Montant ({currencySymbol}) *</Label>
-                <Input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required placeholder="0.00" className="bg-gray-700 border-gray-600" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  required
+                  placeholder="0.00"
+                  className="bg-gray-700 border-gray-600"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Date *</Label>
-                <Input type="date" value={formData.expense_date} onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })} required className="bg-gray-700 border-gray-600" />
+                <Input
+                  type="date"
+                  value={formData.expense_date}
+                  onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
+                  required
+                  className="bg-gray-700 border-gray-600"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Catégorie</Label>
                 <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="bg-gray-700 border-gray-600">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
                     <SelectItem value="general">Général</SelectItem>
                     <SelectItem value="office">Bureau</SelectItem>
@@ -559,24 +741,49 @@ const ExpensesPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Fournisseur</Label>
-                <Select value={formData.supplier_id || '__none__'} onValueChange={(val) => setFormData({ ...formData, supplier_id: val === '__none__' ? '' : val })}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600"><SelectValue placeholder="Sélectionner un fournisseur" /></SelectTrigger>
+                <Select
+                  value={formData.supplier_id || '__none__'}
+                  onValueChange={(val) => setFormData({ ...formData, supplier_id: val === '__none__' ? '' : val })}
+                >
+                  <SelectTrigger className="bg-gray-700 border-gray-600">
+                    <SelectValue placeholder="Sélectionner un fournisseur" />
+                  </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-60">
                     <SelectItem value="__none__">— Aucun —</SelectItem>
-                    {(suppliers || []).map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.company_name}</SelectItem>
+                    {(suppliers || []).map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.company_name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Notes</Label>
-                <Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Notes optionnelles..." rows={2} className="bg-gray-700 border-gray-600" />
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Notes optionnelles..."
+                  rows={2}
+                  className="bg-gray-700 border-gray-600"
+                />
               </div>
             </div>
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button type="button" variant="outline" onClick={() => { setEditExpense(null); setFormData(emptyForm); }} className="border-gray-600 text-gray-300">Annuler</Button>
-              <Button type="submit" className="bg-orange-500 hover:bg-orange-600">Enregistrer</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditExpense(null);
+                  setFormData(emptyForm);
+                }}
+                className="border-gray-600 text-gray-300"
+              >
+                Annuler
+              </Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600">
+                Enregistrer
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -588,12 +795,19 @@ const ExpensesPage = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer cette dépense ?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              {deleteTarget && (<>Vous allez supprimer <strong className="text-white">"{deleteTarget.description}"</strong> ({formatCurrency(deleteTarget.amount || 0, companyCurrency)}). Cette action est irréversible.</>)}
+              {deleteTarget && (
+                <>
+                  Vous allez supprimer <strong className="text-white">"{deleteTarget.description}"</strong> (
+                  {formatCurrency(deleteTarget.amount || 0, companyCurrency)}). Cette action est irréversible.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-700">Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">Supprimer</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">
+              Supprimer
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -640,10 +854,7 @@ const ExpensesPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Catégorie</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(val) => setFormData({ ...formData, category: val })}
-                >
+                <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
                   <SelectTrigger className="bg-gray-700 border-gray-600">
                     <SelectValue />
                   </SelectTrigger>
@@ -663,14 +874,19 @@ const ExpensesPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Fournisseur</Label>
-                <Select value={formData.supplier_id || '__none__'} onValueChange={(val) => setFormData({ ...formData, supplier_id: val === '__none__' ? '' : val })}>
+                <Select
+                  value={formData.supplier_id || '__none__'}
+                  onValueChange={(val) => setFormData({ ...formData, supplier_id: val === '__none__' ? '' : val })}
+                >
                   <SelectTrigger className="bg-gray-700 border-gray-600">
                     <SelectValue placeholder="Sélectionner un fournisseur" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-60">
                     <SelectItem value="__none__">— Aucun —</SelectItem>
-                    {(suppliers || []).map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.company_name}</SelectItem>
+                    {(suppliers || []).map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.company_name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -687,7 +903,12 @@ const ExpensesPage = () => {
               </div>
             </div>
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-600 text-gray-300">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="border-gray-600 text-gray-300"
+              >
                 Annuler
               </Button>
               <Button type="submit" className="bg-orange-500 hover:bg-orange-600">

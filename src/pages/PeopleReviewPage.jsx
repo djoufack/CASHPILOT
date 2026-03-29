@@ -22,6 +22,7 @@ import { usePerformance } from '@/hooks/usePerformance';
 import { buildTalentSuccessionCalibrationInsights } from '@/services/hrTalentSuccessionCalibration';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { getLocale } from '@/utils/dateLocale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -117,9 +118,9 @@ const CALIBRATION_STATUS_CLASSES = {
 const employeeName = (emp) => emp?.full_name || emp?.id || '-';
 
 const formatCurrency = (value, currency = 'EUR') =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(Number(value || 0));
+  new Intl.NumberFormat(getLocale(), { style: 'currency', currency }).format(Number(value || 0));
 
-const formatNumber = (value) => new Intl.NumberFormat('fr-FR').format(Number(value || 0));
+const formatNumber = (value) => new Intl.NumberFormat(getLocale()).format(Number(value || 0));
 
 /* ---------- 9-box placement ---------- */
 

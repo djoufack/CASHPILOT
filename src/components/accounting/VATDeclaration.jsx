@@ -2,8 +2,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download, FileText, Receipt, ArrowDown, ArrowUp, Minus, PieChart as PieChartIcon } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 import { formatCurrency } from '@/utils/calculations';
+import { formatDate } from '@/utils/dateLocale';
 import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
@@ -13,7 +26,7 @@ const VAT_PANEL_INFO = {
   outputVAT: {
     title: 'TVA collectee',
     definition: 'Montant total de TVA collecte sur les ventes de la periode.',
-    dataSource: "Agregat `outputVAT` renvoye par `useAccountingData` (RPC SQL TVA) avec detail `vatBreakdown.output`.",
+    dataSource: 'Agregat `outputVAT` renvoye par `useAccountingData` (RPC SQL TVA) avec detail `vatBreakdown.output`.',
     formula: 'TVA collectee = Somme des montants TVA sur operations de vente.',
     calculationMethod:
       'La base calcule la TVA sur les ecritures/transactions de vente puis consolide par periode selectionnee.',
@@ -21,23 +34,23 @@ const VAT_PANEL_INFO = {
   inputVAT: {
     title: 'TVA deductible',
     definition: 'Montant total de TVA deductible sur les achats de la periode.',
-    dataSource: "Agregat `inputVAT` renvoye par `useAccountingData` (RPC SQL TVA) avec detail `vatBreakdown.input`.",
+    dataSource: 'Agregat `inputVAT` renvoye par `useAccountingData` (RPC SQL TVA) avec detail `vatBreakdown.input`.',
     formula: 'TVA deductible = Somme des montants TVA recuperables sur achats.',
     calculationMethod:
       'La base comptabilise les montants deducibles selon les ecritures d achat puis les agrège sur la periode.',
   },
   netVAT: {
     title: 'TVA nette',
-    definition: "Solde TVA a reverser (ou credit) sur la periode.",
-    dataSource: "Agregat `vatPayable` renvoye par la fonction SQL de synthese TVA.",
+    definition: 'Solde TVA a reverser (ou credit) sur la periode.',
+    dataSource: 'Agregat `vatPayable` renvoye par la fonction SQL de synthese TVA.',
     formula: 'TVA nette = TVA collectee - TVA deductible',
-    calculationMethod:
-      'Le moteur SQL calcule les deux composantes puis retourne le solde net signe.',
+    calculationMethod: 'Le moteur SQL calcule les deux composantes puis retourne le solde net signe.',
   },
   monthlyHistory: {
     title: 'Historique mensuel TVA',
     definition: 'Evolution mensuelle de la TVA collectee et deductible.',
-    dataSource: 'Serie `monthlyData` (revenus/charges, eventuellement outputVAT/inputVAT) fournie par `useAccountingData`.',
+    dataSource:
+      'Serie `monthlyData` (revenus/charges, eventuellement outputVAT/inputVAT) fournie par `useAccountingData`.',
     formula: 'Par mois: collectee = outputVAT (ou revenue * taux), deductible = inputVAT (ou expense * taux).',
     calculationMethod:
       'Pour chaque mois, le composant priorise les montants TVA explicites puis applique un taux de repli.',
@@ -69,13 +82,22 @@ const VAT_PANEL_INFO = {
   },
 };
 
-const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthlyData, period, onExportPDF, onExportHTML, currency }) => {
-
+const VATDeclaration = ({
+  outputVAT,
+  inputVAT,
+  vatPayable,
+  vatBreakdown,
+  monthlyData,
+  period,
+  onExportPDF,
+  onExportHTML,
+  currency,
+}) => {
   const { defaultRate } = useDefaultTaxRate();
   const vatFallbackRate = defaultRate / 100;
 
   // Build monthly VAT data - use real data when available
-  const monthlyVATData = (monthlyData || []).map(m => {
+  const monthlyVATData = (monthlyData || []).map((m) => {
     const collectee = m.outputVAT || m.revenue * vatFallbackRate;
     const deductible = m.inputVAT || m.expense * vatFallbackRate;
     return {
@@ -89,13 +111,13 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
   // Build donut data from breakdown
   const donutData = [];
   if (vatBreakdown?.output?.length > 0) {
-    vatBreakdown.output.forEach(item => {
+    vatBreakdown.output.forEach((item) => {
       const label = item.name || item.account || `${((item.rate || 0) * 100).toFixed(1)}%`;
       donutData.push({ name: `Collectee: ${label}`, value: Math.abs(item.vat || 0) });
     });
   }
   if (vatBreakdown?.input?.length > 0) {
-    vatBreakdown.input.forEach(item => {
+    vatBreakdown.input.forEach((item) => {
       const label = item.name || item.account || `${((item.rate || 0) * 100).toFixed(1)}%`;
       donutData.push({ name: `Deductible: ${label}`, value: Math.abs(item.vat || 0) });
     });
@@ -118,7 +140,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
           </h2>
           {period && (
             <p className="text-sm text-gray-400">
-              Du {new Date(period.startDate).toLocaleDateString('fr-FR')} au {new Date(period.endDate).toLocaleDateString('fr-FR')}
+              Du {formatDate(period.startDate)} au {formatDate(period.endDate)}
             </p>
           )}
         </div>
@@ -162,7 +184,9 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
           </CardContent>
         </Card>
 
-        <Card className={`border-gray-800 ${(vatPayable || 0) > 0 ? 'bg-red-500/5 border-red-500/30' : 'bg-green-500/5 border-green-500/30'}`}>
+        <Card
+          className={`border-gray-800 ${(vatPayable || 0) > 0 ? 'bg-red-500/5 border-red-500/30' : 'bg-green-500/5 border-green-500/30'}`}
+        >
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-2">
               <Minus className="w-4 h-4 text-orange-400" />
@@ -206,10 +230,22 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                     <XAxis dataKey="name" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false}
-                      tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
+                    <YAxis
+                      stroke="#6B7280"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v) =>
+                        v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v
+                      }
+                    />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
+                      contentStyle={{
+                        backgroundColor: '#111827',
+                        borderColor: '#374151',
+                        borderRadius: '8px',
+                        color: '#fff',
+                      }}
                       formatter={(value) => formatCurrency(value, currency)}
                       cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                     />
@@ -242,8 +278,10 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                   <PieChart>
                     <Pie
                       data={donutData}
-                      cx="50%" cy="50%"
-                      innerRadius={50} outerRadius={75}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={75}
                       paddingAngle={3}
                       dataKey="value"
                     >
@@ -252,7 +290,12 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
+                      contentStyle={{
+                        backgroundColor: '#111827',
+                        borderColor: '#374151',
+                        borderRadius: '8px',
+                        color: '#fff',
+                      }}
                       formatter={(value) => formatCurrency(value, currency)}
                     />
                   </PieChart>
@@ -293,7 +336,10 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                 {vatBreakdown.output.map((item, i) => {
                   const { rate, base } = formatBreakdownItem(item);
                   return (
-                    <div key={i} className="flex justify-between items-center py-2 border-b border-gray-800 last:border-0">
+                    <div
+                      key={i}
+                      className="flex justify-between items-center py-2 border-b border-gray-800 last:border-0"
+                    >
                       <div className="flex items-center gap-2">
                         {rate && <Badge className="bg-green-500/20 text-green-400 text-xs">{rate}</Badge>}
                         {item.account && <span className="text-xs text-gray-500 font-mono">{item.account}</span>}
@@ -309,7 +355,9 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                 {/* Total */}
                 <div className="flex justify-between items-center pt-2 border-t border-gray-700">
                   <span className="text-sm font-semibold text-gray-300">Total collectee</span>
-                  <span className="font-mono text-sm font-bold text-green-400">{formatCurrency(outputVAT || 0, currency)}</span>
+                  <span className="font-mono text-sm font-bold text-green-400">
+                    {formatCurrency(outputVAT || 0, currency)}
+                  </span>
                 </div>
               </div>
             ) : (
@@ -332,7 +380,10 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                 {vatBreakdown.input.map((item, i) => {
                   const { rate, base } = formatBreakdownItem(item);
                   return (
-                    <div key={i} className="flex justify-between items-center py-2 border-b border-gray-800 last:border-0">
+                    <div
+                      key={i}
+                      className="flex justify-between items-center py-2 border-b border-gray-800 last:border-0"
+                    >
                       <div className="flex items-center gap-2">
                         {rate && <Badge className="bg-blue-500/20 text-blue-400 text-xs">{rate}</Badge>}
                         {item.account && <span className="text-xs text-gray-500 font-mono">{item.account}</span>}
@@ -348,7 +399,9 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                 {/* Total */}
                 <div className="flex justify-between items-center pt-2 border-t border-gray-700">
                   <span className="text-sm font-semibold text-gray-300">Total deductible</span>
-                  <span className="font-mono text-sm font-bold text-blue-400">{formatCurrency(inputVAT || 0, currency)}</span>
+                  <span className="font-mono text-sm font-bold text-blue-400">
+                    {formatCurrency(inputVAT || 0, currency)}
+                  </span>
                 </div>
               </div>
             ) : (

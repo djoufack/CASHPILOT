@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { AlertTriangle, AlertCircle, CheckCircle, XCircle, Bell, ArrowUpRight, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getLocale } from '@/utils/dateLocale';
 import PilotageAlertSubscriptionDialog from '@/components/pilotage/PilotageAlertSubscriptionDialog';
 import {
   buildPilotageAlertCandidates,
@@ -121,7 +122,7 @@ const ALERTS_INFO = {
 const formatNumber = (value) => {
   if (value == null) return '--';
   if (typeof value === 'number') {
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat(getLocale(), {
       maximumFractionDigits: 2,
     }).format(value);
   }

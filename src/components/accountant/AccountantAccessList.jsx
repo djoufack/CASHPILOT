@@ -3,6 +3,7 @@ import { UserCheck, Clock, XCircle, ShieldCheck, Trash2, Mail, Loader2 } from 'l
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatDate } from '@/utils/dateLocale';
 
 const statusConfig = {
   pending: {
@@ -30,13 +31,6 @@ const permissionLabels = {
   view_reports: 'reports',
   export_fec: 'FEC',
   export_data: 'export',
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 export default function AccountantAccessList({

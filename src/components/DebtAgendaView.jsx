@@ -1,11 +1,8 @@
-import React from 'react';
 import { format, isToday, isTomorrow, isThisWeek, parseISO, isBefore } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import {
-  ArrowDownCircle, ArrowUpCircle, DollarSign, Eye, Trash2,
-  AlertTriangle, Clock, Calendar, CheckCircle2
-} from 'lucide-react';
+import { formatNumber } from '@/utils/dateLocale';
+import { ArrowDownCircle, ArrowUpCircle, DollarSign, Eye, Trash2, AlertTriangle, Clock, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const statusColors = {
@@ -37,8 +34,18 @@ const DebtAgendaView = ({ receivables = [], payables = [], onPay, onView, onDele
 
   // Combine all records with type
   const allRecords = [
-    ...receivables.map(r => ({ ...r, type: 'receivable', personName: r.debtor_name, dateKey: r.due_date || r.date_lent })),
-    ...payables.map(p => ({ ...p, type: 'payable', personName: p.creditor_name, dateKey: p.due_date || p.date_borrowed })),
+    ...receivables.map((r) => ({
+      ...r,
+      type: 'receivable',
+      personName: r.debtor_name,
+      dateKey: r.due_date || r.date_lent,
+    })),
+    ...payables.map((p) => ({
+      ...p,
+      type: 'payable',
+      personName: p.creditor_name,
+      dateKey: p.due_date || p.date_borrowed,
+    })),
   ].sort((a, b) => {
     const dateA = a.dateKey ? new Date(a.dateKey) : new Date(8640000000000000);
     const dateB = b.dateKey ? new Date(b.dateKey) : new Date(8640000000000000);
@@ -46,15 +53,31 @@ const DebtAgendaView = ({ receivables = [], payables = [], onPay, onView, onDele
   });
 
   const now = new Date();
-  const overdue = allRecords.filter(r => r.dateKey && isBefore(parseISO(r.dateKey), now) && !isToday(parseISO(r.dateKey)) && r.status !== 'paid' && r.status !== 'cancelled');
-  const today = allRecords.filter(r => r.dateKey && isToday(parseISO(r.dateKey)));
-  const tomorrow = allRecords.filter(r => r.dateKey && isTomorrow(parseISO(r.dateKey)));
-  const thisWeek = allRecords.filter(r => r.dateKey && isThisWeek(parseISO(r.dateKey), { weekStartsOn: 1 }) && !isToday(parseISO(r.dateKey)) && !isTomorrow(parseISO(r.dateKey)) && !isBefore(parseISO(r.dateKey), now));
-  const later = allRecords.filter(r => !r.dateKey || (!isBefore(parseISO(r.dateKey), now) && !isThisWeek(parseISO(r.dateKey), { weekStartsOn: 1 })));
+  const overdue = allRecords.filter(
+    (r) =>
+      r.dateKey &&
+      isBefore(parseISO(r.dateKey), now) &&
+      !isToday(parseISO(r.dateKey)) &&
+      r.status !== 'paid' &&
+      r.status !== 'cancelled'
+  );
+  const today = allRecords.filter((r) => r.dateKey && isToday(parseISO(r.dateKey)));
+  const tomorrow = allRecords.filter((r) => r.dateKey && isTomorrow(parseISO(r.dateKey)));
+  const thisWeek = allRecords.filter(
+    (r) =>
+      r.dateKey &&
+      isThisWeek(parseISO(r.dateKey), { weekStartsOn: 1 }) &&
+      !isToday(parseISO(r.dateKey)) &&
+      !isTomorrow(parseISO(r.dateKey)) &&
+      !isBefore(parseISO(r.dateKey), now)
+  );
+  const later = allRecords.filter(
+    (r) => !r.dateKey || (!isBefore(parseISO(r.dateKey), now) && !isThisWeek(parseISO(r.dateKey), { weekStartsOn: 1 }))
+  );
 
   const formatAmount = (amount, currency = 'EUR') => {
     const symbols = { EUR: '\u20ac', USD: '$', GBP: '\u00a3', XAF: 'FCFA', XOF: 'FCFA' };
-    return `${parseFloat(amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${symbols[currency] || currency}`;
+    return `${formatNumber(parseFloat(amount || 0), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${symbols[currency] || currency}`;
   };
 
   const AgendaGroup = ({ groupKey, title, records }) => {
@@ -70,8 +93,16 @@ const DebtAgendaView = ({ receivables = [], payables = [], onPay, onView, onDele
           <span className="text-xs bg-gray-800 px-2 py-0.5 rounded-full text-gray-400 ml-2">{records.length}</span>
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {records.map(record => (
-            <DebtCard key={`${record.type}-${record.id}`} record={record} onPay={onPay} onView={onView} onDelete={onDelete} formatAmount={formatAmount} t={t} />
+          {records.map((record) => (
+            <DebtCard
+              key={`${record.type}-${record.id}`}
+              record={record}
+              onPay={onPay}
+              onView={onView}
+              onDelete={onDelete}
+              formatAmount={formatAmount}
+              t={t}
+            />
           ))}
         </div>
       </div>
@@ -86,9 +117,7 @@ const DebtAgendaView = ({ receivables = [], payables = [], onPay, onView, onDele
       <AgendaGroup groupKey="thisWeek" title={t('debtManager.agendaThisWeek')} records={thisWeek} />
       <AgendaGroup groupKey="later" title={t('debtManager.agendaLater')} records={later} />
 
-      {allRecords.length === 0 && (
-        <div className="text-center py-20 text-gray-500">{t('debtManager.noItems')}</div>
-      )}
+      {allRecords.length === 0 && <div className="text-center py-20 text-gray-500">{t('debtManager.noItems')}</div>}
     </motion.div>
   );
 };
@@ -128,7 +157,9 @@ const DebtCard = ({ record, onPay, onView, onDelete, formatAmount, t }) => {
       <div className="mb-3">
         <div className="flex justify-between text-sm mb-1">
           <span className="text-gray-400">{formatAmount(record.amount_paid, record.currency)}</span>
-          <span className={`font-medium ${isReceivable ? 'text-green-400' : 'text-red-400'}`}>{formatAmount(record.amount, record.currency)}</span>
+          <span className={`font-medium ${isReceivable ? 'text-green-400' : 'text-red-400'}`}>
+            {formatAmount(record.amount, record.currency)}
+          </span>
         </div>
         <div className="w-full bg-gray-700 rounded-full h-1.5">
           <div
@@ -137,7 +168,9 @@ const DebtCard = ({ record, onPay, onView, onDelete, formatAmount, t }) => {
           />
         </div>
         {remaining > 0 && (
-          <p className="text-xs text-orange-400 mt-1">{t('debtManager.remaining')}: {formatAmount(remaining, record.currency)}</p>
+          <p className="text-xs text-orange-400 mt-1">
+            {t('debtManager.remaining')}: {formatAmount(remaining, record.currency)}
+          </p>
         )}
       </div>
 
@@ -152,17 +185,30 @@ const DebtCard = ({ record, onPay, onView, onDelete, formatAmount, t }) => {
       {/* Actions */}
       <div className="flex items-center gap-1 pt-2 border-t border-gray-700/50">
         {record.status !== 'paid' && record.status !== 'cancelled' && (
-          <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300 hover:bg-green-500/10 h-7 px-2 text-xs"
-            onClick={() => onPay && onPay(record.type, record)}>
-            <DollarSign className="w-3 h-3 mr-1" />{t('debtManager.recordPayment')}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-green-400 hover:text-green-300 hover:bg-green-500/10 h-7 px-2 text-xs"
+            onClick={() => onPay && onPay(record.type, record)}
+          >
+            <DollarSign className="w-3 h-3 mr-1" />
+            {t('debtManager.recordPayment')}
           </Button>
         )}
-        <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-7 px-2 text-xs ml-auto"
-          onClick={() => onView && onView(record.type, record)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-7 px-2 text-xs ml-auto"
+          onClick={() => onView && onView(record.type, record)}
+        >
           <Eye className="w-3 h-3" />
         </Button>
-        <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 px-2 text-xs"
-          onClick={() => onDelete && onDelete(record.type, record)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 px-2 text-xs"
+          onClick={() => onDelete && onDelete(record.type, record)}
+        >
           <Trash2 className="w-3 h-3" />
         </Button>
       </div>

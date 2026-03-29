@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/utils/calculations';
+import { formatDate } from '@/utils/dateLocale';
 import { AlertTriangle, TrendingUp, Calendar, ShieldAlert, Loader2 } from 'lucide-react';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
@@ -87,11 +88,11 @@ const CashFlowAlerts = ({ alerts = [], loading = false }) => {
     );
   }
 
-  const formatDate = (dateStr) => {
+  const formatAlertDate = (dateStr) => {
     if (!dateStr) return '';
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('fr-FR', {
+      return formatDate(date, {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
@@ -161,7 +162,7 @@ const CashFlowAlerts = ({ alerts = [], loading = false }) => {
                   </div>
                   <p className="text-sm text-gray-200 leading-relaxed">{alert.message}</p>
                   <div className="flex items-center gap-4 mt-2">
-                    {alert.date && <span className="text-xs text-gray-500">{formatDate(alert.date)}</span>}
+                    {alert.date && <span className="text-xs text-gray-500">{formatAlertDate(alert.date)}</span>}
                     {alert.projected_balance != null && (
                       <span
                         className={`text-xs font-medium ${alert.projected_balance < 0 ? 'text-red-400' : 'text-gray-400'}`}

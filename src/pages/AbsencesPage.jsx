@@ -13,6 +13,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useAbsences } from '@/hooks/useAbsences';
+import { formatDate as formatDateLocale } from '@/utils/dateLocale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,7 +27,7 @@ import { ABSENCE_STATUSES } from '@/config/statusMappings';
 const formatDate = (v) => {
   if (!v) return '-';
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('fr-FR');
+  return Number.isNaN(d.getTime()) ? '-' : formatDateLocale(d);
 };
 const empName = (e) => e?.full_name || `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || '-';
 const STATUS = ABSENCE_STATUSES;
@@ -188,7 +189,7 @@ function CalendrierTab({ leaveRequests, leaveTypes, employees }) {
   const [yr, setYr] = useState(now.getFullYear());
   const [mo, setMo] = useState(now.getMonth());
   const days = daysIn(yr, mo);
-  const label = new Date(yr, mo).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const label = formatDateLocale(new Date(yr, mo), { month: 'long', year: 'numeric' });
   const colorMap = useMemo(
     () => Object.fromEntries((leaveTypes || []).map((t, i) => [t.id, LT_COLORS[i % LT_COLORS.length]])),
     [leaveTypes]

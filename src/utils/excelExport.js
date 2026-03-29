@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { formatDate } from '@/utils/dateLocale';
 
 /**
  * Download a Blob as a file
@@ -31,7 +32,7 @@ const formatValue = (value, type) => {
       try {
         const date = new Date(value);
         if (isNaN(date.getTime())) return String(value);
-        return date.toLocaleDateString('fr-FR', {
+        return formatDate(date, {
           day: '2-digit',
           month: '2-digit',
           year: 'numeric',
@@ -78,11 +79,7 @@ export const formatDataForExport = (data, columns) => {
  * @param {string} [options.format='xlsx'] - 'xlsx' or 'csv'
  */
 export const exportToExcel = (data, options = {}) => {
-  const {
-    filename = 'export',
-    sheetName = 'Data',
-    columns,
-  } = options;
+  const { filename = 'export', sheetName = 'Data', columns } = options;
 
   if (!data || data.length === 0) return;
 
@@ -95,18 +92,14 @@ export const exportToExcel = (data, options = {}) => {
   // Apply column widths
   if (columns) {
     worksheet['!cols'] = columns.map((col) => ({
-      wch: col.width || Math.max(
-        (col.header || '').length,
-        ...exportData.map((row) => String(row[col.header] ?? '').length)
-      ) + 2,
+      wch:
+        col.width ||
+        Math.max((col.header || '').length, ...exportData.map((row) => String(row[col.header] ?? '').length)) + 2,
     }));
   } else {
     const keys = Object.keys(exportData[0]);
     worksheet['!cols'] = keys.map((key) => {
-      const maxLen = Math.max(
-        key.length,
-        ...exportData.map((row) => String(row[key] ?? '').length)
-      );
+      const maxLen = Math.max(key.length, ...exportData.map((row) => String(row[key] ?? '').length));
       return { wch: Math.min(maxLen + 2, 50) };
     });
   }
@@ -154,12 +147,7 @@ export const exportToExcel = (data, options = {}) => {
  * @param {string} [options.locale='en'] - Locale for separator detection ('fr' uses ';')
  */
 export const exportToCSV = (data, options = {}) => {
-  const {
-    filename = 'export',
-    columns,
-    separator: explicitSeparator,
-    locale,
-  } = options;
+  const { filename = 'export', columns, separator: explicitSeparator, locale } = options;
 
   if (!data || data.length === 0) return;
 
@@ -182,9 +170,7 @@ export const exportToCSV = (data, options = {}) => {
 
   const csvContent = [
     headers.map(escapeCSVValue).join(separator),
-    ...exportData.map((row) =>
-      headers.map((h) => escapeCSVValue(row[h])).join(separator)
-    ),
+    ...exportData.map((row) => headers.map((h) => escapeCSVValue(row[h])).join(separator)),
   ].join('\n');
 
   // BOM for UTF-8 encoding

@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getLocale, formatDate, formatDateTime } from '@/utils/dateLocale';
 import { Helmet } from 'react-helmet';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import format from 'date-fns/format';
@@ -245,7 +246,7 @@ const TimesheetsPage = () => {
       );
       return sum + hours * rate;
     }, 0);
-    const formatter = new Intl.NumberFormat('fr-FR', {
+    const formatter = new Intl.NumberFormat(getLocale(), {
       style: 'currency',
       currency: company?.currency || 'EUR',
       minimumFractionDigits: 2,
@@ -354,7 +355,7 @@ const TimesheetsPage = () => {
         </head>
         <body>
           <h1>Feuilles de temps</h1>
-          <p>${company?.name || 'CashPilot'} - ${new Date().toLocaleString('fr-FR')}</p>
+          <p>${company?.name || 'CashPilot'} - ${formatDateTime(new Date())}</p>
           <div class="meta">Entrees filtrees: ${rows.length}</div>
           <div class="meta">Duree totale: ${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m</div>
           <table>
@@ -373,7 +374,7 @@ const TimesheetsPage = () => {
                 .map(
                   (timesheet) => `
                 <tr>
-                  <td>${timesheet.date ? new Date(timesheet.date).toLocaleDateString('fr-FR') : '-'}</td>
+                  <td>${timesheet.date ? formatDate(timesheet.date) : '-'}</td>
                   <td>${timesheet.project?.name || '-'}</td>
                   <td>${timesheet.client?.company_name || '-'}</td>
                   <td>${resolveResourceLabel(timesheet)}</td>

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useSmartDunning } from '@/hooks/useSmartDunning';
+import { formatNumber } from '@/utils/dateLocale';
 import { useCompany } from '@/hooks/useCompany';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import DunningPipeline from '@/components/dunning/DunningPipeline';
@@ -33,7 +34,7 @@ const TAB_ICONS = {
 
 const formatMoney = (value) => {
   if (value == null) return '0,00';
-  return Number(value).toLocaleString('fr-FR', {
+  return formatNumber(Number(value), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

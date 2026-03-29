@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Mic, MicOff, Loader2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { formatNumber } from '@/utils/dateLocale';
 
 // Check browser support (outside component to avoid re-creation)
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -16,25 +17,22 @@ const extractExpenseLocally = (text) => {
   const lowerText = text.toLowerCase();
 
   // Extract amount
-  const amountMatch = text.match(/(\d+(?:[,.]\d{1,2})?)\s*(?:euros?|€|eur)/i) ||
-                     text.match(/(\d+(?:[,.]\d{1,2})?)/);
-  const amount = amountMatch
-    ? parseFloat(amountMatch[1].replace(',', '.'))
-    : null;
+  const amountMatch = text.match(/(\d+(?:[,.]\d{1,2})?)\s*(?:euros?|€|eur)/i) || text.match(/(\d+(?:[,.]\d{1,2})?)/);
+  const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : null;
 
   // Detect category
   let category = 'other';
   const categoryKeywords = {
-    'transport': ['taxi', 'uber', 'train', 'avion', 'essence', 'parking', 'peage', 'metro', 'bus'],
-    'restaurant': ['restaurant', 'dejeuner', 'diner', 'repas', 'cafe', 'bar'],
-    'hotel': ['hotel', 'hebergement', 'nuit', 'airbnb'],
-    'fournitures': ['fournitures', 'bureau', 'papier', 'stylos', 'materiel'],
-    'telecom': ['telephone', 'internet', 'mobile', 'abonnement'],
-    'services': ['service', 'consultant', 'avocat', 'comptable', 'prestation']
+    transport: ['taxi', 'uber', 'train', 'avion', 'essence', 'parking', 'peage', 'metro', 'bus'],
+    restaurant: ['restaurant', 'dejeuner', 'diner', 'repas', 'cafe', 'bar'],
+    hotel: ['hotel', 'hebergement', 'nuit', 'airbnb'],
+    fournitures: ['fournitures', 'bureau', 'papier', 'stylos', 'materiel'],
+    telecom: ['telephone', 'internet', 'mobile', 'abonnement'],
+    services: ['service', 'consultant', 'avocat', 'comptable', 'prestation'],
   };
 
   for (const [cat, keywords] of Object.entries(categoryKeywords)) {
-    if (keywords.some(kw => lowerText.includes(kw))) {
+    if (keywords.some((kw) => lowerText.includes(kw))) {
       category = cat;
       break;
     }
@@ -57,7 +55,7 @@ const extractExpenseLocally = (text) => {
     category,
     expense_date: date,
     description: text,
-    confidence: amount ? 0.7 : 0.3
+    confidence: amount ? 0.7 : 0.3,
   };
 };
 
@@ -75,37 +73,40 @@ const VoiceExpenseInput = ({ onExpenseDetected, onCancel }) => {
 
   const isSupported = !!SpeechRecognitionAPI;
 
-  const parseExpenseFromText = useCallback(async (text) => {
-    setIsProcessing(true);
+  const parseExpenseFromText = useCallback(
+    async (text) => {
+      setIsProcessing(true);
 
-    try {
-      // Call AI to extract expense data
-      const { data, error: apiError } = await supabase.functions.invoke('ai-voice-expense', {
-        body: { userId: user?.id, text }
-      });
+      try {
+        // Call AI to extract expense data
+        const { data, error: apiError } = await supabase.functions.invoke('ai-voice-expense', {
+          body: { userId: user?.id, text },
+        });
 
-      if (apiError) throw apiError;
+        if (apiError) throw apiError;
 
-      if (data.expense) {
-        setDetectedExpense(data.expense);
-      } else {
-        // Fallback: try to extract locally
+        if (data.expense) {
+          setDetectedExpense(data.expense);
+        } else {
+          // Fallback: try to extract locally
+          const localExpense = extractExpenseLocally(text);
+          setDetectedExpense(localExpense);
+        }
+      } catch (err) {
+        console.error('Error parsing expense:', err);
+        // Fallback to local extraction
         const localExpense = extractExpenseLocally(text);
         setDetectedExpense(localExpense);
+      } finally {
+        setIsProcessing(false);
       }
-    } catch (err) {
-      console.error('Error parsing expense:', err);
-      // Fallback to local extraction
-      const localExpense = extractExpenseLocally(text);
-      setDetectedExpense(localExpense);
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [user?.id]);
+    },
+    [user?.id]
+  );
 
   const startListening = useCallback(() => {
     if (!SpeechRecognitionAPI) {
-      setError('La reconnaissance vocale n\'est pas supportee par votre navigateur');
+      setError("La reconnaissance vocale n'est pas supportee par votre navigateur");
       return;
     }
 
@@ -170,8 +171,7 @@ const VoiceExpenseInput = ({ onExpenseDetected, onCancel }) => {
         <CardContent className="p-4 text-center">
           <MicOff className="w-8 h-8 mx-auto mb-2 text-gray-500" />
           <p className="text-sm text-gray-400">
-            La reconnaissance vocale n'est pas supportee par votre navigateur.
-            Utilisez Chrome, Edge ou Safari.
+            La reconnaissance vocale n'est pas supportee par votre navigateur. Utilisez Chrome, Edge ou Safari.
           </p>
         </CardContent>
       </Card>
@@ -190,8 +190,8 @@ const VoiceExpenseInput = ({ onExpenseDetected, onCancel }) => {
               isListening
                 ? 'bg-red-500 animate-pulse'
                 : isProcessing
-                ? 'bg-gray-600'
-                : 'bg-orange-500 hover:bg-orange-600'
+                  ? 'bg-gray-600'
+                  : 'bg-orange-500 hover:bg-orange-600'
             }`}
           >
             {isProcessing ? (
@@ -207,8 +207,8 @@ const VoiceExpenseInput = ({ onExpenseDetected, onCancel }) => {
             {isListening
               ? 'Parlez maintenant...'
               : isProcessing
-              ? 'Analyse en cours...'
-              : 'Cliquez pour dicter une depense'}
+                ? 'Analyse en cours...'
+                : 'Cliquez pour dicter une depense'}
           </p>
         </div>
 
@@ -235,7 +235,9 @@ const VoiceExpenseInput = ({ onExpenseDetected, onCancel }) => {
               <div>
                 <span className="text-gray-500">Montant:</span>
                 <span className="ml-2 text-white font-medium">
-                  {detectedExpense.amount ? `${Number(detectedExpense.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : 'Non detecte'}
+                  {detectedExpense.amount
+                    ? `${formatNumber(Number(detectedExpense.amount), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+                    : 'Non detecte'}
                 </span>
               </div>
               <div>
@@ -255,28 +257,15 @@ const VoiceExpenseInput = ({ onExpenseDetected, onCancel }) => {
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button
-                onClick={handleConfirm}
-                size="sm"
-                className="flex-1 bg-green-600 hover:bg-green-700"
-              >
+              <Button onClick={handleConfirm} size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
                 <Check className="w-4 h-4 mr-1" />
                 Confirmer
               </Button>
-              <Button
-                onClick={handleRetry}
-                size="sm"
-                variant="outline"
-                className="flex-1"
-              >
+              <Button onClick={handleRetry} size="sm" variant="outline" className="flex-1">
                 Reessayer
               </Button>
               {onCancel && (
-                <Button
-                  onClick={onCancel}
-                  size="sm"
-                  variant="ghost"
-                >
+                <Button onClick={onCancel} size="sm" variant="ghost">
                   <X className="w-4 h-4" />
                 </Button>
               )}

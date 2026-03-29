@@ -20,6 +20,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getLocale, formatDate as formatDateLocale, formatTime as formatTimeLocale } from '@/utils/dateLocale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,18 +38,18 @@ const formatDate = (value) => {
   if (!value) return '-';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('fr-FR');
+  return formatDateLocale(d);
 };
 
 const formatDateTime = (value) => {
   if (!value) return '-';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return formatDateLocale(d) + ' ' + formatTimeLocale(d, { hour: '2-digit', minute: '2-digit' });
 };
 
 const formatCurrency = (value, currency = 'EUR') =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(Number(value || 0));
+  new Intl.NumberFormat(getLocale(), { style: 'currency', currency }).format(Number(value || 0));
 
 const normalize = (s = '') =>
   String(s)

@@ -3,7 +3,7 @@
  * Interface for creating and managing scenario assumptions with templates
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,42 +16,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import {
-  Plus,
-  Edit,
-  Trash2,
-  TrendingUp,
-  DollarSign,
-  Calendar,
-  Percent,
-  Users,
-} from 'lucide-react';
+import { Plus, Edit, Trash2, TrendingUp, DollarSign, Calendar, Percent, Users } from 'lucide-react';
 import useFinancialScenarios from '@/hooks/useFinancialScenarios';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
-import {
-  SCENARIO_ALLOWED_TYPES_BY_CATEGORY,
-  normalizeScenarioAssumption,
-} from '@/utils/scenarioAssumptionRules';
+import { SCENARIO_ALLOWED_TYPES_BY_CATEGORY, normalizeScenarioAssumption } from '@/utils/scenarioAssumptionRules';
+import { getLocale } from '@/utils/dateLocale';
 
 const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) => {
   const { addAssumption, updateAssumption, deleteAssumption } = useFinancialScenarios();
@@ -122,12 +97,12 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // Handle parameter changes
   const handleParameterChange = (key, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       parameters: {
         ...prev.parameters,
@@ -159,7 +134,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
 
   // Category options
   const categoryOptions = [
-    { value: 'revenue', label: 'Chiffre d\'affaires', icon: TrendingUp },
+    { value: 'revenue', label: "Chiffre d'affaires", icon: TrendingUp },
     { value: 'expense', label: 'Dépenses', icon: DollarSign },
     { value: 'salaries', label: 'Salaires', icon: Users },
     { value: 'social_charges', label: 'Charges sociales', icon: Percent },
@@ -215,7 +190,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
       case 'growth_rate':
         return (
           <div>
-            <Label htmlFor="rate" className="text-slate-200">Taux de croissance (%) *</Label>
+            <Label htmlFor="rate" className="text-slate-200">
+              Taux de croissance (%) *
+            </Label>
             <Input
               id="rate"
               type="number"
@@ -233,7 +210,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
       case 'recurring':
         return (
           <div>
-            <Label htmlFor="amount" className="text-slate-200">Montant ({currencySymbol}) *</Label>
+            <Label htmlFor="amount" className="text-slate-200">
+              Montant ({currencySymbol}) *
+            </Label>
             <Input
               id="amount"
               type="number"
@@ -251,7 +230,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
         return (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="amount" className="text-slate-200">Montant ({currencySymbol}) *</Label>
+              <Label htmlFor="amount" className="text-slate-200">
+                Montant ({currencySymbol}) *
+              </Label>
               <Input
                 id="amount"
                 type="number"
@@ -264,7 +245,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
               />
             </div>
             <div>
-              <Label htmlFor="date" className="text-slate-200">Date de l'opération *</Label>
+              <Label htmlFor="date" className="text-slate-200">
+                Date de l'opération *
+              </Label>
               <Input
                 id="date"
                 type="date"
@@ -280,7 +263,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
       case 'percentage_change':
         return (
           <div>
-            <Label htmlFor="rate" className="text-slate-200">Variation (%) *</Label>
+            <Label htmlFor="rate" className="text-slate-200">
+              Variation (%) *
+            </Label>
             <Input
               id="rate"
               type="number"
@@ -298,7 +283,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
         return (
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="customer_days" className="text-slate-200">Délai client (jours)</Label>
+              <Label htmlFor="customer_days" className="text-slate-200">
+                Délai client (jours)
+              </Label>
               <Input
                 id="customer_days"
                 type="number"
@@ -309,7 +296,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
               />
             </div>
             <div>
-              <Label htmlFor="supplier_days" className="text-slate-200">Délai fournisseur (jours)</Label>
+              <Label htmlFor="supplier_days" className="text-slate-200">
+                Délai fournisseur (jours)
+              </Label>
               <Input
                 id="supplier_days"
                 type="number"
@@ -373,7 +362,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
       case 'fixed_amount':
       case 'recurring':
       case 'one_time':
-        return new Intl.NumberFormat('fr-FR', {
+        return new Intl.NumberFormat(getLocale(), {
           style: 'currency',
           currency: companyCurrency,
         }).format(params.amount || 0);
@@ -408,9 +397,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
           {assumptions.length === 0 ? (
             <div className="text-center py-12">
               <TrendingUp className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Aucune hypothèse définie
-              </h3>
+              <h3 className="text-lg font-semibold text-white mb-2">Aucune hypothèse définie</h3>
               <p className="text-slate-400 mb-6">
                 Commencez par ajouter des hypothèses pour simuler l'évolution de votre entreprise
               </p>
@@ -432,19 +419,15 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assumptions.map(assumption => {
-                  const categoryOption = categoryOptions.find(
-                    opt => opt.value === assumption.category
-                  );
+                {assumptions.map((assumption) => {
+                  const categoryOption = categoryOptions.find((opt) => opt.value === assumption.category);
 
                   return (
                     <TableRow key={assumption.id} className="border-white/10">
                       <TableCell className="font-medium text-white">
                         {assumption.name}
                         {assumption.description && (
-                          <p className="text-xs text-slate-500 mt-1">
-                            {assumption.description}
-                          </p>
+                          <p className="text-xs text-slate-500 mt-1">{assumption.description}</p>
                         )}
                       </TableCell>
                       <TableCell>
@@ -454,7 +437,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={typeColors[assumption.assumption_type]}>
-                          {typeOptions.find(t => t.value === assumption.assumption_type)?.label ||
+                          {typeOptions.find((t) => t.value === assumption.assumption_type)?.label ||
                             assumption.assumption_type}
                         </Badge>
                       </TableCell>
@@ -504,7 +487,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
         <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto border border-white/10 bg-slate-950 text-white shadow-[0_40px_120px_rgba(2,6,23,0.75)]">
           <DialogHeader>
             <DialogTitle className="text-white">
-              {editingAssumption ? 'Modifier l\'hypothèse' : 'Ajouter une hypothèse'}
+              {editingAssumption ? "Modifier l'hypothèse" : 'Ajouter une hypothèse'}
             </DialogTitle>
             <DialogDescription className="text-slate-400">
               Définissez les paramètres de votre hypothèse de simulation
@@ -520,7 +503,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
 
             {/* Name */}
             <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-              <Label htmlFor="name" className="text-slate-200">Nom de l'hypothèse *</Label>
+              <Label htmlFor="name" className="text-slate-200">
+                Nom de l'hypothèse *
+              </Label>
               <Input
                 id="name"
                 name="name"
@@ -532,7 +517,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
               />
 
               <div className="mt-4">
-                <Label htmlFor="description" className="text-slate-200">Description</Label>
+                <Label htmlFor="description" className="text-slate-200">
+                  Description
+                </Label>
                 <Textarea
                   id="description"
                   name="description"
@@ -548,16 +535,20 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
             <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label htmlFor="category" className="text-slate-200">Catégorie *</Label>
+                  <Label htmlFor="category" className="text-slate-200">
+                    Catégorie *
+                  </Label>
                   <Select
                     value={formData.category}
                     onValueChange={(value) => {
                       const nextAllowedTypes = SCENARIO_ALLOWED_TYPES_BY_CATEGORY[value] || [];
                       const nextType = nextAllowedTypes.includes(formData.assumption_type)
                         ? formData.assumption_type
-                        : (value === 'payment_terms' ? 'payment_terms' : nextAllowedTypes[0] || '');
+                        : value === 'payment_terms'
+                          ? 'payment_terms'
+                          : nextAllowedTypes[0] || '';
 
-                      setFormData(prev => ({
+                      setFormData((prev) => ({
                         ...prev,
                         category: value,
                         assumption_type: nextType,
@@ -569,8 +560,12 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
                       <SelectValue placeholder="Sélectionnez..." />
                     </SelectTrigger>
                     <SelectContent className="z-[160] border-white/10 bg-slate-950 text-white">
-                      {categoryOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value} className="text-white focus:bg-white/10 focus:text-white">
+                      {categoryOptions.map((option) => (
+                        <SelectItem
+                          key={option.value}
+                          value={option.value}
+                          className="text-white focus:bg-white/10 focus:text-white"
+                        >
                           {option.label}
                         </SelectItem>
                       ))}
@@ -579,19 +574,25 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
                 </div>
 
                 <div>
-                  <Label htmlFor="assumption_type" className="text-slate-200">Type *</Label>
+                  <Label htmlFor="assumption_type" className="text-slate-200">
+                    Type *
+                  </Label>
                   <Select
                     value={formData.assumption_type}
                     onValueChange={(value) =>
-                      setFormData(prev => ({ ...prev, assumption_type: value, parameters: {} }))
+                      setFormData((prev) => ({ ...prev, assumption_type: value, parameters: {} }))
                     }
                   >
                     <SelectTrigger className="mt-2 border-white/10 bg-slate-950 text-white">
                       <SelectValue placeholder="Sélectionnez..." />
                     </SelectTrigger>
                     <SelectContent className="z-[160] border-white/10 bg-slate-950 text-white">
-                      {availableTypeOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value} className="text-white focus:bg-white/10 focus:text-white">
+                      {availableTypeOptions.map((option) => (
+                        <SelectItem
+                          key={option.value}
+                          value={option.value}
+                          className="text-white focus:bg-white/10 focus:text-white"
+                        >
                           {option.label}
                         </SelectItem>
                       ))}
@@ -599,7 +600,8 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
                   </Select>
                   {formData.category && (
                     <p className="mt-2 text-xs text-slate-500">
-                      Types disponibles pour cette catégorie: {availableTypeOptions.map((option) => option.label).join(', ')}.
+                      Types disponibles pour cette catégorie:{' '}
+                      {availableTypeOptions.map((option) => option.label).join(', ')}.
                     </p>
                   )}
                 </div>
@@ -625,7 +627,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
               <h4 className="text-sm font-medium mb-3 text-white">Période d'application (optionnel)</h4>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label htmlFor="start_date" className="text-slate-200">Date de début</Label>
+                  <Label htmlFor="start_date" className="text-slate-200">
+                    Date de début
+                  </Label>
                   <Input
                     id="start_date"
                     name="start_date"
@@ -636,7 +640,9 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
                   />
                 </div>
                 <div>
-                  <Label htmlFor="end_date" className="text-slate-200">Date de fin</Label>
+                  <Label htmlFor="end_date" className="text-slate-200">
+                    Date de fin
+                  </Label>
                   <Input
                     id="end_date"
                     name="end_date"
@@ -648,7 +654,8 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
                 </div>
               </div>
               <p className="text-xs text-slate-500 mt-2">
-                Laissez vide pour appliquer l'hypothèse sur toute la durée du scénario. Pour un montant fixe progressif, renseignez une date de fin.
+                Laissez vide pour appliquer l'hypothèse sur toute la durée du scénario. Pour un montant fixe progressif,
+                renseignez une date de fin.
               </p>
             </div>
           </div>
@@ -667,11 +674,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
             <Button
               onClick={handleSave}
               className="bg-orange-500 text-white hover:bg-orange-600"
-              disabled={
-                !formData.name ||
-                !formData.category ||
-                !formData.assumption_type
-              }
+              disabled={!formData.name || !formData.category || !formData.assumption_type}
             >
               {editingAssumption ? 'Mettre à jour' : 'Ajouter'}
             </Button>

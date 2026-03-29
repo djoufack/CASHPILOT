@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet';
 import { AlertTriangle, Banknote, Briefcase, Building2, Receipt, Users } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useHrMaterial } from '@/hooks/useHrMaterial';
+import { getLocale, formatDate as formatDateLocale } from '@/utils/dateLocale';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import HrCrossNav from '@/components/hr/HrCrossNav';
 
 const formatCurrency = (value, currency = 'EUR') =>
-  new Intl.NumberFormat('fr-FR', {
+  new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency,
   }).format(Number(value || 0));
@@ -22,7 +23,7 @@ const formatDate = (value) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString('fr-FR');
+  return formatDateLocale(date);
 };
 
 const getOriginLabel = (origin) => (origin === 'external_supplier' ? 'Externe (fournisseur)' : 'Interne');

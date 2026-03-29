@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
 import { usePeppol } from '@/hooks/usePeppol';
 import { usePeppolSend } from '@/hooks/usePeppolSend';
+import { formatNumber } from '@/utils/dateLocale';
 import { usePeppolCheck } from '@/hooks/usePeppolCheck';
 import PeppolStatusBadge from '@/components/peppol/PeppolStatusBadge';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +15,37 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Send, Search, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, ArrowUpRight, ArrowDownLeft, Settings, ExternalLink, Zap, Globe, Wrench, Shield, FileCheck, Loader2, Activity, MoreHorizontal, Eye, Printer, Download, RotateCcw, Copy } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Send,
+  Search,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Settings,
+  Globe,
+  Wrench,
+  Shield,
+  FileCheck,
+  Loader2,
+  Activity,
+  MoreHorizontal,
+  Eye,
+  Printer,
+  Download,
+  RotateCcw,
+  Copy,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreview from '@/components/InvoicePreview';
 import { exportUBL } from '@/services/exportUBL';
@@ -29,15 +59,23 @@ const PeppolPage = () => {
   const { toast } = useToast();
   const { company, loading: companyLoading } = useCompany();
   const {
-    invoices, loadingInvoices, fetchOutboundInvoices,
-    inboundLogs, loadingInbound,
-    allLogs, loadingLogs, fetchAllLogs,
-    apInfo, loadingApInfo, fetchApInfo,
+    invoices,
+    loadingInvoices,
+    fetchOutboundInvoices,
+    inboundLogs,
+    loadingInbound,
+    allLogs,
+    loadingLogs,
+    fetchAllLogs,
+    apInfo,
+    loadingApInfo,
+    fetchApInfo,
     fetchInvoiceItems,
-    syncingInbound, syncInbound,
+    syncingInbound,
+    syncInbound,
     refreshAll,
   } = usePeppol();
-  const { sendViaPeppol, sending, polling, peppolStatus, creditsModalProps } = usePeppolSend();
+  const { sendViaPeppol, sending, polling: _polling, peppolStatus: _peppolStatus, creditsModalProps } = usePeppolSend();
   const { checkRegistration, checking, result: checkResult, reset: resetCheck } = usePeppolCheck();
   const { openCreditsModal, modalProps: inboundCreditsModalProps } = useCreditsGuard();
 
@@ -52,7 +90,7 @@ const PeppolPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingInvoice, setViewingInvoice] = useState(null);
 
-  const isPeppolConfigured = !!(company?.peppol_endpoint_id);
+  const isPeppolConfigured = !!company?.peppol_endpoint_id;
   const creditUnit = t('credits.creditsLabel');
   const creditPolicyItems = [
     {
@@ -64,7 +102,7 @@ const PeppolPage = () => {
       title: t('peppolPage.creditPolicy.configurationTitle', 'Configuration validee'),
       description: t(
         'peppolPage.creditPolicy.configurationDescription',
-        'Le test de connexion Scrada facture uniquement quand une nouvelle configuration est validee avec succes.',
+        'Le test de connexion Scrada facture uniquement quand une nouvelle configuration est validee avec succes.'
       ),
     },
     {
@@ -76,7 +114,7 @@ const PeppolPage = () => {
       title: t('peppolPage.creditPolicy.sendTitle', "Envoi d'une facture"),
       description: t(
         'peppolPage.creditPolicy.sendDescription',
-        "Le debit a lieu au lancement de l'envoi. Si Scrada rejette le document ou si le journal echoue, les credits sont rembourses.",
+        "Le debit a lieu au lancement de l'envoi. Si Scrada rejette le document ou si le journal echoue, les credits sont rembourses."
       ),
     },
     {
@@ -88,7 +126,7 @@ const PeppolPage = () => {
       title: t('peppolPage.creditPolicy.receiveTitle', "Reception d'une facture"),
       description: t(
         'peppolPage.creditPolicy.receiveDescription',
-        "La synchronisation facture uniquement les nouvelles factures importees. Si le solde est insuffisant, l'import est bloque.",
+        "La synchronisation facture uniquement les nouvelles factures importees. Si le solde est insuffisant, l'import est bloque."
       ),
     },
   ];
@@ -97,10 +135,12 @@ const PeppolPage = () => {
 
   // --- KPI calculations ---
   const kpis = useMemo(() => {
-    const total = invoices.filter(inv => inv.peppol_status && inv.peppol_status !== 'none').length;
-    const delivered = invoices.filter(inv => inv.peppol_status === 'delivered' || inv.peppol_status === 'accepted').length;
-    const pending = invoices.filter(inv => inv.peppol_status === 'pending' || inv.peppol_status === 'sent').length;
-    const errors = invoices.filter(inv => inv.peppol_status === 'error' || inv.peppol_status === 'rejected').length;
+    const total = invoices.filter((inv) => inv.peppol_status && inv.peppol_status !== 'none').length;
+    const delivered = invoices.filter(
+      (inv) => inv.peppol_status === 'delivered' || inv.peppol_status === 'accepted'
+    ).length;
+    const pending = invoices.filter((inv) => inv.peppol_status === 'pending' || inv.peppol_status === 'sent').length;
+    const errors = invoices.filter((inv) => inv.peppol_status === 'error' || inv.peppol_status === 'rejected').length;
     return { total, delivered, pending, errors };
   }, [invoices]);
 
@@ -110,17 +150,18 @@ const PeppolPage = () => {
 
     if (statusFilter !== 'all') {
       if (statusFilter === 'eligible') {
-        result = result.filter(inv => inv.client?.peppol_endpoint_id);
+        result = result.filter((inv) => inv.client?.peppol_endpoint_id);
       } else {
-        result = result.filter(inv => inv.peppol_status === statusFilter);
+        result = result.filter((inv) => inv.peppol_status === statusFilter);
       }
     }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(inv =>
-        (inv.invoice_number || '').toLowerCase().includes(q) ||
-        (inv.client?.company_name || inv.client?.contact_name || '').toLowerCase().includes(q)
+      result = result.filter(
+        (inv) =>
+          (inv.invoice_number || '').toLowerCase().includes(q) ||
+          (inv.client?.company_name || inv.client?.contact_name || '').toLowerCase().includes(q)
       );
     }
 
@@ -224,7 +265,7 @@ const PeppolPage = () => {
   };
 
   // --- Refresh all data ---
-  const handleRefreshAll = refreshAll;
+  const _handleRefreshAll = refreshAll;
 
   const handleSyncInbound = useCallback(async () => {
     if (!user) return;
@@ -233,27 +274,22 @@ const PeppolPage = () => {
       const data = await syncInbound();
 
       if (data?.insufficientCredits) {
-        openCreditsModal(
-          data.requiredCredits,
-          `${data.newDocuments || 0} factures Peppol entrantes`,
-        );
+        openCreditsModal(data.requiredCredits, `${data.newDocuments || 0} factures Peppol entrantes`);
         return;
       }
 
       toast({
         title: t('peppol.syncInbound'),
-        description: data?.newDocuments > 0
-          ? `${data.newDocuments} nouvelles factures importees.`
-          : 'Aucune nouvelle facture entrante.',
+        description:
+          data?.newDocuments > 0
+            ? `${data.newDocuments} nouvelles factures importees.`
+            : 'Aucune nouvelle facture entrante.',
       });
 
       refreshAll();
     } catch (err) {
       if (err?.insufficientCredits) {
-        openCreditsModal(
-          err.requiredCredits,
-          `${err.newDocuments || 0} factures Peppol entrantes`,
-        );
+        openCreditsModal(err.requiredCredits, `${err.newDocuments || 0} factures Peppol entrantes`);
         return;
       }
 
@@ -269,7 +305,7 @@ const PeppolPage = () => {
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     try {
-      return new Date(dateStr).toLocaleDateString('fr-FR');
+      return formatDate(dateStr);
     } catch {
       return dateStr;
     }
@@ -278,7 +314,7 @@ const PeppolPage = () => {
   const formatDateTime = (dateStr) => {
     if (!dateStr) return '-';
     try {
-      return new Date(dateStr).toLocaleDateString('fr-FR', {
+      return formatDate(dateStr, {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -292,7 +328,7 @@ const PeppolPage = () => {
 
   const formatAmount = (amount, currency) => {
     const num = Number(amount || 0);
-    const formatted = num.toLocaleString('fr-FR', { minimumFractionDigits: 2 });
+    const formatted = formatNumber(num, { minimumFractionDigits: 2 });
     return `${formatted} ${currency || 'EUR'}`;
   };
 
@@ -327,7 +363,9 @@ const PeppolPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] p-4 sm:p-6 lg:p-8 space-y-6">
-      <Helmet><title>{t('pages.peppol', 'Peppol')} | CashPilot</title></Helmet>
+      <Helmet>
+        <title>{t('pages.peppol', 'Peppol')} | CashPilot</title>
+      </Helmet>
       <CreditsGuardModal {...creditsModalProps} />
       <CreditsGuardModal {...inboundCreditsModalProps} />
 
@@ -341,8 +379,7 @@ const PeppolPage = () => {
           <p className="text-gray-400 mt-1 text-sm">
             {isPeppolConfigured
               ? `${t('peppol.companyEndpoint')}: ${company.peppol_endpoint_id}`
-              : t('peppol.noEndpoint')
-            }
+              : t('peppol.noEndpoint')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -361,11 +398,7 @@ const PeppolPage = () => {
             })}
           </Button>
           <Link to="/app/settings">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
-            >
+            <Button variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
               <Settings className="w-4 h-4 mr-2" />
               {t('peppol.settings')}
             </Button>
@@ -377,7 +410,9 @@ const PeppolPage = () => {
       <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isPeppolConfigured ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+            <div
+              className={`w-3 h-3 rounded-full flex-shrink-0 ${isPeppolConfigured ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}
+            />
             <div>
               <p className="text-white font-medium">
                 {isPeppolConfigured ? 'Peppol Access Point Connected' : 'Peppol Not Configured'}
@@ -385,9 +420,17 @@ const PeppolPage = () => {
               <div className="flex flex-wrap gap-x-6 gap-y-1 mt-1 text-sm text-gray-400">
                 {isPeppolConfigured && (
                   <>
-                    <span>Endpoint: <span className="text-gray-300 font-mono">{company.peppol_endpoint_id}</span></span>
-                    <span>{t('peppol.schemeId')}: <span className="text-gray-300 font-mono">{company.peppol_scheme_id || '0208'}</span></span>
-                    <span>{t('peppol.apProvider')}: <span className="text-gray-300 capitalize">{company.peppol_ap_provider || 'scrada'}</span></span>
+                    <span>
+                      Endpoint: <span className="text-gray-300 font-mono">{company.peppol_endpoint_id}</span>
+                    </span>
+                    <span>
+                      {t('peppol.schemeId')}:{' '}
+                      <span className="text-gray-300 font-mono">{company.peppol_scheme_id || '0208'}</span>
+                    </span>
+                    <span>
+                      {t('peppol.apProvider')}:{' '}
+                      <span className="text-gray-300 capitalize">{company.peppol_ap_provider || 'scrada'}</span>
+                    </span>
                   </>
                 )}
               </div>
@@ -419,7 +462,7 @@ const PeppolPage = () => {
           <p className="text-sm text-gray-400">
             {t(
               'peppolPage.creditPolicy.subtitle',
-              "Peppol est visible pour tous. Chaque action reseau consomme des credits au moment ou elle est executee.",
+              'Peppol est visible pour tous. Chaque action reseau consomme des credits au moment ou elle est executee.'
             )}
           </p>
         </div>
@@ -427,10 +470,7 @@ const PeppolPage = () => {
           {creditPolicyItems.map((item) => {
             const Icon = item.icon;
             return (
-              <div
-                key={item.key}
-                className="rounded-xl border border-white/10 bg-gray-900/40 p-4 space-y-3"
-              >
+              <div key={item.key} className="rounded-xl border border-white/10 bg-gray-900/40 p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="rounded-lg bg-white/5 p-2">
@@ -438,22 +478,15 @@ const PeppolPage = () => {
                     </div>
                     <p className="text-sm font-medium text-white">{item.title}</p>
                   </div>
-                  <Badge className={`${item.badgeClass} border-0 whitespace-nowrap`}>
-                    {item.costLabel}
-                  </Badge>
+                  <Badge className={`${item.badgeClass} border-0 whitespace-nowrap`}>{item.costLabel}</Badge>
                 </div>
-                <p className="text-sm text-gray-400">
-                  {item.description}
-                </p>
+                <p className="text-sm text-gray-400">{item.description}</p>
               </div>
             );
           })}
         </div>
         <p className="text-xs text-gray-500">
-          {t(
-            'peppolPage.creditPolicy.saveFree',
-            "Enregistrer les champs seuls ne consomme pas de credits.",
-          )}
+          {t('peppolPage.creditPolicy.saveFree', 'Enregistrer les champs seuls ne consomme pas de credits.')}
         </p>
       </div>
 
@@ -489,10 +522,7 @@ const PeppolPage = () => {
             bg: 'bg-red-500/10',
           },
         ].map((kpi) => (
-          <div
-            key={kpi.label}
-            className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-4"
-          >
+          <div key={kpi.label} className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-sm">{kpi.label}</span>
               <div className={`${kpi.bg} p-2 rounded-lg`}>
@@ -519,23 +549,23 @@ const PeppolPage = () => {
             }}
             placeholder="0208:0123456789 (BE) / 0009:12345678901234 (FR)"
             className="bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500 flex-1"
-            onKeyDown={(e) => { if (e.key === 'Enter') handleCheckPeppolId(); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleCheckPeppolId();
+            }}
           />
           <Button
             onClick={handleCheckPeppolId}
             disabled={checking || !peppolIdInput.trim()}
             className="bg-orange-500 hover:bg-orange-600 text-white"
           >
-            {checking ? (
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Search className="w-4 h-4 mr-2" />
-            )}
+            {checking ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
             {t('peppol.checkPeppol')}
           </Button>
         </div>
         {checkResult && (
-          <div className={`mt-3 flex items-center gap-2 text-sm ${checkResult.registered ? 'text-green-400' : 'text-red-400'}`}>
+          <div
+            className={`mt-3 flex items-center gap-2 text-sm ${checkResult.registered ? 'text-green-400' : 'text-red-400'}`}
+          >
             {checkResult.registered ? (
               <>
                 <CheckCircle className="w-4 h-4" />
@@ -626,36 +656,52 @@ const PeppolPage = () => {
               <div className="text-center py-16 text-gray-400">
                 <Send className="w-12 h-12 mx-auto mb-4 text-gray-600" />
                 <p className="text-lg mb-1">Aucune facture a envoyer</p>
-                <p className="text-sm text-gray-500">
-                  Les factures finalisees avec un client Peppol apparaitront ici.
-                </p>
+                <p className="text-sm text-gray-500">Les factures finalisees avec un client Peppol apparaitront ici.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-800 bg-gray-900/50">
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Facture</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">Client</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden md:table-cell">Peppol ID</th>
-                      <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Montant</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">{t('peppol.peppolStatus')}</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">Envoye le</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden xl:table-cell">Document ID</th>
-                      <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Actions</th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                        Facture
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
+                        Client
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden md:table-cell">
+                        Peppol ID
+                      </th>
+                      <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                        Montant
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                        {t('peppol.peppolStatus')}
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
+                        Envoye le
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden xl:table-cell">
+                        Document ID
+                      </th>
+                      <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800/50">
                     {filteredInvoices.map((invoice) => {
                       const client = invoice.client;
                       const hasEndpoint = !!client?.peppol_endpoint_id;
-                      const canSend = hasEndpoint && (!invoice.peppol_status || invoice.peppol_status === 'none' || invoice.peppol_status === 'error');
+                      const canSend =
+                        hasEndpoint &&
+                        (!invoice.peppol_status ||
+                          invoice.peppol_status === 'none' ||
+                          invoice.peppol_status === 'error');
 
                       return (
                         <tr key={invoice.id} className="hover:bg-gray-800/50 transition-colors">
-                          <td className="p-3 font-medium text-white whitespace-nowrap">
-                            {invoice.invoice_number}
-                          </td>
+                          <td className="p-3 font-medium text-white whitespace-nowrap">{invoice.invoice_number}</td>
                           <td className="p-3 text-gray-300 hidden sm:table-cell whitespace-nowrap">
                             {client?.company_name || client?.contact_name || '-'}
                           </td>
@@ -676,9 +722,7 @@ const PeppolPage = () => {
                                 errorMessage={invoice.peppol_error_message}
                               />
                             ) : (
-                              <Badge className="bg-gray-500/20 text-gray-400 border-0">
-                                {t('peppol.status.none')}
-                              </Badge>
+                              <Badge className="bg-gray-500/20 text-gray-400 border-0">{t('peppol.status.none')}</Badge>
                             )}
                           </td>
                           <td className="p-3 text-gray-400 text-xs hidden lg:table-cell whitespace-nowrap">
@@ -686,7 +730,10 @@ const PeppolPage = () => {
                           </td>
                           <td className="p-3 hidden xl:table-cell">
                             {invoice.peppol_document_id ? (
-                              <span className="text-xs font-mono text-gray-500 truncate block max-w-[160px]" title={invoice.peppol_document_id}>
+                              <span
+                                className="text-xs font-mono text-gray-500 truncate block max-w-[160px]"
+                                title={invoice.peppol_document_id}
+                              >
                                 {invoice.peppol_document_id}
                               </span>
                             ) : (
@@ -718,25 +765,41 @@ const PeppolPage = () => {
                               )}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50"
+                                  >
                                     <MoreHorizontal className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="bg-gray-900 border-gray-700 text-gray-200">
-                                  <DropdownMenuItem onClick={() => handleViewInvoice(invoice)} className="gap-2 cursor-pointer hover:bg-gray-800">
+                                  <DropdownMenuItem
+                                    onClick={() => handleViewInvoice(invoice)}
+                                    className="gap-2 cursor-pointer hover:bg-gray-800"
+                                  >
                                     <Eye className="w-4 h-4 text-blue-400" />
                                     {t('common.view') || 'Visualiser'}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handlePrintInvoice(invoice)} className="gap-2 cursor-pointer hover:bg-gray-800">
+                                  <DropdownMenuItem
+                                    onClick={() => handlePrintInvoice(invoice)}
+                                    className="gap-2 cursor-pointer hover:bg-gray-800"
+                                  >
                                     <Printer className="w-4 h-4 text-gray-400" />
                                     {t('common.print') || 'Imprimer'}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleExportUBL(invoice)} className="gap-2 cursor-pointer hover:bg-gray-800">
+                                  <DropdownMenuItem
+                                    onClick={() => handleExportUBL(invoice)}
+                                    className="gap-2 cursor-pointer hover:bg-gray-800"
+                                  >
                                     <Download className="w-4 h-4 text-emerald-400" />
                                     {t('peppol.exportUBL')}
                                   </DropdownMenuItem>
                                   {invoice.peppol_document_id && (
-                                    <DropdownMenuItem onClick={() => handleCopyDocumentId(invoice.peppol_document_id)} className="gap-2 cursor-pointer hover:bg-gray-800">
+                                    <DropdownMenuItem
+                                      onClick={() => handleCopyDocumentId(invoice.peppol_document_id)}
+                                      className="gap-2 cursor-pointer hover:bg-gray-800"
+                                    >
                                       <Copy className="w-4 h-4 text-gray-400" />
                                       {t('common.copy') || 'Copier'} Document ID
                                     </DropdownMenuItem>
@@ -744,7 +807,10 @@ const PeppolPage = () => {
                                   {invoice.peppol_status === 'error' && (
                                     <>
                                       <DropdownMenuSeparator className="bg-gray-700" />
-                                      <DropdownMenuItem onClick={() => handleOpenSendDialog(invoice)} className="gap-2 cursor-pointer hover:bg-gray-800 text-orange-400">
+                                      <DropdownMenuItem
+                                        onClick={() => handleOpenSendDialog(invoice)}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800 text-orange-400"
+                                      >
                                         <RotateCcw className="w-4 h-4" />
                                         {t('peppol.retry') || 'Renvoyer'}
                                       </DropdownMenuItem>
@@ -775,9 +841,7 @@ const PeppolPage = () => {
               <div className="text-center py-16 text-gray-400">
                 <ArrowDownLeft className="w-12 h-12 mx-auto mb-4 text-gray-600" />
                 <p className="text-lg mb-1">{t('peppol.inboundDocuments')}</p>
-                <p className="text-sm text-gray-500">
-                  Aucune facture recue via Peppol pour le moment.
-                </p>
+                <p className="text-sm text-gray-500">Aucune facture recue via Peppol pour le moment.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -785,10 +849,18 @@ const PeppolPage = () => {
                   <thead>
                     <tr className="border-b border-gray-800 bg-gray-900/50">
                       <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Date</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Expediteur</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">Document ID</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Statut</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Facture</th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                        Expediteur
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
+                        Document ID
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                        Statut
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                        Facture
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800/50">
@@ -801,18 +873,17 @@ const PeppolPage = () => {
                           <span className="font-mono text-xs">{log.sender_endpoint || '-'}</span>
                         </td>
                         <td className="p-3 hidden sm:table-cell">
-                          <span className="text-xs font-mono text-gray-500 truncate block max-w-[200px]" title={log.ap_document_id}>
+                          <span
+                            className="text-xs font-mono text-gray-500 truncate block max-w-[200px]"
+                            title={log.ap_document_id}
+                          >
                             {log.ap_document_id || '-'}
                           </span>
                         </td>
-                        <td className="p-3">
-                          {getLogStatusBadge(log.status)}
-                        </td>
+                        <td className="p-3">{getLogStatusBadge(log.status)}</td>
                         <td className="p-3">
                           {log.invoice?.invoice_number ? (
-                            <span className="text-orange-400 text-sm font-medium">
-                              {log.invoice.invoice_number}
-                            </span>
+                            <span className="text-orange-400 text-sm font-medium">{log.invoice.invoice_number}</span>
                           ) : (
                             <span className="text-gray-600">-</span>
                           )}
@@ -837,9 +908,7 @@ const PeppolPage = () => {
               <div className="text-center py-16 text-gray-400">
                 <Clock className="w-12 h-12 mx-auto mb-4 text-gray-600" />
                 <p className="text-lg mb-1">{t('peppol.transmissionLog')}</p>
-                <p className="text-sm text-gray-500">
-                  Aucune transmission Peppol enregistree.
-                </p>
+                <p className="text-sm text-gray-500">Aucune transmission Peppol enregistree.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -847,12 +916,24 @@ const PeppolPage = () => {
                   <thead>
                     <tr className="border-b border-gray-800 bg-gray-900/50">
                       <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Date</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Direction</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">Facture</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Statut</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden md:table-cell">{t('peppol.apProvider')}</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">Document ID</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden xl:table-cell">Erreur</th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                        Direction
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
+                        Facture
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                        Statut
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden md:table-cell">
+                        {t('peppol.apProvider')}
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
+                        Document ID
+                      </th>
+                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden xl:table-cell">
+                        Erreur
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800/50">
@@ -876,27 +957,29 @@ const PeppolPage = () => {
                         </td>
                         <td className="p-3 hidden sm:table-cell">
                           {log.invoice?.invoice_number ? (
-                            <span className="text-orange-400 font-medium text-sm">
-                              {log.invoice.invoice_number}
-                            </span>
+                            <span className="text-orange-400 font-medium text-sm">{log.invoice.invoice_number}</span>
                           ) : (
                             <span className="text-gray-600">-</span>
                           )}
                         </td>
-                        <td className="p-3">
-                          {getLogStatusBadge(log.status)}
-                        </td>
+                        <td className="p-3">{getLogStatusBadge(log.status)}</td>
                         <td className="p-3 text-gray-400 text-xs capitalize hidden md:table-cell">
                           {log.ap_provider || '-'}
                         </td>
                         <td className="p-3 hidden lg:table-cell">
-                          <span className="text-xs font-mono text-gray-500 truncate block max-w-[160px]" title={log.ap_document_id}>
+                          <span
+                            className="text-xs font-mono text-gray-500 truncate block max-w-[160px]"
+                            title={log.ap_document_id}
+                          >
                             {log.ap_document_id || '-'}
                           </span>
                         </td>
                         <td className="p-3 hidden xl:table-cell">
                           {log.error_message ? (
-                            <span className="text-xs text-red-400 truncate block max-w-[200px]" title={log.error_message}>
+                            <span
+                              className="text-xs text-red-400 truncate block max-w-[200px]"
+                              title={log.error_message}
+                            >
                               {log.error_message}
                             </span>
                           ) : (
@@ -914,13 +997,12 @@ const PeppolPage = () => {
 
         {/* -------- TAB: CONFIGURATION -------- */}
         <TabsContent value="config" className="mt-4 space-y-6">
-
           {/* --- AP Live Status --- */}
           <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="text-white font-semibold flex items-center gap-2">
                 <Activity className="w-5 h-5 text-emerald-400" />
-                {t('peppolPage.apLiveStatus', 'Statut du Point d\'Accès')}
+                {t('peppolPage.apLiveStatus', "Statut du Point d'Accès")}
               </h3>
               <Button
                 variant="outline"
@@ -929,7 +1011,11 @@ const PeppolPage = () => {
                 disabled={loadingApInfo}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
-                {loadingApInfo ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                {loadingApInfo ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
                 {t('common.refresh', 'Actualiser')}
               </Button>
             </div>
@@ -937,16 +1023,22 @@ const PeppolPage = () => {
             {loadingApInfo ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
-                <span className="ml-3 text-gray-400 text-sm">{t('peppolPage.fetchingApInfo', 'Interrogation du point d\'accès...')}</span>
+                <span className="ml-3 text-gray-400 text-sm">
+                  {t('peppolPage.fetchingApInfo', "Interrogation du point d'accès...")}
+                </span>
               </div>
             ) : !apInfo?.configured ? (
               <div className="text-center py-6 text-gray-500">
                 <XCircle className="w-10 h-10 mx-auto mb-3 text-red-400/50" />
-                <p className="text-sm">{t('peppolPage.apNotConfigured', 'Credentials Scrada non configurés. Remplissez le formulaire ci-dessous.')}</p>
+                <p className="text-sm">
+                  {t(
+                    'peppolPage.apNotConfigured',
+                    'Credentials Scrada non configurés. Remplissez le formulaire ci-dessous.'
+                  )}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
                 {/* Registration Status */}
                 <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-3">
                   <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
@@ -958,17 +1050,23 @@ const PeppolPage = () => {
                       {apInfo.registrationStatus.registered ? (
                         <>
                           <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
-                          <span className="text-green-400 text-sm font-medium">{t('peppolPage.registeredOnNetwork', 'Enregistré sur le réseau Peppol')}</span>
+                          <span className="text-green-400 text-sm font-medium">
+                            {t('peppolPage.registeredOnNetwork', 'Enregistré sur le réseau Peppol')}
+                          </span>
                         </>
                       ) : (
                         <>
                           <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                          <span className="text-red-400 text-sm">{t('peppolPage.notRegisteredOnNetwork', 'Non enregistré sur le réseau Peppol')}</span>
+                          <span className="text-red-400 text-sm">
+                            {t('peppolPage.notRegisteredOnNetwork', 'Non enregistré sur le réseau Peppol')}
+                          </span>
                         </>
                       )}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm">{t('peppolPage.registrationUnknown', 'Statut inconnu — vérifiez votre Endpoint ID')}</p>
+                    <p className="text-gray-500 text-sm">
+                      {t('peppolPage.registrationUnknown', 'Statut inconnu — vérifiez votre Endpoint ID')}
+                    </p>
                   )}
                   {apInfo.registrationStatus?.details && (
                     <div className="text-xs text-gray-500 space-y-1 mt-2 border-t border-gray-800 pt-2">
@@ -1011,7 +1109,9 @@ const PeppolPage = () => {
                       {apInfo.companyProfile.status && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">{t('peppolPage.accountStatus', 'Statut compte')}</span>
-                          <Badge className={`text-xs ${apInfo.companyProfile.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'} border-0`}>
+                          <Badge
+                            className={`text-xs ${apInfo.companyProfile.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'} border-0`}
+                          >
                             {apInfo.companyProfile.status}
                           </Badge>
                         </div>
@@ -1023,13 +1123,16 @@ const PeppolPage = () => {
                         .map(([key, val]) => (
                           <div key={key} className="flex justify-between">
                             <span className="text-gray-500">{key}</span>
-                            <span className="text-gray-400 font-mono truncate max-w-[200px]">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+                            <span className="text-gray-400 font-mono truncate max-w-[200px]">
+                              {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                            </span>
                           </div>
-                        ))
-                      }
+                        ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm">{t('peppolPage.profileUnavailable', 'Profil non disponible')}</p>
+                    <p className="text-gray-500 text-sm">
+                      {t('peppolPage.profileUnavailable', 'Profil non disponible')}
+                    </p>
                   )}
                 </div>
 
@@ -1066,7 +1169,10 @@ const PeppolPage = () => {
                   {apInfo.recentDocuments?.length > 0 ? (
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {apInfo.recentDocuments.slice(0, 10).map((doc, idx) => (
-                        <div key={idx} className="flex items-center justify-between text-xs border-b border-gray-800/50 pb-1.5">
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between text-xs border-b border-gray-800/50 pb-1.5"
+                        >
                           <div className="flex items-center gap-2 min-w-0">
                             <ArrowUpRight className="w-3 h-3 text-blue-400 flex-shrink-0" />
                             <span className="text-gray-300 truncate">
@@ -1075,17 +1181,19 @@ const PeppolPage = () => {
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {doc.status && (
-                              <Badge className={`text-[10px] border-0 ${
-                                doc.status === 'Processed' || doc.status === 'delivered' ? 'bg-green-500/20 text-green-400' :
-                                doc.status === 'Error' || doc.status === 'error' ? 'bg-red-500/20 text-red-400' :
-                                'bg-yellow-500/20 text-yellow-400'
-                              }`}>
+                              <Badge
+                                className={`text-[10px] border-0 ${
+                                  doc.status === 'Processed' || doc.status === 'delivered'
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : doc.status === 'Error' || doc.status === 'error'
+                                      ? 'bg-red-500/20 text-red-400'
+                                      : 'bg-yellow-500/20 text-yellow-400'
+                                }`}
+                              >
                                 {doc.status}
                               </Badge>
                             )}
-                            {doc.createdAt && (
-                              <span className="text-gray-500">{formatDate(doc.createdAt)}</span>
-                            )}
+                            {doc.createdAt && <span className="text-gray-500">{formatDate(doc.createdAt)}</span>}
                           </div>
                         </div>
                       ))}
@@ -1125,13 +1233,13 @@ const PeppolPage = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Client</span>
-                  <span className="text-white">{selectedInvoice.client?.company_name || selectedInvoice.client?.contact_name || '-'}</span>
+                  <span className="text-white">
+                    {selectedInvoice.client?.company_name || selectedInvoice.client?.contact_name || '-'}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Montant</span>
-                  <span className="text-white font-medium">
-                    {formatAmount(selectedInvoice.total_ttc)}
-                  </span>
+                  <span className="text-white font-medium">{formatAmount(selectedInvoice.total_ttc)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Peppol ID destinataire</span>
@@ -1164,7 +1272,8 @@ const PeppolPage = () => {
                       <div key={item.id || idx} className="flex justify-between text-xs text-gray-300">
                         <span className="truncate mr-2">{item.description || item.name || `Ligne ${idx + 1}`}</span>
                         <span className="whitespace-nowrap text-gray-400">
-                          {Number(item.quantity || 0)} x {Number(item.unit_price || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                          {Number(item.quantity || 0)} x{' '}
+                          {formatNumber(Number(item.unit_price || 0), { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     ))}
@@ -1225,13 +1334,17 @@ const PeppolPage = () => {
 
       {/* --- Invoice Preview Dialog --- */}
       {viewingInvoice && (
-        <Dialog open={!!viewingInvoice} onOpenChange={(open) => { if (!open) { setViewingInvoice(null); setViewingInvoiceItems([]); } }}>
+        <Dialog
+          open={!!viewingInvoice}
+          onOpenChange={(open) => {
+            if (!open) {
+              setViewingInvoice(null);
+              setViewingInvoiceItems([]);
+            }
+          }}
+        >
           <DialogContent className="w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0f1528] border-white/10 text-white p-0">
-            <InvoicePreview
-              invoice={viewingInvoice}
-              client={viewingInvoice.client}
-              items={viewingInvoiceItems}
-            />
+            <InvoicePreview invoice={viewingInvoice} client={viewingInvoice.client} items={viewingInvoiceItems} />
           </DialogContent>
         </Dialog>
       )}
