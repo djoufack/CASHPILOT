@@ -302,7 +302,7 @@ const CreditNotesPage = () => {
                     {loading ? (
                       <tr>
                         <td colSpan={7} className="text-center p-8 text-gray-400">
-                          Loading...
+                          {t('common.loading')}
                         </td>
                       </tr>
                     ) : filteredNotes.length === 0 ? (
@@ -355,7 +355,7 @@ const CreditNotesPage = () => {
                                   size="sm"
                                   variant="ghost"
                                   className="text-purple-400 hover:text-purple-300 h-8"
-                                  title="Export PDF (2 crédits)"
+                                  title={t('credits.costs.pdfCreditNote')}
                                   onClick={() => handleExportCreditNotePDF(cn)}
                                 >
                                   <Download className="w-4 h-4" />
@@ -364,7 +364,7 @@ const CreditNotesPage = () => {
                                   size="sm"
                                   variant="ghost"
                                   className="text-cyan-400 hover:text-cyan-300 h-8"
-                                  title="Export HTML (2 crédits)"
+                                  title={t('credits.costs.exportHtml')}
                                   onClick={() => handleExportCreditNoteHTML(cn)}
                                 >
                                   <FileText className="w-4 h-4" />

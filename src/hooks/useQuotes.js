@@ -102,10 +102,19 @@ export const useQuotes = () => {
       const quoteNumber = quoteData.quote_number || `QT-${Date.now()}`;
       const documentType = normalizeDocumentType(quoteData.document_type);
 
+      // Strip the 'items' array: the quotes table has no items column.
+      // Totals (total_ht, total_ttc) are already computed and passed directly.
+      const { items: _items, ...quoteFields } = quoteData;
+
       const { data, error } = await supabase
         .from('quotes')
         .insert([
-          { ...withCompanyScope(quoteData), document_type: documentType, quote_number: quoteNumber, user_id: user.id },
+          {
+            ...withCompanyScope(quoteFields),
+            document_type: documentType,
+            quote_number: quoteNumber,
+            user_id: user.id,
+          },
         ])
         .select()
         .single();

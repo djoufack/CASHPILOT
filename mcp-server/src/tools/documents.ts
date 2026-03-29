@@ -310,6 +310,7 @@ export function registerDocumentTools(server: McpServer) {
         .insert([
           {
             user_id: userId,
+            company_id: quote.company_id, // ENF-2: inherit company_id from source quote
             client_id: quote.client_id,
             invoice_number: invoiceNumber,
             date: new Date().toISOString().split('T')[0],
