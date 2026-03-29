@@ -64,6 +64,7 @@ const EMPTY = {
   termination_date: '',
   department_id: '',
   cost_center_id: '',
+  manager_employee_id: '',
 };
 
 /* ------------------------------------------------------------------ */
@@ -160,6 +161,7 @@ const EmployeesPage = () => {
         department_id: form.department_id || null,
         cost_center_id: form.cost_center_id || null,
         termination_date: form.termination_date || null,
+        manager_employee_id: form.manager_employee_id || null,
       };
       if (editingId) {
         await updateEmployee(editingId, payload);
@@ -369,6 +371,14 @@ const EmployeesPage = () => {
                     </div>
                     <Info label="Date embauche">{fmtDate(selected.hire_date)}</Info>
                     <Info label="Date fin">{fmtDate(selected.termination_date)}</Info>
+                    {selected.manager && (
+                      <Info label="Responsable">
+                        <span className="text-gray-200">{selected.manager.full_name || '-'}</span>
+                        {selected.manager.job_title && (
+                          <span className="text-gray-500 ml-1 text-xs">({selected.manager.job_title})</span>
+                        )}
+                      </Info>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -635,6 +645,26 @@ const EmployeesPage = () => {
                       placeholder="UUID du centre de cout (optionnel)"
                       className={inputCls}
                     />
+                  </Field>
+                  <Field label="Responsable hierarchique">
+                    <Select
+                      value={form.manager_employee_id || 'none'}
+                      onValueChange={(v) => set('manager_employee_id', v === 'none' ? '' : v)}
+                    >
+                      <SelectTrigger className="bg-white/5 border-white/10">
+                        <SelectValue placeholder="Aucun" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucun</SelectItem>
+                        {employees
+                          .filter((e) => e.status === 'active' && e.id !== editingId)
+                          .map((e) => (
+                            <SelectItem key={e.id} value={e.id}>
+                              {e.full_name || `${e.first_name || ''} ${e.last_name || ''}`.trim() || e.id}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                   <div className="sm:col-span-2 flex gap-3 pt-2">
                     <Button type="submit" disabled={saving} className="bg-orange-500 hover:bg-orange-600 text-white">
