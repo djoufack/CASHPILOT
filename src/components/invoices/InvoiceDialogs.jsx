@@ -118,9 +118,12 @@ const InvoiceDialogs = ({
       >
         <AlertDialogContent className="w-full sm:max-w-[90%] md:max-w-lg bg-gray-800 border-gray-700 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
+            <AlertDialogTitle>{t('invoices.deleteTitle', 'Delete Invoice')}</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              Are you sure you want to delete this invoice? This action cannot be undone.
+              {t(
+                'invoices.deleteConfirm',
+                'Are you sure you want to delete this invoice? This action cannot be undone.'
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">

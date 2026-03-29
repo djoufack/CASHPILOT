@@ -252,7 +252,8 @@ export const useInvoices = () => {
       // Insert invoice items if provided
       let calculatedTotalHT = 0;
       let calculatedTotalTTC = 0;
-      let calculatedTaxAmount = 0;
+      // _calculatedTaxAmount is kept for reference but not persisted (invoices table has no tax_amount column)
+      let _calculatedTaxAmount = 0;
       const taxRate = normalizeTaxRate(invoiceData.tax_rate);
 
       if (items.length > 0) {
@@ -294,13 +295,13 @@ export const useInvoices = () => {
             return lineTotal - discount;
           });
           calculatedTotalHT = itemTotals.reduce((sum, t) => sum + t, 0);
-          calculatedTaxAmount = calculatedTotalHT * (taxRate / 100);
+          _calculatedTaxAmount = calculatedTotalHT * (taxRate / 100);
           calculatedTotalTTC = calculatedTotalHT * (1 + taxRate / 100);
         }
       } else {
         calculatedTotalHT = toFiniteNumber(invoiceData.total_ht);
         calculatedTotalTTC = toFiniteNumber(invoiceData.total_ttc || invoiceData.total);
-        calculatedTaxAmount =
+        _calculatedTaxAmount =
           calculatedTotalTTC > 0
             ? Math.max(0, calculatedTotalTTC - calculatedTotalHT)
             : calculatedTotalHT * (taxRate / 100);
@@ -308,17 +309,17 @@ export const useInvoices = () => {
 
       // Round totals to 2 decimal places
       calculatedTotalHT = Number(calculatedTotalHT.toFixed(2));
-      calculatedTaxAmount = Number(calculatedTaxAmount.toFixed(2));
+      _calculatedTaxAmount = Number(_calculatedTaxAmount.toFixed(2));
       calculatedTotalTTC = Number(calculatedTotalTTC.toFixed(2));
 
       // Update invoice status to 'sent' and persist calculated totals
+      // Note: invoices table has no tax_amount column — the column is tax_rate only
       const { data: updatedInvoice, error: updateError } = await supabase
         .from('invoices')
         .update({
           status: 'sent',
           total_ht: calculatedTotalHT,
           tax_rate: taxRate,
-          tax_amount: calculatedTaxAmount,
           total_ttc: calculatedTotalTTC,
           balance_due: calculatedTotalTTC,
         })
@@ -394,6 +395,18 @@ export const useInvoices = () => {
     if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
+      // Defensive pre-delete cleanup: remove accounting entries and payments linked to this
+      // invoice before deleting it. The DB trigger/CASCADE should handle this automatically
+      // once migration 20260329020000_fix_invoice_delete_cascade.sql is applied, but this
+      // safeguard prevents orphan records if the migration hasn't run yet.
+      await supabase
+        .from('accounting_entries')
+        .delete()
+        .eq('source_id', id)
+        .in('source_type', ['invoice', 'invoice_reversal']);
+
+      await supabase.from('payments').delete().eq('invoice_id', id);
+
       const { error } = await supabase.from('invoices').delete().eq('id', id);
 
       if (error) throw error;

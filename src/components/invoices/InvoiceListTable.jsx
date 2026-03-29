@@ -63,7 +63,7 @@ const InvoiceListTable = ({ data, actions, ui }) => {
           <thead className="bg-gray-800/50">
             <tr>
               <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                Documents
+                {t('common.documents', 'Documents')}
               </th>
               <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                 {t('invoices.invoiceNumber')}
@@ -87,7 +87,7 @@ const InvoiceListTable = ({ data, actions, ui }) => {
                 {t('payments.title')}
               </th>
               <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                Actions
+                {t('common.actions', 'Actions')}
               </th>
             </tr>
           </thead>
