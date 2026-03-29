@@ -26,10 +26,9 @@ export const options = {
     { duration: '2m',  target: 0 },    // Ramp down
   ],
   thresholds: {
-    // Seuils Enterprise
-    app_errors:        ['rate<0.01'],        // < 1% d'erreurs applicatives réelles
-    http_req_duration: ['p(95)<2000'],       // p95 < 2s
-    http_req_duration: ['p(99)<5000'],       // p99 < 5s
+    // Seuils Enterprise — clés distinctes pour éviter l'écrasement JS
+    app_errors:        ['rate<0.01'],                         // < 1% d'erreurs applicatives réelles
+    http_req_duration: ['p(95)<2000', 'p(99)<5000'],          // p95 < 2s ET p99 < 5s (même clé, tableau)
     // NOTE: http_req_failed inclut les 401 attendus — on utilise app_errors à la place
   },
 };
@@ -104,7 +103,7 @@ export function handleSummary(data) {
   const duration = data.state?.testRunDurationMs || 0;
   const appErrRate = data.metrics?.app_errors?.values?.rate || 0;
   const p95 = data.metrics?.http_req_duration?.values?.['p(95)'] || 0;
-  const p99 = data.metrics?.http_req_duration?.values?.['p(99)'] || 0;
+  const p99 = data.metrics?.http_req_duration?.values?.['p(99)'] ?? null;
   const totalReqs = data.metrics?.http_reqs?.values?.count || 0;
   const auth401 = data.metrics?.auth_401_expected?.values?.count || 0;
   const throughput = data.metrics?.http_reqs?.values?.rate || 0;
@@ -125,7 +124,7 @@ RÉSULTATS CLÉS
 LATENCES
 ────────
   p(95)                  : ${p95.toFixed(0)}ms  ${p95 < 2000 ? '✅ < 2s' : '❌ > 2s'}
-  p(99)                  : ${p99.toFixed(0)}ms  ${p99 < 5000 ? '✅ < 5s' : '❌ > 5s'}
+  p(99)                  : ${p99 !== null ? p99.toFixed(0)+'ms' : 'N/A (stat non collectée)'}  ${p99 === null ? '⚠️' : p99 < 5000 ? '✅ < 5s' : '❌ > 5s'}
 
 FIABILITÉ
 ─────────
@@ -134,6 +133,7 @@ FIABILITÉ
 VERDICT ENTERPRISE
 ──────────────────
   ${appErrRate < 0.01 && p95 < 2000 ? '✅ GO Enterprise — SLA tenu sur 30 minutes' : '❌ NO GO — seuils non atteints'}
+  Note: p(99) nécessite --out json pour collecte complète des percentiles
 
 ================================================================================
 `;
