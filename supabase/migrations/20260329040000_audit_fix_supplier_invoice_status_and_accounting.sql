@@ -115,17 +115,33 @@ BEGIN
       );
     END IF;
 
-    -- Log in audit
-    INSERT INTO accounting_audit_log (
-      user_id, company_id, event_type, source_table, source_id,
-      total_debit, total_credit, balance_ok, metadata
-    ) VALUES (
-      inv.user_id, inv.company_id,
-      'auto_journal', 'supplier_invoices', inv.id,
-      v_amount_ht + v_tva, v_total_ttc,
-      (v_amount_ht + v_tva) = v_total_ttc,
-      jsonb_build_object('backfill', true, 'migration', '20260329040000', 'invoice_number', inv.invoice_number)
-    );
+    -- Log in audit (only if company_id column exists)
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='accounting_audit_log' AND column_name='company_id'
+    ) THEN
+      INSERT INTO accounting_audit_log (
+        user_id, company_id, event_type, source_table, source_id,
+        total_debit, total_credit, balance_ok, details
+      ) VALUES (
+        inv.user_id, inv.company_id,
+        'auto_journal', 'supplier_invoices', inv.id::text,
+        v_amount_ht + v_tva, v_total_ttc,
+        (v_amount_ht + v_tva) = v_total_ttc,
+        jsonb_build_object('backfill', true, 'migration', '20260329040000', 'invoice_number', inv.invoice_number)
+      );
+    ELSE
+      INSERT INTO accounting_audit_log (
+        user_id, event_type, source_table, source_id,
+        total_debit, total_credit, balance_ok, details
+      ) VALUES (
+        inv.user_id,
+        'auto_journal', 'supplier_invoices', inv.id::text,
+        v_amount_ht + v_tva, v_total_ttc,
+        (v_amount_ht + v_tva) = v_total_ttc,
+        jsonb_build_object('backfill', true, 'migration', '20260329040000', 'invoice_number', inv.invoice_number)
+      );
+    END IF;
 
   END LOOP;
 
