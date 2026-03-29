@@ -9,7 +9,7 @@ import { validateDate, optionalDate } from '../utils/validation.js';
 import { getCached, setCache, invalidateCache } from '../utils/cache.js';
 
 const COLS_ACCOUNTING_ENTRIES =
-  'id, transaction_date, account_code, description, debit, credit, entry_ref, journal, source_type, source_id, reference_type, reference_id, is_auto, created_at';
+  'id, user_id, company_id, transaction_date, account_code, description, debit, credit, entry_ref, journal, source_type, source_id, reference_type, reference_id, is_auto, created_at';
 
 export function registerAccountingTools(server: McpServer) {
   server.tool(
@@ -487,14 +487,21 @@ export function registerAccountingTools(server: McpServer) {
     'run_accounting_audit',
     'Run a comprehensive accounting audit. Returns score, grade, and detailed check results for balance/coherence, fiscal compliance, and anomaly detection.',
     {
-      period_start: z.string().describe('Start date (YYYY-MM-DD)'),
-      period_end: z.string().describe('End date (YYYY-MM-DD)'),
+      period_start: z.string().optional().describe('Start date (YYYY-MM-DD). Defaults to first day of current year.'),
+      period_end: z.string().optional().describe('End date (YYYY-MM-DD). Defaults to today.'),
       categories: z
         .array(z.string())
         .optional()
         .describe('Categories to audit: balance, fiscal, anomalies (default: all)'),
     },
     async ({ period_start, period_end, categories }) => {
+      // Default: current fiscal year
+      const today = new Date();
+      const resolvedStart = period_start || `${today.getFullYear()}-01-01`;
+      const resolvedEnd = period_end || today.toISOString().slice(0, 10);
+      period_start = resolvedStart;
+      period_end = resolvedEnd;
+
       try {
         validateDate(period_start, 'period_start');
       } catch (e: any) {
