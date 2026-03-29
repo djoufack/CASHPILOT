@@ -210,7 +210,57 @@
     "recentTimesheets": "Feuilles de temps récentes",
     "noRecentTimesheets": "Aucune feuille de temps récente trouvée",
     "untitledTask": "Tâche sans titre",
-    "noProject": "Aucun projet"
+    "noProject": "Aucun projet",
+    "newExpenses": "Suivi des dépenses",
+    "auditAccounting": "Audit comptable",
+    "roles": {
+      "dg": {
+        "label": "DG",
+        "description": "Synthèse de direction, alertes prioritaires et vision globale."
+      },
+      "raf": {
+        "label": "RAF",
+        "description": "Contrôle financier, suivi des dépenses et pilotage du cash."
+      },
+      "comptable": {
+        "label": "Comptable",
+        "description": "Opérations courantes, pièces à traiter et vue de production."
+      }
+    },
+    "alerts": {
+      "title": "Alertes proactives",
+      "subtitle": "Les signaux marginaux et de trésorerie sont surveillés en continu pour anticiper les tensions.",
+      "none": "Aucun signal critique",
+      "count_one": "{{count}} alerte",
+      "count_other": "{{count}} alertes",
+      "noActive": "Aucune alerte active",
+      "noActiveDescription": "La marge et la trésorerie restent dans les seuils attendus.",
+      "continuous": "Surveillance continue",
+      "severity": {
+        "critical": "Critique",
+        "warning": "Attention"
+      },
+      "marginCritical": {
+        "title": "Marge critique",
+        "message": "La marge nette est négative ({{margin}} %). Priorité: sécuriser les revenus et ajuster immédiatement les coûts.",
+        "cta": "Analyser les dépenses"
+      },
+      "marginWarning": {
+        "title": "Marge sous surveillance",
+        "message": "La marge ralentit ({{margin}} %, tendance {{trend}} %). Un contrôle des coûts et des tarifs est recommandé.",
+        "cta": "Voir les dépenses"
+      },
+      "cashCritical": {
+        "title": "Cash négatif",
+        "message": "La trésorerie nette est à {{amount}}. Accélérer les encaissements et freiner les sorties devient prioritaire.",
+        "cta": "Relancer les factures"
+      },
+      "cashWarning": {
+        "title": "Cash sous pression",
+        "message": "La trésorerie nette est limitée à {{amount}}. Anticipez les encaissements et surveillez les prochaines sorties.",
+        "cta": "Ouvrir la trésorerie"
+      }
+    }
   },
   "clients": {
     "title": "Gestion des clients",
@@ -3680,7 +3730,8 @@
       "cockpit": "Cockpit stock",
       "inventory": "Inventaire",
       "history": "Historique",
-      "adjustments": "Gestion stock"
+      "adjustments": "Gestion stock",
+      "warehouses": "Entrepôts & lots"
     },
     "manualAdjustment": "Ajustement manuel du stock",
     "totalProducts": "Total Produits",
@@ -3690,7 +3741,261 @@
     "activeAlerts": "Alertes actives",
     "resolve": "Résoudre",
     "updateStock": "Mettre à jour le stock",
-    "addProduct": "Ajouter un produit"
+    "addProduct": "Ajouter un produit",
+    "warehouses": {
+      "title": "Entrepôts multi-sites",
+      "subtitle": "Gérez vos sites de stockage et activez/désactivez rapidement les entrepôts secondaires.",
+      "activeWarehouses": "Entrepôts actifs",
+      "lots": "Lots / séries",
+      "serializedLots": "Lots sérialisés",
+      "trackedQuantity": "Quantité tracée",
+      "warehouseCode": "Code entrepôt",
+      "warehouseName": "Nom",
+      "description": "Description",
+      "descriptionPlaceholder": "Zone de stockage, ville, consignes...",
+      "setDefault": "Définir comme entrepôt par défaut",
+      "createWarehouse": "Créer l'entrepôt",
+      "noWarehouses": "Aucun entrepôt configuré pour l'instant.",
+      "noDescription": "Sans description",
+      "default": "Défaut",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "activate": "Activer",
+      "deactivate": "Désactiver",
+      "lotsTitle": "Lots / séries",
+      "lotsSubtitle": "Enregistrez les lots et numéros de série pour tracer la disponibilité par entrepôt.",
+      "lotsRegistry": "Registre lot / série par entrepôt",
+      "lotsRegistrySubtitle": "Traçabilité consolidée des lots et numéros de série.",
+      "product": "Produit",
+      "warehouse": "Entrepôt",
+      "lotNumber": "Lot",
+      "serialNumber": "Série",
+      "quantity": "Quantité",
+      "status": "Statut",
+      "reception": "Réception",
+      "expiry": "Péremption",
+      "lotNumberLabel": "N° lot",
+      "serialNumberLabel": "N° série (optionnel)",
+      "quantityLabel": "Quantité",
+      "receptionDate": "Date réception",
+      "expiryDate": "Date péremption",
+      "notes": "Notes",
+      "notesTip": "Observation lot/série...",
+      "saveLot": "Enregistrer le lot / série",
+      "noLots": "Aucun lot enregistré pour le moment.",
+      "noSku": "Sans SKU",
+      "selectProduct": "Sélectionner...",
+      "selectWarehouse": "Sélectionner..."
+    },
+    "cockpit": {
+      "costValue": "Valeur de revient",
+      "costValueSubtitle": "Base achats de votre stock filtré.",
+      "retailValue": "Valeur de vente",
+      "retailValueSubtitle": "Projection si tout le stock est vendu au tarif actuel.",
+      "potentialMargin": "Marge potentielle",
+      "potentialMarginSubtitle": "Ecart entre valeur de vente et valeur de revient.",
+      "replenishmentBudget": "Réappro prioritaire",
+      "replenishmentBudgetSubtitle": "Budget achat à prévoir pour remettre les articles sous seuil au niveau cible.",
+      "strategicItems": "Articles stratégiques",
+      "strategicItemsSubtitle": "Classement ABC et priorisation selon la valorisation choisie.",
+      "portfolioQuality": "Qualité du portefeuille",
+      "portfolioQualitySubtitle": "Points de vigilance sur vos articles filtrés.",
+      "missingPurchasePrice": "Coûts d'achat manquants",
+      "missingPurchasePriceSubtitle": "Produits avec stock mais sans prix d'achat fiable.",
+      "riskMargins": "Marges à risque",
+      "riskMarginsSubtitle": "Articles avec valeur de vente inférieure au coût d'achat.",
+      "abcMix": "Mix ABC par valeur",
+      "abcClass": "Classe {cls}",
+      "abcProducts": "{count} produit(s) • {share} %",
+      "noProductsFilter": "Aucun produit ne correspond au filtre courant.",
+      "valuationTitle": "Valorisation FIFO / CMUP et COGS",
+      "valuationSubtitle": "Comparaison des deux méthodes de valorisation et estimation du coût des ventes selon vos mouvements de stock.",
+      "fifoStock": "Stock valorisé FIFO",
+      "cmupStock": "Stock valorisé CMUP",
+      "fifoCogs": "COGS FIFO",
+      "cmupCogs": "COGS CMUP",
+      "valuationLoading": "Calcul des couches de valorisation en cours...",
+      "noTrackedFilter": "Aucun article stocké ne correspond au filtre courant.",
+      "replenishmentTitle": "Recommandations de réapprovisionnement intelligentes",
+      "replenishmentSubtitle": "Suggestions calculées selon la vélocité de sortie, la couverture cible ABC et le lead time d'achat.",
+      "itemsToOrder": "Articles à commander",
+      "criticalAlerts": "Alertes critiques",
+      "recommendedBudget": "Budget recommandé",
+      "noReplenishment": "Aucune recommandation de réapprovisionnement sur le filtre courant.",
+      "trackedProductsCount": "{count} avec suivi de stock",
+      "unitCost": "Coût unitaire",
+      "salePrice": "Prix de vente",
+      "grossMargin": "Marge brute unitaire",
+      "notCalculable": "Non calculable",
+      "skuStock": "SKU: {{sku}} • Stock: {{stock}} • Seuil mini: {{min}}"
+    },
+    "badges": {
+      "unstocked": "Non stocké",
+      "outOfStock": "Rupture",
+      "lowStock": "Stock bas",
+      "ok": "OK",
+      "abcA": "A stratégique",
+      "abcB": "B piloté",
+      "abcC": "C long tail",
+      "priorityCritical": "Critique",
+      "priorityHigh": "Élevée",
+      "priorityPlanned": "Planifiée"
+    },
+    "valuationModes": {
+      "cost": "Valeur de revient",
+      "retail": "Valeur de vente",
+      "margin": "Marge potentielle"
+    },
+    "inventory": {
+      "noProducts": "Aucun produit trouvé.",
+      "noProductsSubtitle": "Créez votre premier produit ou importez depuis un catalogue fournisseur.",
+      "columns": {
+        "product": "Produit",
+        "sku": "SKU",
+        "category": "Catégorie",
+        "supplier": "Fournisseur",
+        "salePrice": "Prix vente",
+        "purchasePrice": "Prix achat",
+        "stock": "Stock",
+        "min": "Min",
+        "mode": "Mode",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "modeStocked": "Article stocké",
+      "modeUnstocked": "Prestation / non stocké"
+    },
+    "history": {
+      "selectProduct": "Sélectionnez un produit...",
+      "noHistory": "Aucun historique pour ce produit.",
+      "columns": {
+        "date": "Date",
+        "before": "Avant",
+        "after": "Après",
+        "change": "Variation",
+        "reason": "Raison",
+        "notes": "Notes",
+        "by": "Par"
+      }
+    },
+    "adjustments": {
+      "product": "Produit",
+      "selectProduct": "Sélectionnez un produit...",
+      "currentQty": "actuel : {qty}",
+      "newQuantity": "Nouvelle quantité",
+      "reason": "Raison",
+      "notes": "Notes",
+      "notesPlaceholder": "Notes optionnelles...",
+      "reasons": {
+        "adjustment": "Ajustement",
+        "reception": "Réception",
+        "sale": "Vente",
+        "damage": "Perte/Casse",
+        "return": "Retour",
+        "inventory": "Inventaire"
+      }
+    },
+    "addDialog": {
+      "productName": "Nom du produit *",
+      "sku": "SKU",
+      "salePrice": "Prix de vente ({currency})",
+      "purchasePrice": "Prix d'achat ({currency})",
+      "inventoryTracking": "Suivi de stock comptable",
+      "inventoryTrackingHint": "Laissez activé pour un article réellement stocké. Désactivez pour une prestation, une licence, un abonnement ou toute offre non stockable afin d'éviter une variation de stock 603.",
+      "unit": "Unité",
+      "initialStock": "Stock initial",
+      "minStock": "Stock min.",
+      "category": "Catégorie",
+      "noneCategory": "Aucune",
+      "supplier": "Fournisseur",
+      "noneSupplier": "Aucun",
+      "supplierRecommended": "Recommandé pour la traçabilité achats. Obligatoire si vous voulez rattacher les futurs achats/factures à un fournisseur précis.",
+      "description": "Description"
+    },
+    "editDialog": {
+      "title": "Modifier le produit",
+      "inventoryTracking": "Suivi de stock comptable",
+      "inventoryTrackingHint": "Désactivez pour les prestations non stockées.",
+      "unit": "Unité",
+      "stock": "Stock",
+      "minStock": "Stock min.",
+      "category": "Catégorie",
+      "supplier": "Fournisseur",
+      "description": "Description",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "pricingDialog": {
+      "title": "Modifier prix et quantités",
+      "salePrice": "Prix de vente ({currency})",
+      "purchasePrice": "Prix d'achat ({currency})",
+      "inventoryTracking": "Suivi stock",
+      "stocked": "Article stocké",
+      "unstocked": "Prestation / non stocké",
+      "stockQuantity": "Quantité stock",
+      "minThreshold": "Seuil minimum",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "viewDialog": {
+      "title": "Détails du produit",
+      "name": "Nom",
+      "sku": "SKU",
+      "category": "Catégorie",
+      "supplier": "Fournisseur",
+      "salePrice": "Prix de vente",
+      "purchasePrice": "Prix d'achat",
+      "stock": "Stock",
+      "minStock": "Stock min",
+      "description": "Description",
+      "close": "Fermer",
+      "edit": "Éditer",
+      "priceQty": "Prix / Qté"
+    },
+    "deleteDialog": {
+      "title": "Confirmer la suppression",
+      "message": "Voulez-vous vraiment supprimer le produit {name} ?",
+      "cancel": "Annuler",
+      "confirm": "Supprimer"
+    },
+    "alerts": {
+      "current": "Actuel : {qty}",
+      "min": "Min : {min}"
+    },
+    "valuationTable": {
+      "product": "Produit",
+      "stock": "Stock",
+      "fifo": "FIFO",
+      "cmup": "CMUP",
+      "gap": "Écart",
+      "fifoCogs": "COGS FIFO",
+      "cmupCogs": "COGS CMUP",
+      "soldQty": "Qté vendue",
+      "noSku": "Sans SKU"
+    },
+    "replenishmentTable": {
+      "product": "Produit",
+      "priority": "Priorité",
+      "stock": "Stock",
+      "dailyConsumption": "Conso / jour",
+      "coverage": "Couverture (j)",
+      "recommendedQty": "Qté conseillée",
+      "orderDate": "Date commande",
+      "purchaseBudget": "Budget achat",
+      "action": "Action",
+      "noSku": "Sans SKU"
+    },
+    "exportColumns": {
+      "product": "Produit",
+      "sku": "SKU",
+      "category": "Categorie",
+      "supplier": "Fournisseur",
+      "salePrice": "Prix vente",
+      "purchasePrice": "Prix achat",
+      "quantity": "Quantite",
+      "minStock": "Min Stock",
+      "unit": "Unite"
+    }
   },
   "scenarioBuilder": {
     "title": "Simulations Financières",
@@ -5317,6 +5622,297 @@
       "standard": "Standard",
       "premium": "Premium",
       "critical": "Critique"
+    }
+  },
+  "recruitment": {
+    "pageTitle": "Recrutement ATS",
+    "helmetTitle": "Recrutement ATS | CashPilot",
+    "pageSubtitle": "Gérez vos postes, candidatures et entretiens en un seul endroit.",
+    "loading": "Chargement du module ATS...",
+    "kpi": {
+      "openPositions": "Postes ouverts",
+      "candidates": "Candidats",
+      "inPipeline": "En pipeline",
+      "hired": "Embauchés"
+    },
+    "tabs": {
+      "positions": "Postes ouverts",
+      "pipeline": "Pipeline",
+      "candidates": "Candidats",
+      "interviews": "Entretiens"
+    },
+    "pipeline": {
+      "title": "Pipeline de recrutement",
+      "total_one": "{{count}} candidature au total",
+      "total_other": "{{count}} candidatures au total",
+      "noApplication": "Aucune candidature",
+      "backward": "Reculer",
+      "forward": "Avancer"
+    },
+    "stages": {
+      "new": "Nouveau",
+      "screening": "Screening",
+      "interview": "Entretien",
+      "technical_test": "Test technique",
+      "offer": "Offre",
+      "hired": "Embauché"
+    },
+    "positionStatus": {
+      "open": "Ouvert",
+      "closed": "Fermé",
+      "draft": "Brouillon",
+      "on_hold": "En pause"
+    },
+    "interviewType": {
+      "phone": "Téléphone",
+      "video": "Vidéo",
+      "onsite": "Sur site",
+      "technical": "Technique"
+    },
+    "interviewStatus": {
+      "scheduled": "Planifié",
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "no_show": "Absent"
+    },
+    "employmentType": {
+      "full_time": "Temps plein",
+      "part_time": "Temps partiel",
+      "contract": "CDD",
+      "internship": "Stage",
+      "freelance": "Freelance"
+    },
+    "candidateSource": {
+      "website": "Site web",
+      "linkedin": "LinkedIn",
+      "referral": "Cooptation",
+      "job_board": "Job board",
+      "agency": "Cabinet",
+      "other": "Autre"
+    },
+    "positions": {
+      "searchPlaceholder": "Rechercher un poste...",
+      "btnApply": "Candidater",
+      "btnNew": "Nouveau poste",
+      "noPositions": "Aucun poste trouvé",
+      "candidateCount_one": "{{count}} candidat",
+      "candidateCount_other": "{{count}} candidats",
+      "createdAt": "Créé le {{date}}"
+    },
+    "candidates": {
+      "searchPlaceholder": "Rechercher un candidat...",
+      "btnNew": "Nouveau candidat",
+      "noCandidates": "Aucun candidat trouvé",
+      "colName": "Nom",
+      "colEmail": "Email",
+      "colPhone": "Téléphone",
+      "colSource": "Source",
+      "colApplications": "Candidatures",
+      "colAdded": "Ajouté",
+      "unknownCandidate": "Inconnu",
+      "unknownPosition": "Poste non défini"
+    },
+    "interviews": {
+      "searchPlaceholder": "Rechercher un entretien...",
+      "btnSchedule": "Planifier entretien",
+      "noInterviews": "Aucun entretien planifié",
+      "interviewer": "Interviewer :",
+      "unknownCandidate": "Candidat inconnu",
+      "unknownPosition": "Poste non défini"
+    },
+    "dialogs": {
+      "newPosition": {
+        "title": "Nouveau poste",
+        "labelTitle": "Titre du poste *",
+        "placeholderTitle": "Développeur Full-Stack",
+        "labelDepartment": "Département",
+        "labelLocation": "Localisation",
+        "placeholderLocation": "Paris",
+        "labelSalaryMin": "Salaire min",
+        "labelSalaryMax": "Salaire max",
+        "labelEmploymentType": "Type de contrat",
+        "labelStatus": "Statut",
+        "labelDescription": "Description",
+        "placeholderDescription": "Description du poste...",
+        "btnCancel": "Annuler",
+        "btnCreate": "Créer"
+      },
+      "newCandidate": {
+        "title": "Nouveau candidat",
+        "labelFirstName": "Prénom *",
+        "labelLastName": "Nom *",
+        "labelEmail": "Email",
+        "labelPhone": "Téléphone",
+        "labelSource": "Source",
+        "labelNotes": "Notes",
+        "btnCancel": "Annuler",
+        "btnAdd": "Ajouter"
+      },
+      "newApplication": {
+        "title": "Nouvelle candidature",
+        "labelCandidate": "Candidat *",
+        "placeholderCandidate": "Sélectionner un candidat",
+        "labelPosition": "Poste *",
+        "placeholderPosition": "Sélectionner un poste",
+        "btnCancel": "Annuler",
+        "btnApply": "Candidater"
+      },
+      "scheduleInterview": {
+        "title": "Planifier un entretien",
+        "labelApplication": "Candidature *",
+        "placeholderApplication": "Sélectionner une candidature",
+        "labelType": "Type *",
+        "labelDateTime": "Date et heure *",
+        "labelNotes": "Notes",
+        "btnCancel": "Annuler",
+        "btnSchedule": "Planifier"
+      }
+    },
+    "toast": {
+      "positionCreated": "Poste créé",
+      "positionUpdated": "Poste mis à jour",
+      "candidateAdded": "Candidat ajouté",
+      "applicationCreated": "Candidature créée",
+      "applicationMoved": "Candidature déplacée",
+      "interviewScheduled": "Entretien planifié",
+      "onboardingPlanCreated": "Plan d'onboarding créé",
+      "taskUpdated": "Tâche mise à jour",
+      "error": "Erreur"
+    }
+  },
+  "hooks": {
+    "absences": {
+      "requestCreated": "Demande créée",
+      "requestCreatedDesc": "La demande de congé a été enregistrée.",
+      "requestUpdated": "Demande mise à jour",
+      "requestApproved": "Demande approuvée",
+      "requestApprovedDesc": "Le congé a été approuvé.",
+      "requestRejected": "Demande rejetée",
+      "requestRejectedDesc": "Le congé a été refusé.",
+      "requestCancelled": "Demande annulée"
+    },
+    "fixedAssets": {
+      "assetCreated": "Immobilisation créée",
+      "assetUpdated": "Immobilisation mise à jour",
+      "assetDeleted": "Immobilisation supprimée"
+    },
+    "billing": {
+      "billingUpdated": "Facturation mise à jour",
+      "billingUpdatedDesc": "Vos informations de facturation ont été sauvegardées.",
+      "subscriptionCancelled": "Abonnement annulé",
+      "subscriptionCancelledDesc": "Votre abonnement a été annulé.",
+      "paymentIntegrationInfo": "L'intégration de paiement sera disponible prochainement."
+    },
+    "products": {
+      "created": "Produit créé avec succès.",
+      "updated": "Produit mis à jour.",
+      "deleted": "Produit supprimé.",
+      "imported": "\"{{name}}\" importé dans votre stock.",
+      "categoryCreated": "Catégorie créée.",
+      "categoryUpdated": "Catégorie mise à jour."
+    },
+    "services": {
+      "created": "Service créé avec succès.",
+      "updated": "Service mis à jour.",
+      "deleted": "Service supprimé.",
+      "categoryCreated": "Catégorie créée.",
+      "categoryUpdated": "Catégorie mise à jour."
+    },
+    "paymentTerms": {
+      "created": "Condition de paiement créée.",
+      "updated": "Condition mise à jour.",
+      "deleted": "Condition de paiement supprimée."
+    },
+    "expenses": {
+      "noCompany": "Aucune société active sélectionnée",
+      "updated": "Dépense mise à jour",
+      "deleted": "Dépense supprimée",
+      "createError": "Erreur lors de la création de la dépense"
+    },
+    "accounting": {
+      "accountDeleted": "Compte supprimé",
+      "mappingCreated": "Mapping créé",
+      "mappingUpdated": "Mapping mis à jour",
+      "mappingDeleted": "Mapping supprimé",
+      "taxRateCreated": "Taux créé",
+      "taxRateUpdated": "Taux mis à jour",
+      "taxRateDeleted": "Taux supprimé",
+      "importSuccess": "{{count}} éléments importés",
+      "importSuccessWithWarnings": "{{count}} éléments importés, {{warnings}} point(s) à vérifier",
+      "importError": "Erreur d'import",
+      "mappingsImported": "{{count}} mappings importés",
+      "accountCreatedWithWarnings": "Compte créé avec {{count}} avertissement(s) à vérifier",
+      "accountCreatedOk": "Compte créé avec succès",
+      "accountUpdatedWithWarnings": "Compte mis à jour avec {{count}} avertissement(s) à vérifier",
+      "accountUpdatedOk": "Compte mis à jour avec succès"
+    },
+    "profileSettings": {
+      "avatarDeleted": "Avatar supprimé.",
+      "avatarDeleteError": "Impossible de supprimer l'avatar.",
+      "signatureDeleted": "Signature supprimée.",
+      "signatureDeleteError": "Impossible de supprimer la signature."
+    },
+    "teamSettings": {
+      "inviteSent": "Invitation envoyée",
+      "inviteSentDesc": "Invitation envoyée à {{email}}",
+      "memberUpdated": "Membre mis à jour",
+      "memberUpdatedDesc": "Le rôle du membre a été modifié.",
+      "memberDeleted": "Membre supprimé",
+      "memberDeletedDesc": "L'utilisateur a été retiré de l'équipe."
+    },
+    "stockHistory": {
+      "stockUpdated": "Stock mis à jour",
+      "stockUpdatedDesc": "Niveau de stock ajusté avec succès."
+    },
+    "supplierInvoices": {
+      "recorded": "Facture enregistrée",
+      "recordedDesc": "Facture enregistrée avec succès",
+      "deleted": "Facture supprimée",
+      "updated": "Facture mise à jour",
+      "invoiceUpdatedDesc": "Facture mise à jour avec succès",
+      "paymentStatusUpdated": "Statut paiement mis à jour",
+      "approvalStatusUpdated": "Statut approbation mis à jour"
+    },
+    "users": {
+      "fetchError": "Erreur lors de la récupération des utilisateurs"
+    },
+    "pushNotifications": {
+      "subscribed": "Abonné",
+      "subscribedDesc": "Notifications push activées.",
+      "subscribeError": "Impossible d'activer les notifications push.",
+      "unsubscribed": "Désabonné",
+      "unsubscribedDesc": "Notifications push désactivées."
+    },
+    "offline": {
+      "onlineTitle": "En ligne",
+      "onlineDesc": "Connexion rétablie. Synchronisation en cours...",
+      "offlineTitle": "Hors ligne",
+      "offlineDesc": "Vous êtes hors ligne. Les modifications sont sauvegardées localement."
+    },
+    "notificationSettings": {
+      "saved": "Préférences sauvegardées",
+      "savedDesc": "Vos paramètres de notification ont été mis à jour."
+    },
+    "biometric": {
+      "enabled": "Connexion biométrique activée.",
+      "enableError": "Échec de l'enregistrement biométrique."
+    },
+    "invoiceUpload": {
+      "fileDeleted": "Fichier supprimé",
+      "fileDeletedDesc": "Fichier supprimé avec succès"
+    },
+    "taxFiling": {
+      "declarationCreated": "Déclaration créée",
+      "declarationDeleted": "Déclaration supprimée",
+      "declarationSubmitted": "Déclaration soumise avec succès",
+      "createError": "Erreur lors de la création de la déclaration",
+      "deleteError": "Erreur lors de la suppression de la déclaration",
+      "submitError": "Erreur lors de la soumission de la déclaration",
+      "updateError": "Erreur lors de la mise à jour de la déclaration"
+    },
+    "barcodeScanner": {
+      "detected": "Code-barres détecté",
+      "cameraError": "Impossible d'accéder à la caméra."
     }
   }
 }
