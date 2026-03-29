@@ -117,9 +117,9 @@ export const useTimesheets = () => {
         date: data.date,
         duration_minutes: data.duration_minutes,
       });
-      toast({
+      toastRef.current({
         title: 'Success',
-        description: t('messages.success.timesheetAdded'),
+        description: tRef.current('messages.success.timesheetAdded'),
       });
       return data;
     } catch (err) {
@@ -158,9 +158,9 @@ export const useTimesheets = () => {
       if (error) throw error;
 
       setTimesheets(timesheets.map((t) => (t.id === id ? data : t)));
-      toast({
+      toastRef.current({
         title: 'Success',
-        description: t('messages.success.timesheetUpdated'),
+        description: tRef.current('messages.success.timesheetUpdated'),
       });
       return data;
     } catch (err) {
@@ -188,9 +188,9 @@ export const useTimesheets = () => {
       if (error) throw error;
 
       setTimesheets(timesheets.filter((t) => t.id !== id));
-      toast({
+      toastRef.current({
         title: 'Success',
-        description: t('messages.success.timesheetDeleted'),
+        description: tRef.current('messages.success.timesheetDeleted'),
       });
     } catch (err) {
       setError(err.message);
@@ -274,14 +274,14 @@ export const useTimesheets = () => {
         invoice_id: invoiceId,
         timesheet_ids: timesheetIds,
       });
-      toast({
-        title: t('messages.success.timesheetInvoiced', 'Timesheets facturées'),
+      toastRef.current({
+        title: tRef.current('messages.success.timesheetInvoiced', 'Timesheets facturées'),
         description: `${timesheetIds.length} entrée(s) marquée(s) comme facturée(s).`,
       });
     } catch (err) {
-      toast({
-        title: t('messages.error.timesheetInvoiceFailed', 'Erreur de facturation'),
-        description: t(
+      toastRef.current({
+        title: tRef.current('messages.error.timesheetInvoiceFailed', 'Erreur de facturation'),
+        description: tRef.current(
           'messages.error.timesheetInvoiceDescription',
           'Impossible de marquer les feuilles de temps comme facturées.'
         ),

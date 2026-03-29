@@ -1,5 +1,4 @@
-
-import React, { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
@@ -12,7 +11,18 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from 'react-i18next';
-import { Plus, ListFilter, Calendar as CalendarIcon, Download, FileText, LayoutGrid, CalendarRange, Printer, X, ChevronDown } from 'lucide-react';
+import {
+  Plus,
+  ListFilter,
+  Calendar as CalendarIcon,
+  Download,
+  FileText,
+  LayoutGrid,
+  CalendarRange,
+  Printer,
+  X,
+  ChevronDown,
+} from 'lucide-react';
 import { useTimesheets } from '@/hooks/useTimesheets';
 import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
@@ -24,14 +34,14 @@ import TimesheetEditModal from '@/components/TimesheetEditModal';
 import TimesheetsList from '@/components/TimesheetsList';
 import TimesheetKanbanView from '@/components/TimesheetKanbanView';
 import TimesheetAgendaView from '@/components/TimesheetAgendaView';
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const locales = {
   'en-US': import('date-fns/locale/en-US'),
-  'fr': import('date-fns/locale/fr')
+  fr: import('date-fns/locale/fr'),
 };
 
 const localizer = dateFnsLocalizer({
@@ -50,18 +60,14 @@ const normalizeText = (value = '') =>
     .trim();
 
 const resolveResourceLabel = (timesheet = {}) =>
-  timesheet?.executed_by_member?.name
-  || timesheet?.executed_by_member?.email
-  || timesheet?.material_resource_name
-  || timesheet?.resource_name
-  || 'Ressource non assignée';
+  timesheet?.executed_by_member?.name ||
+  timesheet?.executed_by_member?.email ||
+  timesheet?.material_resource_name ||
+  timesheet?.resource_name ||
+  'Ressource non assignée';
 
 const resolveResourceType = (timesheet = {}) => {
-  if (
-    timesheet?.resource_type === 'material'
-    || timesheet?.material_resource_name
-    || timesheet?.material_resource_id
-  ) {
+  if (timesheet?.resource_type === 'material' || timesheet?.material_resource_name || timesheet?.material_resource_id) {
     return 'material';
   }
   return 'human';
@@ -119,7 +125,9 @@ const TimesheetsPage = () => {
         map.set(timesheet.project_id, timesheet.project.name);
       }
     });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [timesheets]);
 
   const clientOptions = useMemo(() => {
@@ -129,7 +137,9 @@ const TimesheetsPage = () => {
         map.set(timesheet.client_id, timesheet.client.company_name);
       }
     });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [timesheets]);
 
   const resourceOptions = useMemo(() => {
@@ -143,7 +153,9 @@ const TimesheetsPage = () => {
         map.set(timesheet.user_id, timesheet.executed_by_member?.name || 'Ressource non assignée');
       }
     });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [timesheets]);
 
   const resourceNameOptions = useMemo(() => {
@@ -177,9 +189,7 @@ const TimesheetsPage = () => {
 
   const selectedResourceNameLabel = useMemo(() => {
     if (selectedResourceKeys.length === 0) {
-      return projectFilter === 'all'
-        ? 'Toutes les ressources'
-        : 'Toutes les ressources du projet';
+      return projectFilter === 'all' ? 'Toutes les ressources' : 'Toutes les ressources du projet';
     }
 
     if (selectedResourceKeys.length === 1) {
@@ -202,13 +212,13 @@ const TimesheetsPage = () => {
       const matchesResourceNames = selectedResourceKeys.length === 0 || selectedResourceKeys.includes(resourceKey);
 
       return (
-        matchesProject
-        && matchesClient
-        && matchesResource
-        && matchesStartDate
-        && matchesEndDate
-        && matchesResourceType
-        && matchesResourceNames
+        matchesProject &&
+        matchesClient &&
+        matchesResource &&
+        matchesStartDate &&
+        matchesEndDate &&
+        matchesResourceType &&
+        matchesResourceNames
       );
     });
   }, [
@@ -219,7 +229,7 @@ const TimesheetsPage = () => {
     startDateFilter,
     endDateFilter,
     resourceTypeFilter,
-    selectedResourceKeys
+    selectedResourceKeys,
   ]);
 
   const simulationMetrics = useMemo(() => {
@@ -231,12 +241,9 @@ const TimesheetsPage = () => {
       if (timesheet.billable === false) return sum;
       const hours = Number(timesheet.duration_minutes || 0) / 60;
       const rate = Number(
-        timesheet?.service?.hourly_rate
-        || timesheet?.project?.hourly_rate
-        || timesheet?.hourly_rate
-        || 0
+        timesheet?.service?.hourly_rate || timesheet?.project?.hourly_rate || timesheet?.hourly_rate || 0
       );
-      return sum + (hours * rate);
+      return sum + hours * rate;
     }, 0);
     const formatter = new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -253,13 +260,15 @@ const TimesheetsPage = () => {
     };
   }, [company?.currency, filteredTimesheets]);
 
-  const events = filteredTimesheets.map(ts => ({
-    id: ts.id,
-    title: `${ts.project?.name || 'Work'} - ${ts.client?.company_name || 'Client'}`,
-    start: new Date(`${ts.date}T${ts.start_time}`),
-    end: new Date(`${ts.date}T${ts.end_time}`),
-    resource: ts
-  }));
+  const events = filteredTimesheets
+    .filter((ts) => ts.date && ts.start_time && ts.end_time)
+    .map((ts) => ({
+      id: ts.id,
+      title: `${ts.project?.name || 'Work'} - ${ts.client?.company_name || 'Client'}`,
+      start: new Date(`${ts.date}T${ts.start_time}`),
+      end: new Date(`${ts.date}T${ts.end_time}`),
+      resource: ts,
+    }));
 
   const handleSelectSlot = ({ start }) => {
     const dateStr = format(start, 'yyyy-MM-dd');
@@ -303,23 +312,15 @@ const TimesheetsPage = () => {
   };
 
   const handleExportPDF = () => {
-    guardedAction(
-      CREDIT_COSTS.PDF_REPORT,
-      'Timesheets List PDF',
-      async () => {
-        await exportTimesheetsListPDF(filteredTimesheets, company);
-      }
-    );
+    guardedAction(CREDIT_COSTS.PDF_REPORT, 'Timesheets List PDF', async () => {
+      await exportTimesheetsListPDF(filteredTimesheets, company);
+    });
   };
 
   const handleExportHTML = () => {
-    guardedAction(
-      CREDIT_COSTS.EXPORT_HTML,
-      'Timesheets List HTML',
-      () => {
-        exportTimesheetsListHTML(filteredTimesheets, company);
-      }
-    );
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Timesheets List HTML', () => {
+      exportTimesheetsListHTML(filteredTimesheets, company);
+    });
   };
 
   const handlePrint = () => {
@@ -331,7 +332,7 @@ const TimesheetsPage = () => {
       toast({
         title: 'Impression bloquee',
         description: 'Veuillez autoriser les popups pour imprimer les timesheets filtrees.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -368,7 +369,9 @@ const TimesheetsPage = () => {
               </tr>
             </thead>
             <tbody>
-              ${rows.map((timesheet) => `
+              ${rows
+                .map(
+                  (timesheet) => `
                 <tr>
                   <td>${timesheet.date ? new Date(timesheet.date).toLocaleDateString('fr-FR') : '-'}</td>
                   <td>${timesheet.project?.name || '-'}</td>
@@ -377,7 +380,9 @@ const TimesheetsPage = () => {
                   <td>${timesheet.status || 'draft'}</td>
                   <td class="amount">${Math.floor(Number(timesheet.duration_minutes || 0) / 60)}h ${Number(timesheet.duration_minutes || 0) % 60}m</td>
                 </tr>
-              `).join('')}
+              `
+                )
+                .join('')}
             </tbody>
           </table>
         </body>
@@ -432,7 +437,7 @@ const TimesheetsPage = () => {
         borderWidth: '2px',
         borderStyle: 'solid',
         borderRadius: '4px',
-      }
+      },
     };
   };
 
@@ -440,297 +445,316 @@ const TimesheetsPage = () => {
     <>
       <CreditsGuardModal {...modalProps} />
       <Helmet>
-        <title>{t('timesheets.title')} - {t('app.name')}</title>
+        <title>
+          {t('timesheets.title')} - {t('app.name')}
+        </title>
       </Helmet>
 
-        <div className="container mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-gradient">
-                      {t('timesheets.title')}
-                  </h1>
-                  <p className="text-gray-500 mt-1 text-sm">Manage your time entries and track billable hours</p>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                  <Tabs value={view} onValueChange={setView} className="bg-gray-900 rounded-lg p-1 border border-gray-800 w-full sm:w-auto">
-                    <TabsList className="bg-transparent border-0 w-full justify-between sm:justify-start">
-                      <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none">
-                        <CalendarIcon className="w-4 h-4 sm:mr-2" />
-                        <span className="hidden sm:inline">{t('timesheets.views.calendar')}</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="list" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none">
-                        <ListFilter className="w-4 h-4 sm:mr-2" />
-                        <span className="hidden sm:inline">{t('timesheets.views.list')}</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none">
-                        <LayoutGrid className="w-4 h-4 sm:mr-2" />
-                        <span className="hidden sm:inline">{t('timesheets.views.kanban')}</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none">
-                        <CalendarRange className="w-4 h-4 sm:mr-2" />
-                        <span className="hidden sm:inline">{t('timesheets.views.agenda')}</span>
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+      <div className="container mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-gradient">{t('timesheets.title')}</h1>
+            <p className="text-gray-500 mt-1 text-sm">Manage your time entries and track billable hours</p>
+          </div>
 
-                  <div className="flex gap-2 w-full sm:w-auto">
-                    <Button
-                      onClick={handleExportPDF}
-                      size="sm"
-                      variant="outline"
-                      className="border-gray-600 hover:bg-gray-700 flex-1 sm:flex-none"
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
-                      <span className="sm:hidden">PDF</span>
-                    </Button>
-                    <Button
-                      onClick={handlePrint}
-                      size="sm"
-                      variant="outline"
-                      className="border-gray-600 hover:bg-gray-700 flex-1 sm:flex-none"
-                    >
-                      <Printer className="w-4 h-4 mr-1" />
-                      <span className="hidden sm:inline">Imprimer</span>
-                      <span className="sm:hidden">Print</span>
-                    </Button>
-                    <Button
-                      onClick={handleExportHTML}
-                      size="sm"
-                      variant="outline"
-                      className="border-gray-600 hover:bg-gray-700 flex-1 sm:flex-none"
-                    >
-                      <FileText className="w-4 h-4 mr-1" />
-                      <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
-                      <span className="sm:hidden">HTML</span>
-                    </Button>
-                  </div>
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <Tabs
+              value={view}
+              onValueChange={setView}
+              className="bg-gray-900 rounded-lg p-1 border border-gray-800 w-full sm:w-auto"
+            >
+              <TabsList className="bg-transparent border-0 w-full justify-between sm:justify-start">
+                <TabsTrigger
+                  value="calendar"
+                  className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none"
+                >
+                  <CalendarIcon className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('timesheets.views.calendar')}</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="list"
+                  className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none"
+                >
+                  <ListFilter className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('timesheets.views.list')}</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="kanban"
+                  className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none"
+                >
+                  <LayoutGrid className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('timesheets.views.kanban')}</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="agenda"
+                  className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none"
+                >
+                  <CalendarRange className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('timesheets.views.agenda')}</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-                  <Button
-                    onClick={handleGenerateInvoiceFromFilters}
-                    variant="outline"
-                    className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 font-semibold w-full sm:w-auto"
-                  >
-                    <FileText className="mr-2 h-4 w-4" /> Facturer filtre
-                  </Button>
-                  <Button
-                    onClick={() => { setSelectedDate(null); setIsAddModalOpen(true); }}
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-semibold w-full sm:w-auto"
-                  >
-                      <Plus className="mr-2 h-4 w-4" /> New Entry
-                  </Button>
-                </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                onClick={handleExportPDF}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700 flex-1 sm:flex-none"
+              >
+                <Download className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
+                <span className="sm:hidden">PDF</span>
+              </Button>
+              <Button
+                onClick={handlePrint}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700 flex-1 sm:flex-none"
+              >
+                <Printer className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Imprimer</span>
+                <span className="sm:hidden">Print</span>
+              </Button>
+              <Button
+                onClick={handleExportHTML}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700 flex-1 sm:flex-none"
+              >
+                <FileText className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
+                <span className="sm:hidden">HTML</span>
+              </Button>
             </div>
 
-            {/* Edit Modal (shared across all views) */}
-            <TimesheetEditModal
-              isOpen={isEditModalOpen}
-              onClose={handleEditModalClose}
-              timesheet={selectedTimesheet}
-            />
+            <Button
+              onClick={handleGenerateInvoiceFromFilters}
+              variant="outline"
+              className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 font-semibold w-full sm:w-auto"
+            >
+              <FileText className="mr-2 h-4 w-4" /> Facturer filtre
+            </Button>
+            <Button
+              onClick={() => {
+                setSelectedDate(null);
+                setIsAddModalOpen(true);
+              }}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold w-full sm:w-auto"
+            >
+              <Plus className="mr-2 h-4 w-4" /> New Entry
+            </Button>
+          </div>
+        </div>
 
-            {/* Add Modal */}
-            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-              <DialogContent className="w-full sm:max-w-[90%] md:max-w-[600px] bg-gray-900 border-gray-800 text-white p-4 md:p-6 overflow-y-auto max-h-[90vh]">
-                <DialogHeader>
-                  <DialogTitle className="text-xl md:text-2xl font-bold text-gradient">Add Time Entry</DialogTitle>
-                </DialogHeader>
-                <div className="mt-4">
-                  <TimesheetForm 
-                    onSuccess={handleSuccess} 
-                    onCancel={() => setIsAddModalOpen(false)}
-                    defaultDate={selectedDate}
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
+        {/* Edit Modal (shared across all views) */}
+        <TimesheetEditModal isOpen={isEditModalOpen} onClose={handleEditModalClose} timesheet={selectedTimesheet} />
 
-            <div className="space-y-8">
-              <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Période - début</p>
-                    <Input
-                      type="date"
-                      value={startDateFilter}
-                      onChange={(event) => setStartDateFilter(event.target.value)}
-                      className="bg-gray-950 border-gray-700 text-gray-100"
-                    />
-                  </div>
+        {/* Add Modal */}
+        <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+          <DialogContent className="w-full sm:max-w-[90%] md:max-w-[600px] bg-gray-900 border-gray-800 text-white p-4 md:p-6 overflow-y-auto max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="text-xl md:text-2xl font-bold text-gradient">Add Time Entry</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <TimesheetForm
+                onSuccess={handleSuccess}
+                onCancel={() => setIsAddModalOpen(false)}
+                defaultDate={selectedDate}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
 
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Période - fin</p>
-                    <Input
-                      type="date"
-                      value={endDateFilter}
-                      onChange={(event) => setEndDateFilter(event.target.value)}
-                      className="bg-gray-950 border-gray-700 text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Projet</p>
-                    <Select value={projectFilter} onValueChange={setProjectFilter}>
-                      <SelectTrigger className="bg-gray-950 border-gray-700 text-gray-100">
-                        <SelectValue placeholder="Tous les projets" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous les projets</SelectItem>
-                        {projectOptions.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Client</p>
-                    <Select value={clientFilter} onValueChange={setClientFilter}>
-                      <SelectTrigger className="bg-gray-950 border-gray-700 text-gray-100">
-                        <SelectValue placeholder="Tous les clients" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous les clients</SelectItem>
-                        {clientOptions.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Ressource humaine</p>
-                    <Select value={resourceFilter} onValueChange={setResourceFilter}>
-                      <SelectTrigger className="bg-gray-950 border-gray-700 text-gray-100">
-                        <SelectValue placeholder="Toutes les ressources" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Toutes les ressources</SelectItem>
-                        {resourceOptions.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Nom / prénom ressource</p>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full justify-between bg-gray-950 border-gray-700 text-gray-100 hover:bg-gray-900 hover:text-white"
-                        >
-                          <span className="truncate">{selectedResourceNameLabel}</span>
-                          <ChevronDown className="w-4 h-4 ml-2 opacity-70" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[360px] max-w-[92vw] bg-gray-950 border-gray-700 text-gray-100 p-3" align="start">
-                        <div className="space-y-3">
-                          <Input
-                            value={resourceMultiSearch}
-                            onChange={(event) => setResourceMultiSearch(event.target.value)}
-                            placeholder="Rechercher une ressource..."
-                            className="bg-gray-900 border-gray-700 text-gray-100"
-                          />
-                          <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
-                            {visibleResourceNameOptions.length === 0 ? (
-                              <p className="text-sm text-gray-400">
-                                Aucune ressource trouvée pour ce projet.
-                              </p>
-                            ) : (
-                              visibleResourceNameOptions.map((option) => (
-                                <label
-                                  key={option.key}
-                                  className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-gray-900 cursor-pointer"
-                                >
-                                  <Checkbox
-                                    checked={selectedResourceKeys.includes(option.key)}
-                                    onCheckedChange={(checked) => {
-                                      setSelectedResourceKeys((previous) => {
-                                        if (checked) return [...new Set([...previous, option.key])];
-                                        return previous.filter((key) => key !== option.key);
-                                      });
-                                    }}
-                                  />
-                                  <span className="text-sm">{option.label}</span>
-                                </label>
-                              ))
-                            )}
-                          </div>
-                          {selectedResourceKeys.length > 0 && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              className="text-gray-300 hover:text-white"
-                              onClick={() => setSelectedResourceKeys([])}
-                            >
-                              Vider la sélection
-                            </Button>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Type ressource</p>
-                    <Select value={resourceTypeFilter} onValueChange={setResourceTypeFilter}>
-                      <SelectTrigger className="bg-gray-950 border-gray-700 text-gray-100">
-                        <SelectValue placeholder="Tous les types" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous les types</SelectItem>
-                        <SelectItem value="human">Ressource humaine</SelectItem>
-                        <SelectItem value="material">Ressource matérielle</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-                  <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">Entrées filtrées</p>
-                    <p className="text-lg font-semibold text-gray-100">
-                      {simulationMetrics.entriesCount} <span className="text-sm text-gray-400">sur {timesheets.length}</span>
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">Durée totale (simulation)</p>
-                    <p className="text-lg font-semibold text-gray-100">{simulationMetrics.totalHoursLabel}</p>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">Montant facturable estimé</p>
-                    <p className="text-lg font-semibold text-emerald-400">{simulationMetrics.billableAmountLabel}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
-                  <p className="text-sm text-gray-400">
-                    Sélectionnez un projet puis cochez une ou plusieurs ressources pour suivre et facturer précisément leurs feuilles de temps.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-gray-300 hover:text-white"
-                      onClick={clearFilters}
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Reinitialiser les filtres
-                    </Button>
-                  </div>
-                </div>
+        <div className="space-y-8">
+          <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Période - début</p>
+                <Input
+                  type="date"
+                  value={startDateFilter}
+                  onChange={(event) => setStartDateFilter(event.target.value)}
+                  className="bg-gray-950 border-gray-700 text-gray-100"
+                />
               </div>
 
-              {/* Calendar View */}
-              {view === 'calendar' && (
-                <>
-                  <div className="bg-gray-900 p-2 md:p-6 rounded-xl border border-gray-800 shadow-xl h-[500px] md:h-[700px] calendar-dark-theme overflow-x-auto">
-                    <style>{`
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Période - fin</p>
+                <Input
+                  type="date"
+                  value={endDateFilter}
+                  onChange={(event) => setEndDateFilter(event.target.value)}
+                  className="bg-gray-950 border-gray-700 text-gray-100"
+                />
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Projet</p>
+                <Select value={projectFilter} onValueChange={setProjectFilter}>
+                  <SelectTrigger className="bg-gray-950 border-gray-700 text-gray-100">
+                    <SelectValue placeholder="Tous les projets" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les projets</SelectItem>
+                    {projectOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Client</p>
+                <Select value={clientFilter} onValueChange={setClientFilter}>
+                  <SelectTrigger className="bg-gray-950 border-gray-700 text-gray-100">
+                    <SelectValue placeholder="Tous les clients" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les clients</SelectItem>
+                    {clientOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Ressource humaine</p>
+                <Select value={resourceFilter} onValueChange={setResourceFilter}>
+                  <SelectTrigger className="bg-gray-950 border-gray-700 text-gray-100">
+                    <SelectValue placeholder="Toutes les ressources" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes les ressources</SelectItem>
+                    {resourceOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Nom / prénom ressource</p>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-between bg-gray-950 border-gray-700 text-gray-100 hover:bg-gray-900 hover:text-white"
+                    >
+                      <span className="truncate">{selectedResourceNameLabel}</span>
+                      <ChevronDown className="w-4 h-4 ml-2 opacity-70" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[360px] max-w-[92vw] bg-gray-950 border-gray-700 text-gray-100 p-3"
+                    align="start"
+                  >
+                    <div className="space-y-3">
+                      <Input
+                        value={resourceMultiSearch}
+                        onChange={(event) => setResourceMultiSearch(event.target.value)}
+                        placeholder="Rechercher une ressource..."
+                        className="bg-gray-900 border-gray-700 text-gray-100"
+                      />
+                      <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                        {visibleResourceNameOptions.length === 0 ? (
+                          <p className="text-sm text-gray-400">Aucune ressource trouvée pour ce projet.</p>
+                        ) : (
+                          visibleResourceNameOptions.map((option) => (
+                            <label
+                              key={option.key}
+                              className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-gray-900 cursor-pointer"
+                            >
+                              <Checkbox
+                                checked={selectedResourceKeys.includes(option.key)}
+                                onCheckedChange={(checked) => {
+                                  setSelectedResourceKeys((previous) => {
+                                    if (checked) return [...new Set([...previous, option.key])];
+                                    return previous.filter((key) => key !== option.key);
+                                  });
+                                }}
+                              />
+                              <span className="text-sm">{option.label}</span>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                      {selectedResourceKeys.length > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="text-gray-300 hover:text-white"
+                          onClick={() => setSelectedResourceKeys([])}
+                        >
+                          Vider la sélection
+                        </Button>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Type ressource</p>
+                <Select value={resourceTypeFilter} onValueChange={setResourceTypeFilter}>
+                  <SelectTrigger className="bg-gray-950 border-gray-700 text-gray-100">
+                    <SelectValue placeholder="Tous les types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les types</SelectItem>
+                    <SelectItem value="human">Ressource humaine</SelectItem>
+                    <SelectItem value="material">Ressource matérielle</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+              <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Entrées filtrées</p>
+                <p className="text-lg font-semibold text-gray-100">
+                  {simulationMetrics.entriesCount}{' '}
+                  <span className="text-sm text-gray-400">sur {timesheets.length}</span>
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Durée totale (simulation)</p>
+                <p className="text-lg font-semibold text-gray-100">{simulationMetrics.totalHoursLabel}</p>
+              </div>
+              <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Montant facturable estimé</p>
+                <p className="text-lg font-semibold text-emerald-400">{simulationMetrics.billableAmountLabel}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+              <p className="text-sm text-gray-400">
+                Sélectionnez un projet puis cochez une ou plusieurs ressources pour suivre et facturer précisément leurs
+                feuilles de temps.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white" onClick={clearFilters}>
+                  <X className="w-4 h-4 mr-2" />
+                  Reinitialiser les filtres
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Calendar View */}
+          {view === 'calendar' && (
+            <>
+              <div className="bg-gray-900 p-2 md:p-6 rounded-xl border border-gray-800 shadow-xl h-[500px] md:h-[700px] calendar-dark-theme overflow-x-auto">
+                <style>{`
                       .calendar-dark-theme .rbc-off-range-bg { background-color: #0a0a0f; }
                       .calendar-dark-theme .rbc-calendar { color: #9ca3af; min-width: 600px; }
                       .calendar-dark-theme .rbc-today { background-color: rgba(245, 158, 11, 0.15); }
@@ -760,69 +784,72 @@ const TimesheetsPage = () => {
                       .calendar-dark-theme .rbc-date-cell { color: #9ca3af; padding: 4px 8px; }
                       .calendar-dark-theme .rbc-date-cell.rbc-now { color: #F59E0B; font-weight: 700; }
                     `}</style>
-                    <Calendar
-                        localizer={localizer}
-                        events={events}
-                        startAccessor="start"
-                        endAccessor="end"
-                        style={{ height: '100%' }}
-                        selectable
-                        onSelectSlot={handleSelectSlot}
-                        onSelectEvent={handleSelectEvent}
-                        eventPropGetter={eventPropGetter}
-                        className="text-gray-200"
-                        views={['month', 'week', 'day', 'agenda']}
-                    />
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4 mt-4 px-2">
-                    <span className="text-xs text-gray-400 font-medium">{t('common.status')}:</span>
-                    {[
-                      { status: 'draft', color: 'bg-gray-500', label: t('timesheets.status.draft') },
-                      { status: 'in_progress', color: 'bg-blue-500', label: t('timesheets.status.in_progress') },
-                      { status: 'approved', color: 'bg-green-500', label: t('timesheets.status.approved') },
-                      { status: 'invoiced', color: 'bg-purple-500', label: t('timesheets.status.invoiced') },
-                    ].map(({ status, color, label }) => (
-                      <span key={status} className="flex items-center gap-1.5 text-xs text-gray-300">
-                        <span className={`w-3 h-3 rounded-sm ${color}`} />
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-12">
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-xl md:text-2xl font-bold text-gradient">Recent Entries</h2>
-                      <Button variant="link" onClick={() => setView('list')} className="text-orange-400">
-                        View All
-                      </Button>
-                    </div>
-                    <TimesheetsList timesheets={filteredTimesheets} loading={loading} onGenerateInvoice={handleGenerateInvoice} />
-                  </div>
-                </>
-              )}
-
-              {/* List View */}
-              {view === 'list' && (
-                <TimesheetsList timesheets={filteredTimesheets} loading={loading} onGenerateInvoice={handleGenerateInvoice} />
-              )}
-
-              {/* Kanban View */}
-              {view === 'kanban' && (
-                <TimesheetKanbanView
-                  timesheets={filteredTimesheets}
-                  onEdit={handleEditTimesheet}
-                  onRefresh={fetchTimesheets}
+                <Calendar
+                  localizer={localizer}
+                  events={events}
+                  startAccessor="start"
+                  endAccessor="end"
+                  style={{ height: '100%' }}
+                  selectable
+                  onSelectSlot={handleSelectSlot}
+                  onSelectEvent={handleSelectEvent}
+                  eventPropGetter={eventPropGetter}
+                  className="text-gray-200"
+                  views={['month', 'week', 'day', 'agenda']}
                 />
-              )}
-
-              {/* Agenda View */}
-              {view === 'agenda' && (
-                <TimesheetAgendaView
+              </div>
+              <div className="flex flex-wrap items-center gap-4 mt-4 px-2">
+                <span className="text-xs text-gray-400 font-medium">{t('common.status')}:</span>
+                {[
+                  { status: 'draft', color: 'bg-gray-500', label: t('timesheets.status.draft') },
+                  { status: 'in_progress', color: 'bg-blue-500', label: t('timesheets.status.in_progress') },
+                  { status: 'approved', color: 'bg-green-500', label: t('timesheets.status.approved') },
+                  { status: 'invoiced', color: 'bg-purple-500', label: t('timesheets.status.invoiced') },
+                ].map(({ status, color, label }) => (
+                  <span key={status} className="flex items-center gap-1.5 text-xs text-gray-300">
+                    <span className={`w-3 h-3 rounded-sm ${color}`} />
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-12">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl md:text-2xl font-bold text-gradient">Recent Entries</h2>
+                  <Button variant="link" onClick={() => setView('list')} className="text-orange-400">
+                    View All
+                  </Button>
+                </div>
+                <TimesheetsList
                   timesheets={filteredTimesheets}
-                  onEdit={handleEditTimesheet}
+                  loading={loading}
+                  onGenerateInvoice={handleGenerateInvoice}
                 />
-              )}
-            </div>
+              </div>
+            </>
+          )}
+
+          {/* List View */}
+          {view === 'list' && (
+            <TimesheetsList
+              timesheets={filteredTimesheets}
+              loading={loading}
+              onGenerateInvoice={handleGenerateInvoice}
+            />
+          )}
+
+          {/* Kanban View */}
+          {view === 'kanban' && (
+            <TimesheetKanbanView
+              timesheets={filteredTimesheets}
+              onEdit={handleEditTimesheet}
+              onRefresh={fetchTimesheets}
+            />
+          )}
+
+          {/* Agenda View */}
+          {view === 'agenda' && <TimesheetAgendaView timesheets={filteredTimesheets} onEdit={handleEditTimesheet} />}
         </div>
+      </div>
     </>
   );
 };
