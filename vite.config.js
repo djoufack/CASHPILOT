@@ -20,7 +20,13 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    chunkSizeWarningLimit: 600,
+    // Acknowledged large chunks (all lazy-loaded on demand):
+    //   exceljs (~936kB) — dynamic import, only on export actions
+    //   three  (~492kB)  — LandingPage 3D animation only
+    //   gsap   (~varies) — LandingPage animations only
+    //   i18n   (~628kB)  — translations, loaded once at startup
+    //   jspdf  (~385kB)  — PDF export, dynamic import
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks(id) {
