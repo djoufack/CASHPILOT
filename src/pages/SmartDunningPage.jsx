@@ -80,21 +80,30 @@ const SmartDunningPage = () => {
 
   const handleLaunchCampaign = useCallback(
     async (campaign) => {
-      // Launch dunning for all overdue invoices matching this campaign's channels
-      // In a real scenario, this would batch-send to all matching clients.
-      // For now, trigger for the first overdue client score if available.
-      if (clientScores.length > 0) {
-        const firstScore = clientScores[0];
-        await launchDunning({
-          campaign_id: campaign.id,
-          invoice_id: firstScore.invoiceId,
-          client_id: firstScore.clientId,
-          channel: firstScore.recommendedChannel || campaign.channels?.[0] || 'email',
-          tone: firstScore.recommendedTone || 'professional',
-          step_number: firstScore.recommendedStep || 1,
-          ai_score: firstScore.score,
-        });
-      }
+      // Launch dunning for ALL overdue client scores matching this campaign's channels.
+      // Filter scores to those whose recommended channel is supported by the campaign
+      // (or fall back to the campaign's first channel when no match).
+      const campaignChannels = campaign.channels || ['email'];
+      const matchingScores = clientScores.filter(
+        (score) => !score.recommendedChannel || campaignChannels.includes(score.recommendedChannel)
+      );
+
+      if (matchingScores.length === 0) return;
+
+      // Fire dunning executions in parallel for all matching overdue invoices
+      await Promise.allSettled(
+        matchingScores.map((score) =>
+          launchDunning({
+            campaign_id: campaign.id,
+            invoice_id: score.invoiceId,
+            client_id: score.clientId,
+            channel: score.recommendedChannel || campaignChannels[0] || 'email',
+            tone: score.recommendedTone || 'professional',
+            step_number: score.recommendedStep || 1,
+            ai_score: score.score,
+          })
+        )
+      );
     },
     [launchDunning, clientScores]
   );
