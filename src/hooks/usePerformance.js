@@ -83,7 +83,23 @@ export function usePerformance() {
       });
 
       setReviews(reviewsResult.data || []);
-      setSuccessionPlans(successionResult.data || []);
+
+      // Normalize succession plans: the DB stores a single successor_id / readiness_level.
+      // Derive a `successors` array and a `criticality` field so the page and the
+      // calibration service (which expect those shapes) work correctly.
+      const rawSuccession = successionResult.data || [];
+      const normalizedSuccession = rawSuccession.map((plan) => ({
+        ...plan,
+        // Build a one-entry array from the flat DB columns so the UI / service
+        // can iterate plan.successors uniformly.
+        successors: plan.successor_id
+          ? [{ employee_id: plan.successor_id, readiness: plan.readiness_level || 'not_ready' }]
+          : [],
+        // Derive criticality from risk_of_loss when the DB column is absent.
+        criticality: plan.risk_of_loss === 'high' ? 'critical' : plan.risk_of_loss === 'medium' ? 'high' : 'medium',
+      }));
+      setSuccessionPlans(normalizedSuccession);
+
       setHeadcountBudgets(budgetsResult.data || []);
       setEmployees(employeesResult.data || []);
       setDepartments(departmentsResult.data || []);
@@ -227,12 +243,17 @@ export function usePerformance() {
     async (payload) => {
       if (!user || !supabase) return null;
 
+      // The page form collects multiple successors in `payload.successors[]`.
+      // The DB only supports a single successor_id / readiness_level, so we
+      // persist the first entry of the array (the primary successor).
+      const primarySuccessor = Array.isArray(payload.successors) ? payload.successors[0] : null;
+
       const row = withCompanyScope({
         position_id: payload.position_id || null,
         position_title: payload.position_title,
         incumbent_id: payload.incumbent_id || null,
-        successor_id: payload.successor_id || null,
-        readiness_level: payload.readiness_level || null,
+        successor_id: payload.successor_id || primarySuccessor?.employee_id || null,
+        readiness_level: payload.readiness_level || primarySuccessor?.readiness || null,
         nine_box_performance: payload.nine_box_performance ?? null,
         nine_box_potential: payload.nine_box_potential ?? null,
         risk_of_loss: payload.risk_of_loss || 'low',

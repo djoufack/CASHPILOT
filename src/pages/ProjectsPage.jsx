@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '@/hooks/useProjects';
@@ -10,7 +9,23 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Briefcase, Loader2, Calendar, List, CalendarDays, CalendarClock, Download, FileText, Kanban, Eye, Pencil, Trash2, LayoutGrid } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Briefcase,
+  Loader2,
+  Calendar,
+  List,
+  CalendarDays,
+  CalendarClock,
+  Download,
+  FileText,
+  Kanban,
+  Eye,
+  Pencil,
+  Trash2,
+  LayoutGrid,
+} from 'lucide-react';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
 import { format, parseISO } from 'date-fns';
@@ -26,20 +41,8 @@ import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
 import { Progress } from '@/components/ui/progress';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const getProjectStatusClasses = (status) => {
   if (status === 'completed') return 'bg-green-900/20 text-green-400 border-green-800';
@@ -64,17 +67,28 @@ const ProjectCard = ({ project, onEdit, onDelete, t }) => {
           <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
             <Briefcase className="w-6 h-6 text-orange-400" />
           </div>
-          <span className={`text-[10px] md:text-xs px-2 py-1 rounded-full border capitalize ${getProjectStatusClasses(status)}`}>
+          <span
+            className={`text-[10px] md:text-xs px-2 py-1 rounded-full border capitalize ${getProjectStatusClasses(status)}`}
+          >
             {statusLabel}
           </span>
         </div>
 
-        <h3 className="text-lg md:text-xl font-bold text-gradient mb-2 group-hover:text-orange-400 transition-colors">{project.name}</h3>
-        <p className="text-xs md:text-sm text-gray-400 mb-4 line-clamp-2">{project.description || 'No description provided.'}</p>
+        <h3 className="text-lg md:text-xl font-bold text-gradient mb-2 group-hover:text-orange-400 transition-colors">
+          {project.name}
+        </h3>
+        <p className="text-xs md:text-sm text-gray-400 mb-4 line-clamp-2">
+          {project.description || 'No description provided.'}
+        </p>
 
         <div className="flex flex-col gap-2 text-xs md:text-sm text-gray-500 mb-6">
-          <span className="flex items-center"><Briefcase className="w-4 h-4 mr-2" /> {project.client?.company_name || '-'}</span>
-          <span className="flex items-center"><Calendar className="w-4 h-4 mr-2" /> {project.created_at ? format(parseISO(project.created_at), 'MMM d, yyyy') : '-'}</span>
+          <span className="flex items-center">
+            <Briefcase className="w-4 h-4 mr-2" /> {project.client?.company_name || '-'}
+          </span>
+          <span className="flex items-center">
+            <Calendar className="w-4 h-4 mr-2" />{' '}
+            {project.created_at ? format(parseISO(project.created_at), 'MMM d, yyyy') : '-'}
+          </span>
         </div>
       </div>
 
@@ -160,7 +174,7 @@ const ProjectsPage = () => {
     { label: 'Cancelled', color: '#ef4444' },
   ];
 
-  const projectCalendarEvents = projects.map(p => ({
+  const projectCalendarEvents = projects.map((p) => ({
     id: p.id,
     title: p.name,
     date: p.created_at,
@@ -168,7 +182,7 @@ const ProjectsPage = () => {
     resource: p,
   }));
 
-  const projectAgendaItems = projects.map(p => {
+  const projectAgendaItems = projects.map((p) => {
     const statusColorMap = {
       active: 'bg-orange-500/20 text-orange-400',
       in_progress: 'bg-orange-500/20 text-orange-400',
@@ -182,7 +196,7 @@ const ProjectsPage = () => {
       subtitle: p.client?.company_name || '',
       date: p.created_at,
       status: p.status || 'active',
-      statusLabel: (p.status || 'active').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      statusLabel: (p.status || 'active').replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
       statusColor: statusColorMap[p.status] || 'bg-gray-500/20 text-gray-400',
     };
   });
@@ -195,12 +209,11 @@ const ProjectsPage = () => {
     { id: 'cancelled', title: t('status.cancelled') || 'Cancelled', color: 'bg-red-500/20 text-red-400' },
   ];
 
-  const filteredProjects = projects.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                          p.client?.company_name?.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filter === 'all' ||
-                          (filter === 'active' && p.status !== 'completed' && p.status !== 'cancelled') ||
-                          p.status === filter;
+  const filteredProjects = projects.filter((p) => {
+    const matchesSearch =
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.client?.company_name?.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = filter === 'all' || p.status === filter;
     return matchesSearch && matchesFilter;
   });
 
@@ -286,34 +299,26 @@ const ProjectsPage = () => {
   };
 
   const handleExportPDF = () => {
-    guardedAction(
-      CREDIT_COSTS.PDF_REPORT,
-      'Projects List PDF',
-      async () => {
-        await exportProjectsListPDF(filteredProjects, company);
-      }
-    );
+    guardedAction(CREDIT_COSTS.PDF_REPORT, 'Projects List PDF', async () => {
+      await exportProjectsListPDF(filteredProjects, company);
+    });
   };
 
   const handleExportHTML = () => {
-    guardedAction(
-      CREDIT_COSTS.EXPORT_HTML,
-      'Projects List HTML',
-      () => {
-        exportProjectsListHTML(filteredProjects, company);
-      }
-    );
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Projects List HTML', () => {
+      exportProjectsListHTML(filteredProjects, company);
+    });
   };
 
   const handleExportList = (exportFormat) => {
     if (!filteredProjects || filteredProjects.length === 0) return;
-    const exportData = filteredProjects.map(p => ({
-      'Name': p.name || '',
-      'Client': p.client?.company_name || '',
-      'Status': p.status || '',
+    const exportData = filteredProjects.map((p) => ({
+      Name: p.name || '',
+      Client: p.client?.company_name || '',
+      Status: p.status || '',
       'Budget (hours)': p.budget_hours || '',
       'Hourly Rate': p.hourly_rate || '',
-      'Progress': p.progress || 0,
+      Progress: p.progress || 0,
       'Start Date': p.created_at ? format(parseISO(p.created_at), 'yyyy-MM-dd') : '',
     }));
     if (exportFormat === 'csv') {
@@ -330,287 +335,319 @@ const ProjectsPage = () => {
         <title>Projects - CashPilot</title>
       </Helmet>
 
-        <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-              <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">Projects</h1>
-              <p className="text-gray-400 text-sm md:text-base">Manage and track your ongoing work.</p>
-            </motion.div>
+      <div className="container mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">Projects</h1>
+            <p className="text-gray-400 text-sm md:text-base">Manage and track your ongoing work.</p>
+          </motion.div>
 
-            <div className="flex gap-2 w-full md:w-auto flex-wrap">
-              {filteredProjects.length > 0 && (
-                <>
-                  <Button
-                    onClick={() => handleExportList('csv')}
-                    size="sm"
-                    variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700 flex-1 md:flex-none"
-                    title="Export CSV"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    CSV
-                  </Button>
-                  <Button
-                    onClick={() => handleExportList('xlsx')}
-                    size="sm"
-                    variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700 flex-1 md:flex-none"
-                    title="Export Excel"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Excel
-                  </Button>
-                </>
-              )}
-              <Button
-                onClick={handleExportPDF}
-                size="sm"
-                variant="outline"
-                className="border-gray-600 hover:bg-gray-700 flex-1 md:flex-none"
-              >
-                <Download className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
-                <span className="sm:hidden">PDF</span>
-              </Button>
-              <Button
-                onClick={handleExportHTML}
-                size="sm"
-                variant="outline"
-                className="border-gray-600 hover:bg-gray-700 flex-1 md:flex-none"
-              >
-                <FileText className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
-                <span className="sm:hidden">HTML</span>
-              </Button>
-              <Button onClick={handleOpenDialog} className="flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white">
-                <Plus className="w-4 h-4 mr-2" /> New Project
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-              <Input
-                placeholder={t('projects.searchPlaceholder')}
-                className="pl-9 bg-gray-900 border-gray-800 text-white w-full"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-              {['all', 'active', 'completed'].map(f => (
+          <div className="flex gap-2 w-full md:w-auto flex-wrap">
+            {filteredProjects.length > 0 && (
+              <>
                 <Button
-                  key={f}
-                  variant={filter === f ? 'default' : 'outline'}
-                  onClick={() => setFilter(f)}
-                  className={`capitalize flex-shrink-0 ${filter === f ? 'bg-orange-500' : 'border-gray-800 text-gray-400'}`}
+                  onClick={() => handleExportList('csv')}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700 flex-1 md:flex-none"
+                  title="Export CSV"
                 >
-                  {f}
+                  <Download className="w-4 h-4 mr-1" />
+                  CSV
                 </Button>
-              ))}
-            </div>
-          </div>
-
-          <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
-            <TabsList className="bg-gray-800 border border-gray-700 mb-4">
-              <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-                <List className="w-4 h-4 mr-2" /> {t('common.list') || 'List'}
-              </TabsTrigger>
-              <TabsTrigger value="gallery" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-                <LayoutGrid className="w-4 h-4 mr-2" /> {t('common.gallery') || 'Gallery'}
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-                <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendar'}
-              </TabsTrigger>
-              <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-                <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
-              </TabsTrigger>
-              <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-                <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="list">
-              {loading ? (
-                <div className="h-64 bg-gray-900 rounded-xl animate-pulse" />
-              ) : filteredProjects.length === 0 ? (
-                <div className="text-center py-20 bg-gray-900/30 rounded-xl border border-gray-800 border-dashed">
-                  <p className="text-gray-400 text-lg">No projects found.</p>
-                </div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-gray-800 rounded-lg border border-gray-700 shadow-xl overflow-hidden"
+                <Button
+                  onClick={() => handleExportList('xlsx')}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700 flex-1 md:flex-none"
+                  title="Export Excel"
                 >
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-800/50">
-                        <tr>
-                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                            {t('common.projects') || 'Projects'}
-                          </th>
-                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
-                            {t('clients.companyName') || 'Client'}
-                          </th>
-                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
-                            {t('invoices.issueDate') || 'Created'}
-                          </th>
-                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                            {t('common.status') || 'Status'}
-                          </th>
-                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden xl:table-cell">
-                            Progress
-                          </th>
-                          <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                            {t('common.actions') || 'Actions'}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-700">
-                        {paginatedProjects.map(project => {
-                          const status = project.status || 'active';
-                          return (
-                            <tr key={project.id} className="hover:bg-gray-700/40 transition-colors">
-                              <td className="px-4 md:px-6 py-4 text-sm">
-                                <div className="font-semibold text-gradient">{project.name}</div>
-                                <div className="text-gray-400 text-xs mt-1 line-clamp-1">{project.description || '-'}</div>
-                              </td>
-                              <td className="px-4 md:px-6 py-4 text-sm text-gray-300 hidden md:table-cell">
-                                {project.client?.company_name || '-'}
-                              </td>
-                              <td className="px-4 md:px-6 py-4 text-sm text-gray-300 hidden lg:table-cell">
-                                {project.created_at ? format(parseISO(project.created_at), 'MMM d, yyyy') : '-'}
-                              </td>
-                              <td className="px-4 md:px-6 py-4 text-sm">
-                                <span className={`text-xs px-2 py-1 rounded-full border capitalize ${getProjectStatusClasses(status)}`}>
-                                  {status.replace('_', ' ')}
-                                </span>
-                              </td>
-                              <td className="px-4 md:px-6 py-4 text-sm text-gray-300 hidden xl:table-cell">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-28">
-                                    <Progress value={project.progress || 0} className="h-2" />
-                                  </div>
-                                  <span className="text-xs text-gray-400">{project.progress || 0}%</span>
-                                </div>
-                              </td>
-                              <td className="px-4 md:px-6 py-4 text-right text-sm">
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button asChild variant="outline" size="sm" className="border-blue-500/40 text-blue-300 hover:bg-blue-900/20 h-8 px-2">
-                                    <Link to={`/app/projects/${project.id}`}>
-                                      <Eye className="w-4 h-4" />
-                                      <span className="hidden lg:inline ml-1">{t('common.view') || 'View'}</span>
-                                    </Link>
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEditProject(project)}
-                                    className="text-orange-300 hover:text-orange-200 hover:bg-orange-900/20 h-8 w-8 p-0"
-                                    title={t('common.edit') || 'Edit'}
-                                  >
-                                    <Pencil className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeleteProject(project)}
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
-                                    title={t('common.delete') || 'Delete'}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  <PaginationControls
-                    currentPage={pagination.currentPage}
-                    totalPages={pagination.totalPages}
-                    totalCount={pagination.totalCount}
-                    pageSize={pagination.pageSize}
-                    pageSizeOptions={pagination.pageSizeOptions}
-                    hasNextPage={pagination.hasNextPage}
-                    hasPrevPage={pagination.hasPrevPage}
-                    onNextPage={pagination.nextPage}
-                    onPrevPage={pagination.prevPage}
-                    onGoToPage={pagination.goToPage}
-                    onChangePageSize={pagination.changePageSize}
-                  />
-                </motion.div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="gallery">
-              {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[1, 2, 3].map(i => <div key={i} className="h-64 bg-gray-900 rounded-xl animate-pulse" />)}
-                </div>
-              ) : filteredProjects.length === 0 ? (
-                <div className="text-center py-20 bg-gray-900/30 rounded-xl border border-gray-800 border-dashed">
-                  <p className="text-gray-400 text-lg">No projects found.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {paginatedProjects.map(project => (
-                      <ProjectCard
-                        key={project.id}
-                        project={project}
-                        onEdit={handleEditProject}
-                        onDelete={handleDeleteProject}
-                        t={t}
-                      />
-                    ))}
-                  </div>
-                  <PaginationControls
-                    currentPage={pagination.currentPage}
-                    totalPages={pagination.totalPages}
-                    totalCount={pagination.totalCount}
-                    pageSize={pagination.pageSize}
-                    pageSizeOptions={pagination.pageSizeOptions}
-                    hasNextPage={pagination.hasNextPage}
-                    hasPrevPage={pagination.hasPrevPage}
-                    onNextPage={pagination.nextPage}
-                    onPrevPage={pagination.prevPage}
-                    onGoToPage={pagination.goToPage}
-                    onChangePageSize={pagination.changePageSize}
-                  />
-                </>
-              )}
-            </TabsContent>
-
-            <TabsContent value="calendar">
-              <GenericCalendarView
-                events={projectCalendarEvents}
-                statusColors={projectCalendarStatusColors}
-                legend={projectCalendarLegend}
-              />
-            </TabsContent>
-
-            <TabsContent value="agenda">
-              <GenericAgendaView
-                items={projectAgendaItems}
-                dateField="date"
-                paidStatuses={['completed', 'cancelled']}
-              />
-            </TabsContent>
-
-            <TabsContent value="kanban">
-              <GenericKanbanView
-                columns={projectKanbanColumns}
-                items={projectAgendaItems}
-                onStatusChange={async (id, status) => await updateProject(id, { status })}
-              />
-            </TabsContent>
-          </Tabs>
+                  <Download className="w-4 h-4 mr-1" />
+                  Excel
+                </Button>
+              </>
+            )}
+            <Button
+              onClick={handleExportPDF}
+              size="sm"
+              variant="outline"
+              className="border-gray-600 hover:bg-gray-700 flex-1 md:flex-none"
+            >
+              <Download className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
+              <span className="sm:hidden">PDF</span>
+            </Button>
+            <Button
+              onClick={handleExportHTML}
+              size="sm"
+              variant="outline"
+              className="border-gray-600 hover:bg-gray-700 flex-1 md:flex-none"
+            >
+              <FileText className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
+              <span className="sm:hidden">HTML</span>
+            </Button>
+            <Button
+              onClick={handleOpenDialog}
+              className="flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" /> New Project
+            </Button>
+          </div>
         </div>
+
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+            <Input
+              placeholder={t('projects.searchPlaceholder')}
+              className="pl-9 bg-gray-900 border-gray-800 text-white w-full"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+            {[
+              { value: 'all', label: t('common.all') || 'All' },
+              { value: 'active', label: t('status.active') || 'Active' },
+              { value: 'in_progress', label: t('status.inProgress') || 'In Progress' },
+              { value: 'on_hold', label: t('status.onHold') || 'On Hold' },
+              { value: 'completed', label: t('status.completed') || 'Completed' },
+              { value: 'cancelled', label: t('status.cancelled') || 'Cancelled' },
+            ].map((f) => (
+              <Button
+                key={f.value}
+                variant={filter === f.value ? 'default' : 'outline'}
+                onClick={() => setFilter(f.value)}
+                className={`capitalize flex-shrink-0 ${filter === f.value ? 'bg-orange-500' : 'border-gray-800 text-gray-400'}`}
+              >
+                {f.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+          <TabsList className="bg-gray-800 border border-gray-700 mb-4">
+            <TabsTrigger
+              value="list"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
+              <List className="w-4 h-4 mr-2" /> {t('common.list') || 'List'}
+            </TabsTrigger>
+            <TabsTrigger
+              value="gallery"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
+              <LayoutGrid className="w-4 h-4 mr-2" /> {t('common.gallery') || 'Gallery'}
+            </TabsTrigger>
+            <TabsTrigger
+              value="calendar"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
+              <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendar'}
+            </TabsTrigger>
+            <TabsTrigger
+              value="agenda"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
+              <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
+            </TabsTrigger>
+            <TabsTrigger
+              value="kanban"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
+              <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list">
+            {loading ? (
+              <div className="h-64 bg-gray-900 rounded-xl animate-pulse" />
+            ) : filteredProjects.length === 0 ? (
+              <div className="text-center py-20 bg-gray-900/30 rounded-xl border border-gray-800 border-dashed">
+                <p className="text-gray-400 text-lg">No projects found.</p>
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gray-800 rounded-lg border border-gray-700 shadow-xl overflow-hidden"
+              >
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-800/50">
+                      <tr>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          {t('common.projects') || 'Projects'}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                          {t('clients.companyName') || 'Client'}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
+                          {t('invoices.issueDate') || 'Created'}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          {t('common.status') || 'Status'}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden xl:table-cell">
+                          Progress
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          {t('common.actions') || 'Actions'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {paginatedProjects.map((project) => {
+                        const status = project.status || 'active';
+                        return (
+                          <tr key={project.id} className="hover:bg-gray-700/40 transition-colors">
+                            <td className="px-4 md:px-6 py-4 text-sm">
+                              <div className="font-semibold text-gradient">{project.name}</div>
+                              <div className="text-gray-400 text-xs mt-1 line-clamp-1">
+                                {project.description || '-'}
+                              </div>
+                            </td>
+                            <td className="px-4 md:px-6 py-4 text-sm text-gray-300 hidden md:table-cell">
+                              {project.client?.company_name || '-'}
+                            </td>
+                            <td className="px-4 md:px-6 py-4 text-sm text-gray-300 hidden lg:table-cell">
+                              {project.created_at ? format(parseISO(project.created_at), 'MMM d, yyyy') : '-'}
+                            </td>
+                            <td className="px-4 md:px-6 py-4 text-sm">
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full border capitalize ${getProjectStatusClasses(status)}`}
+                              >
+                                {status.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td className="px-4 md:px-6 py-4 text-sm text-gray-300 hidden xl:table-cell">
+                              <div className="flex items-center gap-2">
+                                <div className="w-28">
+                                  <Progress value={project.progress || 0} className="h-2" />
+                                </div>
+                                <span className="text-xs text-gray-400">{project.progress || 0}%</span>
+                              </div>
+                            </td>
+                            <td className="px-4 md:px-6 py-4 text-right text-sm">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  asChild
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-blue-500/40 text-blue-300 hover:bg-blue-900/20 h-8 px-2"
+                                >
+                                  <Link to={`/app/projects/${project.id}`}>
+                                    <Eye className="w-4 h-4" />
+                                    <span className="hidden lg:inline ml-1">{t('common.view') || 'View'}</span>
+                                  </Link>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditProject(project)}
+                                  className="text-orange-300 hover:text-orange-200 hover:bg-orange-900/20 h-8 w-8 p-0"
+                                  title={t('common.edit') || 'Edit'}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteProject(project)}
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
+                                  title={t('common.delete') || 'Delete'}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <PaginationControls
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalCount={pagination.totalCount}
+                  pageSize={pagination.pageSize}
+                  pageSizeOptions={pagination.pageSizeOptions}
+                  hasNextPage={pagination.hasNextPage}
+                  hasPrevPage={pagination.hasPrevPage}
+                  onNextPage={pagination.nextPage}
+                  onPrevPage={pagination.prevPage}
+                  onGoToPage={pagination.goToPage}
+                  onChangePageSize={pagination.changePageSize}
+                />
+              </motion.div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="gallery">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-64 bg-gray-900 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : filteredProjects.length === 0 ? (
+              <div className="text-center py-20 bg-gray-900/30 rounded-xl border border-gray-800 border-dashed">
+                <p className="text-gray-400 text-lg">No projects found.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {paginatedProjects.map((project) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      onEdit={handleEditProject}
+                      onDelete={handleDeleteProject}
+                      t={t}
+                    />
+                  ))}
+                </div>
+                <PaginationControls
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalCount={pagination.totalCount}
+                  pageSize={pagination.pageSize}
+                  pageSizeOptions={pagination.pageSizeOptions}
+                  hasNextPage={pagination.hasNextPage}
+                  hasPrevPage={pagination.hasPrevPage}
+                  onNextPage={pagination.nextPage}
+                  onPrevPage={pagination.prevPage}
+                  onGoToPage={pagination.goToPage}
+                  onChangePageSize={pagination.changePageSize}
+                />
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <GenericCalendarView
+              events={projectCalendarEvents}
+              statusColors={projectCalendarStatusColors}
+              legend={projectCalendarLegend}
+            />
+          </TabsContent>
+
+          <TabsContent value="agenda">
+            <GenericAgendaView items={projectAgendaItems} dateField="date" paidStatuses={['completed', 'cancelled']} />
+          </TabsContent>
+
+          <TabsContent value="kanban">
+            <GenericKanbanView
+              columns={projectKanbanColumns}
+              items={projectAgendaItems}
+              onStatusChange={async (id, status) => await updateProject(id, { status })}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
 
       <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[500px]">
@@ -621,7 +658,9 @@ const ProjectsPage = () => {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-300">Project Name *</Label>
+              <Label htmlFor="name" className="text-gray-300">
+                Project Name *
+              </Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -633,7 +672,9 @@ const ProjectsPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-gray-300">Description</Label>
+              <Label htmlFor="description" className="text-gray-300">
+                Description
+              </Label>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -644,7 +685,9 @@ const ProjectsPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="client" className="text-gray-300">Client</Label>
+              <Label htmlFor="client" className="text-gray-300">
+                Client
+              </Label>
               <Select
                 value={formData.client_id}
                 onValueChange={(value) => setFormData({ ...formData, client_id: value })}
@@ -653,7 +696,7 @@ const ProjectsPage = () => {
                   <SelectValue placeholder={t('projects.selectClient')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
-                  {clients.map(client => (
+                  {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id} className="text-white hover:bg-gray-700">
                       {client.company_name}
                     </SelectItem>
@@ -664,7 +707,9 @@ const ProjectsPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="budget_hours" className="text-gray-300">Budget (hours)</Label>
+                <Label htmlFor="budget_hours" className="text-gray-300">
+                  Budget (hours)
+                </Label>
                 <Input
                   id="budget_hours"
                   type="number"
@@ -676,7 +721,9 @@ const ProjectsPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="hourly_rate" className="text-gray-300">Hourly Rate ({currencySymbol})</Label>
+                <Label htmlFor="hourly_rate" className="text-gray-300">
+                  Hourly Rate ({currencySymbol})
+                </Label>
                 <Input
                   id="hourly_rate"
                   type="number"
@@ -691,29 +738,54 @@ const ProjectsPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status" className="text-gray-300">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
-              >
+              <Label htmlFor="status" className="text-gray-300">
+                Status
+              </Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
-                  <SelectItem value="active" className="text-white hover:bg-gray-700">Active</SelectItem>
-                  <SelectItem value="in_progress" className="text-white hover:bg-gray-700">In Progress</SelectItem>
-                  <SelectItem value="completed" className="text-white hover:bg-gray-700">Completed</SelectItem>
-                  <SelectItem value="cancelled" className="text-white hover:bg-gray-700">Cancelled</SelectItem>
+                  <SelectItem value="active" className="text-white hover:bg-gray-700">
+                    {t('status.active') || 'Active'}
+                  </SelectItem>
+                  <SelectItem value="in_progress" className="text-white hover:bg-gray-700">
+                    {t('status.inProgress') || 'In Progress'}
+                  </SelectItem>
+                  <SelectItem value="on_hold" className="text-white hover:bg-gray-700">
+                    {t('status.onHold') || 'On Hold'}
+                  </SelectItem>
+                  <SelectItem value="completed" className="text-white hover:bg-gray-700">
+                    {t('status.completed') || 'Completed'}
+                  </SelectItem>
+                  <SelectItem value="cancelled" className="text-white hover:bg-gray-700">
+                    {t('status.cancelled') || 'Cancelled'}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => handleDialogChange(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleDialogChange(false)}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting || !formData.name.trim()} className="bg-orange-500 hover:bg-orange-600 text-white">
-                {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : editingProject ? <Pencil className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+              <Button
+                type="submit"
+                disabled={submitting || !formData.name.trim()}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {submitting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : editingProject ? (
+                  <Pencil className="w-4 h-4 mr-2" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
                 {editingProject ? `${t('common.edit') || 'Edit'} Project` : 'Create Project'}
               </Button>
             </DialogFooter>
