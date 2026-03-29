@@ -1,14 +1,15 @@
 import http from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server.js';
+import { createNewSessionState, runWithSessionContext, SessionState } from './supabase.js';
 
 const PORT = parseInt(process.env.MCP_HTTP_PORT || '3100', 10);
 
 // ── Rate limiting (in-memory) ────────────────────────────────
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
-const LOGIN_LIMIT = 5;       // max login attempts per minute per IP
-const GENERAL_LIMIT = 60;    // max requests per minute per IP
-const WINDOW_MS = 60_000;    // 1-minute sliding window
+const LOGIN_LIMIT = 5; // max login attempts per minute per IP
+const GENERAL_LIMIT = 60; // max requests per minute per IP
+const WINDOW_MS = 60_000; // 1-minute sliding window
 
 function checkRateLimit(ip: string, isLogin: boolean): boolean {
   const now = Date.now();
@@ -33,9 +34,14 @@ setInterval(() => {
 }, 300_000).unref();
 
 // ── Per-session state ────────────────────────────────────────
-// StreamableHTTPServerTransport is stateful (one per session).
-// We keep a map keyed by session ID so multiple clients can connect.
-const sessions = new Map<string, StreamableHTTPServerTransport>();
+// Each entry stores both the MCP transport and its isolated auth state
+// so that two simultaneous HTTP clients never share credentials.
+interface SessionEntry {
+  transport: StreamableHTTPServerTransport;
+  authState: SessionState;
+}
+
+const sessions = new Map<string, SessionEntry>();
 
 // ── CORS headers applied to every response ───────────────────
 function setCors(res: http.ServerResponse) {
@@ -67,9 +73,8 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
-  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
-    || req.socket.remoteAddress
-    || 'unknown';
+  const clientIp =
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
 
   // ── Rate limiting (applied before body parsing) ────────
   if (!checkRateLimit(clientIp, false)) {
@@ -81,11 +86,13 @@ const httpServer = http.createServer(async (req, res) => {
   // ── Health check ─────────────────────────────────────────
   if (url.pathname === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status: 'ok',
-      server: 'cashpilot-mcp',
-      version: '1.0.0'
-    }));
+    res.end(
+      JSON.stringify({
+        status: 'ok',
+        server: 'cashpilot-mcp',
+        version: '1.0.0',
+      })
+    );
     return;
   }
 
@@ -115,29 +122,34 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      // If we already have a session, reuse its transport
-      let transport = sessionId ? sessions.get(sessionId) : undefined;
+      // If we already have a session, reuse its transport and auth state
+      let entry = sessionId ? sessions.get(sessionId) : undefined;
 
-      if (!transport) {
-        // New session -- create transport + MCP server for it
-        transport = new StreamableHTTPServerTransport({
+      if (!entry) {
+        // New session -- create an isolated auth state + MCP transport/server
+        const authState = createNewSessionState();
+        const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => crypto.randomUUID(),
           onsessioninitialized: (id) => {
-            sessions.set(id, transport!);
-          }
+            sessions.set(id, { transport, authState });
+          },
         });
 
         // Clean up when session closes
         transport.onclose = () => {
-          const sid = transport!.sessionId;
+          const sid = transport.sessionId;
           if (sid) sessions.delete(sid);
         };
 
+        // Wrap the server so every tool call runs inside this session's auth context
         const server = createServer();
         await server.connect(transport);
+        entry = { transport, authState };
       }
 
-      await transport.handleRequest(req, res, parsed);
+      // Run the request handler inside the session's isolated auth context
+      const { transport, authState } = entry;
+      await runWithSessionContext(authState, () => transport.handleRequest(req, res, parsed));
       return;
     }
 
@@ -149,8 +161,8 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      const transport = sessions.get(sessionId)!;
-      await transport.handleRequest(req, res);
+      const { transport, authState } = sessions.get(sessionId)!;
+      await runWithSessionContext(authState, () => transport.handleRequest(req, res));
       return;
     }
 
@@ -162,8 +174,8 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      const transport = sessions.get(sessionId)!;
-      await transport.handleRequest(req, res);
+      const { transport, authState } = sessions.get(sessionId)!;
+      await runWithSessionContext(authState, () => transport.handleRequest(req, res));
       sessions.delete(sessionId);
       return;
     }

@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -7,59 +8,115 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables');
 }
 
-// In-memory storage for Node.js (no localStorage available).
-// This lets Supabase JS persist the session and automatically include
-// the JWT in PostgREST requests — without reassigning the client instance.
-const memoryStorage: Record<string, string> = {};
-const customStorage = {
-  getItem: (key: string) => memoryStorage[key] ?? null,
-  setItem: (key: string, value: string) => {
-    memoryStorage[key] = value;
-  },
-  removeItem: (key: string) => {
-    delete memoryStorage[key];
-  },
-};
+// ── Per-session state via AsyncLocalStorage ───────────────────────────────────
+// Each HTTP session runs its tool handlers inside a context created by
+// runWithSessionContext().  All auth helpers read/write from that context
+// instead of from module-level singletons, so two simultaneous sessions
+// never see each other's credentials (fixes ENF-2 multi-session isolation).
 
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: customStorage,
-    persistSession: true,
-    autoRefreshToken: true,
+export interface SessionState {
+  supabase: SupabaseClient;
+  memoryStorage: Record<string, string>;
+  userId: string | null;
+  session: Session | null;
+  companyId: string | null;
+}
+
+export const sessionStorage = new AsyncLocalStorage<SessionState>();
+
+function createSessionState(): SessionState {
+  const memoryStorage: Record<string, string> = {};
+  const customStorage = {
+    getItem: (key: string) => memoryStorage[key] ?? null,
+    setItem: (key: string, value: string) => {
+      memoryStorage[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete memoryStorage[key];
+    },
+  };
+
+  const client = createClient(supabaseUrl!, supabaseAnonKey!, {
+    auth: {
+      storage: customStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  });
+
+  return {
+    supabase: client,
+    memoryStorage,
+    userId: null,
+    session: null,
+    companyId: null,
+  };
+}
+
+/**
+ * Run `fn` inside an isolated session context.
+ * Used by the HTTP server to wrap each session's tool handler dispatch.
+ * For stdio (single-user), a default context is injected at startup.
+ */
+export function runWithSessionContext<T>(state: SessionState, fn: () => T): T {
+  return sessionStorage.run(state, fn);
+}
+
+export function createNewSessionState(): SessionState {
+  return createSessionState();
+}
+
+// ── Fallback singleton for stdio (single-user) mode ──────────────────────────
+// When running via stdio there is no HTTP layer and no concurrent sessions,
+// so we keep a single global state and inject it automatically.
+const stdioState = createSessionState();
+
+function getState(): SessionState {
+  const ctx = sessionStorage.getStore();
+  if (ctx) return ctx;
+  // Fallback for stdio mode (no AsyncLocalStorage context active)
+  return stdioState;
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+/** The Supabase client for the current session. */
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const client = getState().supabase;
+    const value = (client as any)[prop];
+    return typeof value === 'function' ? value.bind(client) : value;
   },
 });
 
-let currentUserId: string | null = null;
-let currentSession: Session | null = null;
-let currentCompanyId: string | null = null;
-
 /**
- * Login with email/password. Sets the session for all subsequent queries.
- * Uses in-memory storage so the existing client instance automatically
- * includes the JWT in all PostgREST requests (no reassignment needed).
+ * Login with email/password. Sets the session for all subsequent queries
+ * within the current AsyncLocalStorage context.
  */
 export async function login(email: string, password: string): Promise<{ userId: string; email: string }> {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const state = getState();
+  const { data, error } = await state.supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error(`Login failed: ${error.message}`);
   if (!data.session || !data.user) throw new Error('Login failed: no session returned');
 
-  currentSession = data.session;
-  currentUserId = data.user.id;
+  state.session = data.session;
+  state.userId = data.user.id;
+  state.companyId = null; // reset cached company on new login
 
   return { userId: data.user.id, email: data.user.email || email };
 }
 
 /**
- * Logout and clear the session.
+ * Logout and clear the session for the current context.
  */
 export async function logout(): Promise<void> {
-  await supabase.auth.signOut();
-  currentSession = null;
-  currentUserId = null;
-  currentCompanyId = null;
-  // Clear in-memory storage
-  for (const key of Object.keys(memoryStorage)) {
-    delete memoryStorage[key];
+  const state = getState();
+  await state.supabase.auth.signOut();
+  state.session = null;
+  state.userId = null;
+  state.companyId = null;
+  for (const key of Object.keys(state.memoryStorage)) {
+    delete state.memoryStorage[key];
   }
 }
 
@@ -68,19 +125,18 @@ export async function logout(): Promise<void> {
  * Called before operations that need a valid token.
  */
 export async function ensureSessionValid(): Promise<void> {
-  if (!currentSession) return;
-  const expiresAt = currentSession.expires_at || 0;
+  const state = getState();
+  if (!state.session) return;
+  const expiresAt = state.session.expires_at || 0;
   const now = Math.floor(Date.now() / 1000);
   if (expiresAt - now < 300) {
-    // < 5 min remaining
-    const { data, error } = await supabase.auth.refreshSession();
+    const { data, error } = await state.supabase.auth.refreshSession();
     if (!error && data.session) {
-      currentSession = data.session;
-      currentUserId = data.session.user?.id ?? currentUserId;
+      state.session = data.session;
+      state.userId = data.session.user?.id ?? state.userId;
     } else if (expiresAt < now) {
-      // Token already expired and refresh failed — force re-login
-      currentSession = null;
-      currentUserId = null;
+      state.session = null;
+      state.userId = null;
       throw new Error('Session expired and refresh failed. Please login again.');
     }
   }
@@ -95,22 +151,23 @@ export async function ensureAndGetUserId(): Promise<string> {
 }
 
 export function getUserId(): string {
-  if (!currentUserId) throw new Error('Not authenticated. Use the "login" tool first.');
-  // Hard check: reject already-expired tokens
-  if (currentSession?.expires_at && currentSession.expires_at < Math.floor(Date.now() / 1000)) {
-    currentSession = null;
-    currentUserId = null;
+  const state = getState();
+  if (!state.userId) throw new Error('Not authenticated. Use the "login" tool first.');
+  if (state.session?.expires_at && state.session.expires_at < Math.floor(Date.now() / 1000)) {
+    state.session = null;
+    state.userId = null;
     throw new Error('Session expired. Please login again.');
   }
-  return currentUserId;
+  return state.userId;
 }
 
 /**
  * Get the current session access token. Throws if not logged in.
  */
 export function getAccessToken(): string {
-  if (!currentSession?.access_token) throw new Error('Not authenticated. Use the "login" tool first.');
-  return currentSession.access_token;
+  const state = getState();
+  if (!state.session?.access_token) throw new Error('Not authenticated. Use the "login" tool first.');
+  return state.session.access_token;
 }
 
 /**
@@ -124,17 +181,19 @@ export function getSupabaseUrl(): string {
  * Check if a user is currently logged in.
  */
 export function isAuthenticated(): boolean {
-  return currentUserId !== null && currentSession !== null;
+  const state = getState();
+  return state.userId !== null && state.session !== null;
 }
 
 /**
- * Get the company_id for the current user. Fetches and caches on first call.
+ * Get the company_id for the current user. Fetches and caches on first call per session.
  * Returns the first company owned by the user (most users have one).
  */
 export async function getCompanyId(): Promise<string> {
-  if (currentCompanyId) return currentCompanyId;
+  const state = getState();
+  if (state.companyId) return state.companyId;
   const userId = getUserId();
-  const { data, error } = await supabase
+  const { data, error } = await state.supabase
     .from('company')
     .select('id')
     .eq('user_id', userId)
@@ -142,8 +201,6 @@ export async function getCompanyId(): Promise<string> {
     .limit(1)
     .single();
   if (error || !data) throw new Error('No company found for this user. Create a company first.');
-  currentCompanyId = data.id;
-  return currentCompanyId!;
+  state.companyId = data.id;
+  return state.companyId!;
 }
-
-export { supabase };
