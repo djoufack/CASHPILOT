@@ -137,6 +137,15 @@ verify_jwt = false
 [functions.gocardless-auth]
 verify_jwt = true
 
+[functions.gocardless-payments]
+verify_jwt = true
+
+[functions.gocardless-webhook]
+verify_jwt = false
+
+[functions.yapily-auth]
+verify_jwt = true
+
 [functions.mcp]
 verify_jwt = true
 
