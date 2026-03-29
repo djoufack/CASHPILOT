@@ -4,32 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Eye, Loader2, Building2, TrendingDown, Package } from 'lucide-react';
 import { useFixedAssets } from '@/hooks/useFixedAssets';
+import { useAccounting } from '@/hooks/useAccounting';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
+// Account codes are intentionally left blank: they will be populated from
+// accounting_mappings (via useAccounting) so that PCG / PCMN / SYSCOHADA plans
+// each supply the correct codes. ENF-1: no hardcoded accounting data.
 const EMPTY_FORM = {
   asset_name: '',
   asset_type: 'tangible',
@@ -39,43 +24,58 @@ const EMPTY_FORM = {
   residual_value: '0',
   useful_life_years: '',
   depreciation_method: 'linear',
-  account_code_asset: '2154',
-  account_code_depreciation: '2815',
-  account_code_expense: '6811',
+  account_code_asset: '',
+  account_code_depreciation: '',
+  account_code_expense: '',
 };
 
 const statusColor = (status) => {
   switch (status) {
-    case 'active': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-    case 'disposed': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    case 'fully_depreciated': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-    default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    case 'active':
+      return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+    case 'disposed':
+      return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    case 'fully_depreciated':
+      return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    default:
+      return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   }
 };
 
 const statusLabel = (status, t) => {
   switch (status) {
-    case 'active': return t('accounting.fixedAssets.statusActive');
-    case 'disposed': return t('accounting.fixedAssets.statusDisposed');
-    case 'fully_depreciated': return t('accounting.fixedAssets.statusFullyDepreciated');
-    default: return status;
+    case 'active':
+      return t('accounting.fixedAssets.statusActive');
+    case 'disposed':
+      return t('accounting.fixedAssets.statusDisposed');
+    case 'fully_depreciated':
+      return t('accounting.fixedAssets.statusFullyDepreciated');
+    default:
+      return status;
   }
 };
 
 const methodLabel = (method, t) => {
   switch (method) {
-    case 'linear': return t('accounting.fixedAssets.linear');
-    case 'declining': return t('accounting.fixedAssets.declining');
-    default: return method;
+    case 'linear':
+      return t('accounting.fixedAssets.linear');
+    case 'declining':
+      return t('accounting.fixedAssets.declining');
+    default:
+      return method;
   }
 };
 
 const typeLabel = (type, t) => {
   switch (type) {
-    case 'tangible': return t('accounting.fixedAssets.tangible');
-    case 'intangible': return t('accounting.fixedAssets.intangible');
-    case 'financial': return t('accounting.fixedAssets.financial');
-    default: return type;
+    case 'tangible':
+      return t('accounting.fixedAssets.tangible');
+    case 'intangible':
+      return t('accounting.fixedAssets.intangible');
+    case 'financial':
+      return t('accounting.fixedAssets.financial');
+    default:
+      return type;
   }
 };
 
@@ -96,7 +96,7 @@ const fmtDate = (dateStr) => {
 const FIXED_ASSETS_INFO = {
   mainPanel: {
     title: 'Immobilisations',
-    definition: "Registre des immobilisations et suivi des amortissements comptables de la societe.",
+    definition: 'Registre des immobilisations et suivi des amortissements comptables de la societe.',
     dataSource: 'Tables `accounting_fixed_assets` et `accounting_depreciation_schedule`.',
     formula: 'VNC = Cout acquisition - amortissement cumule',
     calculationMethod:
@@ -114,8 +114,7 @@ const FIXED_ASSETS_INFO = {
     definition: 'Montant total des amortissements comptabilises.',
     dataSource: 'Statut des actifs et logique de calcul de depreciation du module.',
     formula: 'Amortissements cumules = Somme des dotations postees',
-    calculationMethod:
-      'Le KPI consolide les montants amortis a partir des actifs et de leur statut comptable.',
+    calculationMethod: 'Le KPI consolide les montants amortis a partir des actifs et de leur statut comptable.',
   },
   totalNet: {
     title: 'Valeur nette comptable',
@@ -130,7 +129,7 @@ const FIXED_ASSETS_INFO = {
     dataSource: 'Table `accounting_fixed_assets` enrichie par le dialogue echeancier.',
     formula: 'VNC ligne = cout - depreciation (ou residual selon statut)',
     calculationMethod:
-      "Chaque ligne affiche les attributs principaux et ouvre l echeancier pour les ecritures de dotation.",
+      'Chaque ligne affiche les attributs principaux et ouvre l echeancier pour les ecritures de dotation.',
   },
 };
 
@@ -171,7 +170,12 @@ const ScheduleDialog = ({ asset, fetchSchedule, postDepreciationEntry }) => {
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="View asset details" className="h-7 w-7 text-gray-400 hover:text-white">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="View asset details"
+          className="h-7 w-7 text-gray-400 hover:text-white"
+        >
           <Eye className="w-4 h-4" />
         </Button>
       </DialogTrigger>
@@ -231,9 +235,7 @@ const ScheduleDialog = ({ asset, fetchSchedule, postDepreciationEntry }) => {
                     <td className="py-1.5 px-3 text-right font-mono text-gray-400">
                       {fmtAmount(line.accumulated_depreciation)}
                     </td>
-                    <td className="py-1.5 px-3 text-right font-mono text-blue-300">
-                      {fmtAmount(line.net_book_value)}
-                    </td>
+                    <td className="py-1.5 px-3 text-right font-mono text-blue-300">{fmtAmount(line.net_book_value)}</td>
                     <td className="py-1.5 px-3 text-center">
                       {line.is_posted ? (
                         <span className="text-emerald-400 text-[10px] font-medium">
@@ -275,10 +277,10 @@ const ScheduleDialog = ({ asset, fetchSchedule, postDepreciationEntry }) => {
 
 // ─── New Asset Dialog ────────────────────────────────────────────────────────
 
-const NewAssetDialog = ({ onCreate }) => {
+const NewAssetDialog = ({ onCreate, initialForm = EMPTY_FORM }) => {
   const { t } = useTranslation('translation');
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (field, value) => {
@@ -295,7 +297,7 @@ const NewAssetDialog = ({ onCreate }) => {
         residual_value: parseFloat(form.residual_value || '0'),
         useful_life_years: parseInt(form.useful_life_years),
       });
-      setForm(EMPTY_FORM);
+      setForm(initialForm);
       setOpen(false);
     } finally {
       setSubmitting(false);
@@ -464,11 +466,7 @@ const NewAssetDialog = ({ onCreate }) => {
             >
               Annuler
             </Button>
-            <Button
-              type="submit"
-              disabled={submitting}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
+            <Button type="submit" disabled={submitting} className="bg-orange-500 hover:bg-orange-600 text-white">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Plus className="w-4 h-4 mr-1.5" />}
               Créer
             </Button>
@@ -484,10 +482,21 @@ const NewAssetDialog = ({ onCreate }) => {
 const FixedAssets = () => {
   const { t } = useTranslation('translation');
   const { assets, loading, fetchAssets, fetchSchedule, createAsset, postDepreciationEntry } = useFixedAssets();
+  const { mappings, fetchMappings } = useAccounting();
 
   useEffect(() => {
     fetchAssets();
-  }, [fetchAssets]);
+    fetchMappings();
+  }, [fetchAssets, fetchMappings]);
+
+  // Resolve default account codes from accounting_mappings (ENF-1: DB as single source).
+  const fixedAssetMapping = mappings.find((m) => m.source_type === 'fixed_asset' || m.event_type === 'fixed_asset');
+  const defaultEmptyForm = {
+    ...EMPTY_FORM,
+    account_code_asset: fixedAssetMapping?.debit_account || '',
+    account_code_depreciation: fixedAssetMapping?.credit_account || '',
+    account_code_expense: fixedAssetMapping?.expense_account || '',
+  };
 
   // KPI computations
   const totalGross = assets.reduce((s, a) => s + (parseFloat(a.acquisition_cost) || 0), 0);
@@ -523,7 +532,7 @@ const FixedAssets = () => {
             {t('accounting.fixedAssets.title')}
           </h2>
         </div>
-        <NewAssetDialog onCreate={createAsset} />
+        <NewAssetDialog onCreate={createAsset} initialForm={defaultEmptyForm} />
       </div>
 
       {/* KPI Cards */}
@@ -532,14 +541,12 @@ const FixedAssets = () => {
           <CardContent className="pt-4 pb-4">
             <div className="inline-flex items-center gap-1.5 mb-1">
               <PanelInfoPopover {...FIXED_ASSETS_INFO.totalGross} />
-              <p className="text-xs text-gray-500 uppercase tracking-wider">
-                {t('accounting.fixedAssets.totalGross')}
-              </p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider">{t('accounting.fixedAssets.totalGross')}</p>
             </div>
-            <p className="text-2xl font-bold font-mono text-blue-400">
-              {fmtAmount(totalGross)}
+            <p className="text-2xl font-bold font-mono text-blue-400">{fmtAmount(totalGross)}</p>
+            <p className="text-xs text-gray-600 mt-1">
+              {assets.length} immobilisation{assets.length !== 1 ? 's' : ''}
             </p>
-            <p className="text-xs text-gray-600 mt-1">{assets.length} immobilisation{assets.length !== 1 ? 's' : ''}</p>
           </CardContent>
         </Card>
 
@@ -551,9 +558,7 @@ const FixedAssets = () => {
                 {t('accounting.fixedAssets.totalDepreciation')}
               </p>
             </div>
-            <p className="text-2xl font-bold font-mono text-orange-400">
-              {fmtAmount(totalDepreciation)}
-            </p>
+            <p className="text-2xl font-bold font-mono text-orange-400">{fmtAmount(totalDepreciation)}</p>
             <p className="text-xs text-gray-600 mt-1">Amortissements comptabilisés</p>
           </CardContent>
         </Card>
@@ -562,13 +567,9 @@ const FixedAssets = () => {
           <CardContent className="pt-4 pb-4">
             <div className="inline-flex items-center gap-1.5 mb-1">
               <PanelInfoPopover {...FIXED_ASSETS_INFO.totalNet} />
-              <p className="text-xs text-gray-500 uppercase tracking-wider">
-                {t('accounting.fixedAssets.totalNet')}
-              </p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider">{t('accounting.fixedAssets.totalNet')}</p>
             </div>
-            <p className="text-2xl font-bold font-mono text-emerald-400">
-              {fmtAmount(totalNetValue)}
-            </p>
+            <p className="text-2xl font-bold font-mono text-emerald-400">{fmtAmount(totalNetValue)}</p>
             <p className="text-xs text-gray-600 mt-1">Valeur nette comptable</p>
           </CardContent>
         </Card>
@@ -588,7 +589,9 @@ const FixedAssets = () => {
             <div className="text-center py-12 text-gray-500">
               <Building2 className="w-8 h-8 mx-auto mb-3 opacity-40" />
               <p>Aucune immobilisation enregistrée.</p>
-              <p className="text-xs mt-1">Cliquez sur «&nbsp;{t('accounting.fixedAssets.newAsset')}&nbsp;» pour commencer.</p>
+              <p className="text-xs mt-1">
+                Cliquez sur «&nbsp;{t('accounting.fixedAssets.newAsset')}&nbsp;» pour commencer.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -598,8 +601,12 @@ const FixedAssets = () => {
                     <TableHead className="text-gray-500">{t('accounting.fixedAssets.assetName')}</TableHead>
                     <TableHead className="text-gray-500">{t('accounting.fixedAssets.assetType')}</TableHead>
                     <TableHead className="text-gray-500">{t('accounting.fixedAssets.acquisitionDate')}</TableHead>
-                    <TableHead className="text-right text-gray-500">{t('accounting.fixedAssets.acquisitionCost')}</TableHead>
-                    <TableHead className="text-right text-gray-500">{t('accounting.fixedAssets.netBookValue')}</TableHead>
+                    <TableHead className="text-right text-gray-500">
+                      {t('accounting.fixedAssets.acquisitionCost')}
+                    </TableHead>
+                    <TableHead className="text-right text-gray-500">
+                      {t('accounting.fixedAssets.netBookValue')}
+                    </TableHead>
                     <TableHead className="text-gray-500">{t('accounting.fixedAssets.method')}</TableHead>
                     <TableHead className="text-gray-500">{t('common.status')}</TableHead>
                     <TableHead className="text-gray-500">{t('common.actions')}</TableHead>
@@ -613,28 +620,17 @@ const FixedAssets = () => {
                     const vnc = asset.status === 'fully_depreciated' ? residual : cost;
 
                     return (
-                      <TableRow
-                        key={asset.id}
-                        className="border-gray-800/40 hover:bg-gray-800/20 transition-colors"
-                      >
+                      <TableRow key={asset.id} className="border-gray-800/40 hover:bg-gray-800/20 transition-colors">
                         <TableCell className="text-white font-medium text-sm">
                           {asset.asset_name}
-                          {asset.category && (
-                            <span className="block text-xs text-gray-500">{asset.category}</span>
-                          )}
+                          {asset.category && <span className="block text-xs text-gray-500">{asset.category}</span>}
                         </TableCell>
-                        <TableCell className="text-gray-300 text-sm">
-                          {typeLabel(asset.asset_type, t)}
-                        </TableCell>
+                        <TableCell className="text-gray-300 text-sm">{typeLabel(asset.asset_type, t)}</TableCell>
                         <TableCell className="text-gray-400 text-sm font-mono">
                           {fmtDate(asset.acquisition_date)}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm text-gray-200">
-                          {fmtAmount(cost)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-sm text-blue-300">
-                          {fmtAmount(vnc)}
-                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm text-gray-200">{fmtAmount(cost)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm text-blue-300">{fmtAmount(vnc)}</TableCell>
                         <TableCell className="text-gray-300 text-sm">
                           {methodLabel(asset.depreciation_method, t)}
                           <span className="block text-xs text-gray-500">{asset.useful_life_years} ans</span>

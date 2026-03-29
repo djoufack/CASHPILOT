@@ -202,7 +202,7 @@ const generateCustomers = (customers = []) => {
       return `
       <Customer>
         <CustomerID>${escapeXml(customer.id || customer.customerId || '')}</CustomerID>
-        <AccountID>${escapeXml(customer.accountId || customer.account_id || '411000')}</AccountID>
+        <AccountID>${escapeXml(customer.accountId || customer.account_id || '')}</AccountID>
         <CustomerTaxID>${escapeXml(customer.vatNumber || customer.vat_number || customer.taxId || '')}</CustomerTaxID>
         <CompanyName>${escapeXml(customer.companyName || customer.company_name || customer.name || '')}</CompanyName>
         ${customer.contactName || customer.contact_name ? `<Contact>${escapeXml(customer.contactName || customer.contact_name)}</Contact>` : ''}
@@ -243,7 +243,7 @@ const generateSuppliers = (suppliers = []) => {
       return `
       <Supplier>
         <SupplierID>${escapeXml(supplier.id || supplier.supplierId || '')}</SupplierID>
-        <AccountID>${escapeXml(supplier.accountId || supplier.account_id || '401000')}</AccountID>
+        <AccountID>${escapeXml(supplier.accountId || supplier.account_id || '')}</AccountID>
         <SupplierTaxID>${escapeXml(supplier.vatNumber || supplier.vat_number || supplier.taxId || '')}</SupplierTaxID>
         <CompanyName>${escapeXml(supplier.companyName || supplier.company_name || supplier.name || '')}</CompanyName>
         ${supplier.contactName || supplier.contact_name ? `<Contact>${escapeXml(supplier.contactName || supplier.contact_name)}</Contact>` : ''}

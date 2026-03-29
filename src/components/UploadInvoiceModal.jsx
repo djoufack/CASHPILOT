@@ -3,6 +3,7 @@ import { useInvoiceUpload } from '@/hooks/useInvoiceUpload';
 import { useInvoiceExtraction } from '@/hooks/useInvoiceExtraction';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId: _supplierId, onUpload
   const { extractInvoice, extracting, extractedData, clearExtraction } = useInvoiceExtraction();
   const { guardedAction } = useCreditsGuard();
   const { user, session } = useAuth();
+  const { defaultRate } = useDefaultTaxRate();
   const { t } = useTranslation();
   const { toast } = useToast();
 
@@ -30,7 +32,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId: _supplierId, onUpload
     invoice_date: formatDateInput(),
     due_date: '',
     total_amount: '',
-    vat_rate: '20',
+    vat_rate: String(defaultRate || 0),
     payment_status: 'pending',
   });
   const [advancedData, setAdvancedData] = useState({
@@ -104,7 +106,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId: _supplierId, onUpload
             invoice_date: data.invoice_date || formatDateInput(),
             due_date: data.due_date || '',
             total_amount: data.total_ttc?.toString() || '',
-            vat_rate: data.tva_rate?.toString() || '20',
+            vat_rate: data.tva_rate?.toString() || String(defaultRate || 0),
             payment_status: 'pending',
           });
           setAdvancedData({
@@ -190,7 +192,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId: _supplierId, onUpload
       invoice_date: formatDateInput(),
       due_date: '',
       total_amount: '',
-      vat_rate: '20',
+      vat_rate: String(defaultRate || 0),
       payment_status: 'pending',
     });
     setAdvancedData({
