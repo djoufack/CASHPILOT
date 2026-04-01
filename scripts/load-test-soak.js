@@ -2,7 +2,7 @@
  * CashPilot — Soak Test (k6)
  * Objectif : valider la stabilité sur la durée (Enterprise readiness)
  * Durée : 30 minutes à 100 VUs constants
- * 
+ *
  * Classification explicite des statuts attendus :
  *   - 200 : succès normal
  *   - 401 : attendu sur /api/v1/* sans token (non compté comme erreur)
@@ -14,21 +14,21 @@ import { check, sleep } from 'k6';
 import { Rate, Trend, Counter } from 'k6/metrics';
 
 // Métriques personnalisées
-const appErrorRate = new Rate('app_errors');         // Vraies erreurs (5xx, 404 inattendu)
+const appErrorRate = new Rate('app_errors'); // Vraies erreurs (5xx, 404 inattendu)
 const authExpected = new Counter('auth_401_expected'); // 401 attendus — NOT errors
 const p95Latency = new Trend('p95_latency_tracker');
 
 export const options = {
   // Soak test : montée progressive, palier long, descente
   stages: [
-    { duration: '2m',  target: 100 },  // Ramp up
-    { duration: '26m', target: 100 },  // Soak — 26 min à 100 VUs
-    { duration: '2m',  target: 0 },    // Ramp down
+    { duration: '2m', target: 100 }, // Ramp up
+    { duration: '26m', target: 100 }, // Soak — 26 min à 100 VUs
+    { duration: '2m', target: 0 }, // Ramp down
   ],
   thresholds: {
     // Seuils Enterprise — clés distinctes pour éviter l'écrasement JS
-    app_errors:        ['rate<0.01'],                         // < 1% d'erreurs applicatives réelles
-    http_req_duration: ['p(95)<2000', 'p(99)<5000'],          // p95 < 2s ET p99 < 5s (même clé, tableau)
+    app_errors: ['rate<0.01'], // < 1% d'erreurs applicatives réelles
+    http_req_duration: ['p(95)<2000', 'p(99)<5000'], // p95 < 2s ET p99 < 5s (même clé, tableau)
     // NOTE: http_req_failed inclut les 401 attendus — on utilise app_errors à la place
   },
 };
@@ -41,7 +41,7 @@ const PUBLIC_PAGES = ['/', '/pricing', '/status', '/legal', '/privacy'];
 // Endpoints API (401 attendus sans token — comportement correct)
 const API_ENDPOINTS = [
   { path: '/api/v1/health', expected401: true },
-  { path: '/mcp',           expected401: true },  // MCP endpoint — doit répondre JSON 401
+  { path: '/mcp', expected401: true }, // MCP endpoint — doit répondre JSON 401
 ];
 
 export default function () {
@@ -54,11 +54,11 @@ export default function () {
 
   p95Latency.add(res.timings.duration);
 
-  const pageOk = check(res, {
-    'page: status 200':      (r) => r.status === 200,
-    'page: not 5xx':         (r) => r.status < 500,
-    'page: response < 5s':   (r) => r.timings.duration < 5000,
-    'page: has content':     (r) => r.body && r.body.length > 100,
+  check(res, {
+    'page: status 200': (r) => r.status === 200,
+    'page: not 5xx': (r) => r.status < 500,
+    'page: response < 5s': (r) => r.timings.duration < 5000,
+    'page: has content': (r) => r.body && r.body.length > 100,
   });
 
   // Vraie erreur = 5xx ou 404 sur une page qui doit exister
@@ -83,8 +83,13 @@ export default function () {
       authExpected.add(1);
       check(apiRes, {
         'api: 401 correctly rejected (expected)': (r) => r.status === 401,
-        'api: returns JSON error':                (r) => {
-          try { JSON.parse(r.body); return true; } catch { return false; }
+        'api: returns JSON error': (r) => {
+          try {
+            JSON.parse(r.body);
+            return true;
+          } catch {
+            return false;
+          }
         },
       });
     } else {
@@ -124,7 +129,7 @@ RÉSULTATS CLÉS
 LATENCES
 ────────
   p(95)                  : ${p95.toFixed(0)}ms  ${p95 < 2000 ? '✅ < 2s' : '❌ > 2s'}
-  p(99)                  : ${p99 !== null ? p99.toFixed(0)+'ms' : 'N/A (stat non collectée)'}  ${p99 === null ? '⚠️' : p99 < 5000 ? '✅ < 5s' : '❌ > 5s'}
+  p(99)                  : ${p99 !== null ? p99.toFixed(0) + 'ms' : 'N/A (stat non collectée)'}  ${p99 === null ? '⚠️' : p99 < 5000 ? '✅ < 5s' : '❌ > 5s'}
 
 FIABILITÉ
 ─────────

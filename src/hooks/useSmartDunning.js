@@ -675,7 +675,6 @@ export const useSmartDunning = () => {
         })
         .finally(() => setLoading(false));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeCompanyId, fetchCampaigns, fetchExecutions, fetchClientScores, fetchDunningRules]);
 
   // Recompute stats when data changes

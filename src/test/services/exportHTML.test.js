@@ -69,8 +69,14 @@ describe('exportBalanceSheetHTML', () => {
     totalPassif: 170000,
     balanced: true,
     syscohada: {
-      actif: [{ label: 'Actif immobilisé', value: 120000 }, { label: 'Actif circulant', value: 50000 }],
-      passif: [{ label: 'Capitaux propres', value: 110000 }, { label: 'Dettes', value: 60000 }],
+      actif: [
+        { label: 'Actif immobilisé', value: 120000 },
+        { label: 'Actif circulant', value: 50000 },
+      ],
+      passif: [
+        { label: 'Capitaux propres', value: 110000 },
+        { label: 'Dettes', value: 60000 },
+      ],
     },
   };
   const company = { company_name: 'Test SAS', siret: '12345678900011', currency: 'EUR' };
@@ -81,10 +87,8 @@ describe('exportBalanceSheetHTML', () => {
   });
 
   it('includes company name via blob capture', () => {
-    let capturedContent = '';
-    global.URL.createObjectURL = vi.fn((blob) => {
+    global.URL.createObjectURL = vi.fn((_blob) => {
       // Synchronously read blob text isn't possible in jsdom, but we can verify call
-      capturedContent = 'captured';
       return 'blob:mock';
     });
     exportBalanceSheetHTML(balanceSheet, company, period);
@@ -99,7 +103,9 @@ describe('exportBalanceSheetHTML', () => {
 
   it('handles undefined syscohada (shows fallback)', () => {
     // When syscohada is undefined, the template shows fallback text
-    expect(() => exportBalanceSheetHTML({ totalAssets: 0, totalPassif: 0, syscohada: undefined }, company, period)).not.toThrow();
+    expect(() =>
+      exportBalanceSheetHTML({ totalAssets: 0, totalPassif: 0, syscohada: undefined }, company, period)
+    ).not.toThrow();
   });
 });
 
@@ -145,9 +151,7 @@ describe('exportInvoiceHTML', () => {
     status: 'sent',
   };
   const client = { company_name: 'Acme Corp', address: '1 Rue Test', city: 'Paris' };
-  const items = [
-    { description: 'Service A', quantity: 2, unit_price: 500, tva_rate: 20 },
-  ];
+  const items = [{ description: 'Service A', quantity: 2, unit_price: 500, tva_rate: 20 }];
 
   it('does not throw for valid inputs', () => {
     expect(() => exportInvoiceHTML(invoice, client, items)).not.toThrow();

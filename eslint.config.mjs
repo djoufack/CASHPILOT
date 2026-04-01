@@ -65,6 +65,12 @@ export default [
 		},
 	},
 	{
+		files: ['scripts/load-test-*.js'],
+		rules: {
+			'import/no-unresolved': 'off',
+		},
+	},
+	{
 		files: ['api/**/*.js', 'mcp-server/**/*.js', 'vitest.config.js'],
 		languageOptions: {
 			globals: { ...globals.node, __dirname: 'readonly' },

@@ -1,2 +1,2 @@
-const fs = require('fs');
-const lines = [];
+const _fs = require('fs');
+const _lines = [];

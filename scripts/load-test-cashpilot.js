@@ -12,36 +12,32 @@ const apiLatency = new Trend('api_latency');
 
 export const options = {
   stages: [
-    { duration: '30s', target: 50 },   // Ramp up to 50 VUs
-    { duration: '1m', target: 200 },   // Ramp up to 200 VUs
-    { duration: '1m', target: 500 },   // Peak: 500 VUs
-    { duration: '30s', target: 500 },  // Hold at 500 VUs
-    { duration: '30s', target: 0 },    // Ramp down
+    { duration: '30s', target: 50 }, // Ramp up to 50 VUs
+    { duration: '1m', target: 200 }, // Ramp up to 200 VUs
+    { duration: '1m', target: 500 }, // Peak: 500 VUs
+    { duration: '30s', target: 500 }, // Hold at 500 VUs
+    { duration: '30s', target: 0 }, // Ramp down
   ],
   thresholds: {
-    http_req_duration: ['p(95)<3000'],  // 95% of requests under 3s
-    http_req_failed: ['rate<0.05'],     // Error rate < 5%
+    http_req_duration: ['p(95)<3000'], // 95% of requests under 3s
+    http_req_failed: ['rate<0.05'], // Error rate < 5%
     errors: ['rate<0.05'],
   },
 };
 
 const BASE_URL = 'https://cashpilot.tech';
 
-const PAGES = [
-  '/',
-  '/pricing',
-  '/guide',
-];
+const PAGES = ['/', '/pricing', '/guide'];
 
 const API_ENDPOINTS = [
-  '/api/v1/health',  // lightweight health check
+  '/api/v1/health', // lightweight health check
 ];
 
 export default function () {
   // 70% — Static page loads (landing, pricing)
   const page = PAGES[Math.floor(Math.random() * PAGES.length)];
   const pageRes = http.get(`${BASE_URL}${page}`, {
-    headers: { 'Accept': 'text/html' },
+    headers: { Accept: 'text/html' },
     tags: { type: 'page' },
   });
 
@@ -55,9 +51,10 @@ export default function () {
 
   // 30% — API endpoint checks
   if (Math.random() < 0.3) {
-    const apiRes = http.get(`${BASE_URL}/api/v1/health`, {
-      headers: { 'Accept': 'application/json' },
-      tags: { type: 'api' },
+    const apiPath = API_ENDPOINTS[Math.floor(Math.random() * API_ENDPOINTS.length)];
+    const apiRes = http.get(`${BASE_URL}${apiPath}`, {
+      headers: { Accept: 'application/json' },
+      tags: { type: 'api', path: apiPath },
     });
     apiLatency.add(apiRes.timings.duration);
 

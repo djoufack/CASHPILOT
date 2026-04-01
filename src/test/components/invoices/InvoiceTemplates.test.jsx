@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeAll } from 'vitest';
 
@@ -6,7 +5,8 @@ import { describe, expect, it, vi, beforeAll } from 'vitest';
 vi.mock('@/utils/calculations', () => ({
   formatCurrency: (amount, currency) => `${currency || 'EUR'} ${Number(amount || 0).toFixed(2)}`,
   calculateItemDiscount: (item) => {
-    if (item.discount_type === 'percent') return Number(item.unit_price) * Number(item.quantity) * Number(item.discount_value) / 100;
+    if (item.discount_type === 'percent')
+      return (Number(item.unit_price) * Number(item.quantity) * Number(item.discount_value)) / 100;
     if (item.discount_type === 'fixed') return Number(item.discount_value);
     return 0;
   },
@@ -14,21 +14,32 @@ vi.mock('@/utils/calculations', () => ({
 
 vi.mock('date-fns', async (importOriginal) => {
   const actual = await importOriginal();
-  return { ...actual, format: (date, fmt) => '2026-01-15' };
+  return { ...actual, format: (_date, _fmt) => '2026-01-15' };
 });
 
 vi.mock('@/components/invoice-templates/TemplateEnhancedSections', () => ({
-  EnhancedHeaderNote: ({ invoice }) => invoice?.header_note ? <div data-testid="header-note">{invoice.header_note}</div> : null,
-  EnhancedFooterNote: ({ invoice }) => invoice?.footer_note ? <div data-testid="footer-note">{invoice.footer_note}</div> : null,
-  EnhancedTerms: ({ invoice }) => invoice?.payment_terms ? <div data-testid="terms">{invoice.payment_terms}</div> : null,
-  EnhancedCustomFields: ({ invoice }) => invoice?.custom_fields ? <div data-testid="custom-fields" /> : null,
-  EnhancedShippingTotalRow: ({ invoice, currency }) => invoice?.shipping_amount ? <tr data-testid="shipping" /> : null,
-  EnhancedAdjustmentTotalRow: ({ invoice, currency }) => invoice?.adjustment_amount ? <tr data-testid="adjustment" /> : null,
-  hasHsnCodes: (items) => Array.isArray(items) && items.some(i => i.hsn_code),
+  EnhancedHeaderNote: ({ invoice }) =>
+    invoice?.header_note ? <div data-testid="header-note">{invoice.header_note}</div> : null,
+  EnhancedFooterNote: ({ invoice }) =>
+    invoice?.footer_note ? <div data-testid="footer-note">{invoice.footer_note}</div> : null,
+  EnhancedTerms: ({ invoice }) =>
+    invoice?.payment_terms ? <div data-testid="terms">{invoice.payment_terms}</div> : null,
+  EnhancedCustomFields: ({ invoice }) => (invoice?.custom_fields ? <div data-testid="custom-fields" /> : null),
+  EnhancedShippingTotalRow: ({ invoice, currency: _currency }) =>
+    invoice?.shipping_amount ? <tr data-testid="shipping" /> : null,
+  EnhancedAdjustmentTotalRow: ({ invoice, currency: _currency }) =>
+    invoice?.adjustment_amount ? <tr data-testid="adjustment" /> : null,
+  hasHsnCodes: (items) => Array.isArray(items) && items.some((i) => i.hsn_code),
 }));
 
 // Fixtures
-const baseTheme = { primary: '#4f46e5', text: '#111827', textLight: '#6b7280', border: '#e5e7eb', background: '#ffffff' };
+const baseTheme = {
+  primary: '#4f46e5',
+  text: '#111827',
+  textLight: '#6b7280',
+  border: '#e5e7eb',
+  background: '#ffffff',
+};
 
 const baseInvoice = {
   id: 'inv-1',
@@ -68,8 +79,24 @@ const baseCompany = {
 };
 
 const baseItems = [
-  { id: 'item-1', description: 'Service A', quantity: 2, unit_price: 300, discount_type: 'none', discount_value: 0, tva_rate: 20 },
-  { id: 'item-2', description: 'Service B', quantity: 1, unit_price: 400, discount_type: 'percent', discount_value: 10, tva_rate: 20 },
+  {
+    id: 'item-1',
+    description: 'Service A',
+    quantity: 2,
+    unit_price: 300,
+    discount_type: 'none',
+    discount_value: 0,
+    tva_rate: 20,
+  },
+  {
+    id: 'item-2',
+    description: 'Service B',
+    quantity: 1,
+    unit_price: 400,
+    discount_type: 'percent',
+    discount_value: 10,
+    tva_rate: 20,
+  },
 ];
 
 const baseSettings = {
@@ -125,10 +152,7 @@ describe('BoldTemplate', () => {
   });
 
   it('renders items with discounts', () => {
-    const itemsWithDiscount = [
-      { ...baseItems[0], discount_type: 'fixed', discount_value: 50 },
-      { ...baseItems[1] },
-    ];
+    const itemsWithDiscount = [{ ...baseItems[0], discount_type: 'fixed', discount_value: 50 }, { ...baseItems[1] }];
     renderTemplate(BoldTemplate, { items: itemsWithDiscount });
     expect(screen.getByText(/Service A/)).toBeInTheDocument();
   });
@@ -230,7 +254,9 @@ describe('MinimalTemplate', () => {
   });
 
   it('renders with no client currency → defaults to EUR', () => {
-    renderTemplate(MinimalTemplate, { client: { ...baseClient, preferred_currency: undefined, preferredCurrency: undefined } });
+    renderTemplate(MinimalTemplate, {
+      client: { ...baseClient, preferred_currency: undefined, preferredCurrency: undefined },
+    });
     expect(document.body).toBeInTheDocument();
   });
 });
@@ -255,7 +281,10 @@ describe('ModernTemplate', () => {
       { ...baseItems[0], discount_type: 'percent', discount_value: 5 },
       { ...baseItems[1], discount_type: 'fixed', discount_value: 20 },
     ];
-    renderTemplate(ModernTemplate, { items, invoice: { ...baseInvoice, discount_type: 'percent', discount_amount: 50 } });
+    renderTemplate(ModernTemplate, {
+      items,
+      invoice: { ...baseInvoice, discount_type: 'percent', discount_amount: 50 },
+    });
     expect(document.body).toBeInTheDocument();
   });
 
