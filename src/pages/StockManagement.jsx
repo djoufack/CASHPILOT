@@ -130,6 +130,7 @@ const parseNumericField = (value, fallback = 0) => {
 
 const StockManagement = () => {
   const { t } = useTranslation();
+  const tf = (key, defaultValue, options = {}) => t(key, { defaultValue, ...options });
   const { alerts, fetchAlerts, resolveAlert } = useStockAlerts();
   const { getProductHistory, addHistoryEntry, getStockValuationContext, loading: historyLoading } = useStockHistory();
   const { products, loading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts();
@@ -301,17 +302,17 @@ const StockManagement = () => {
 
   const valuationMap = {
     cost: {
-      label: t('stockManagement.valuationModes.cost'),
+      label: tf('stockManagement.valuationModes.cost', 'Valeur au coût'),
       metricKey: 'costValue',
       accentClass: 'text-blue-400',
     },
     retail: {
-      label: t('stockManagement.valuationModes.retail'),
+      label: tf('stockManagement.valuationModes.retail', 'Valeur de vente'),
       metricKey: 'retailValue',
       accentClass: 'text-emerald-400',
     },
     margin: {
-      label: t('stockManagement.valuationModes.margin'),
+      label: tf('stockManagement.valuationModes.margin', 'Marge potentielle'),
       metricKey: 'potentialMargin',
       accentClass: 'text-orange-400',
     },
@@ -1148,7 +1149,9 @@ const StockManagement = () => {
                 <CardContent>
                   <div className="text-2xl font-bold text-gradient">{totalProducts}</div>
                   <p className="text-xs text-gray-500 mt-2">
-                    {t('stockManagement.cockpit.trackedProductsCount', { count: trackedProducts.length })}
+                    {tf('stockManagement.cockpit.trackedProductsCount', '{{count}} produits suivis', {
+                      count: trackedProducts.length,
+                    })}
                   </p>
                 </CardContent>
               </Card>
@@ -1202,8 +1205,13 @@ const StockManagement = () => {
                         <div>
                           <AlertTitle className="text-gradient">{alert.product?.product_name}</AlertTitle>
                           <AlertDescription className="text-gray-400">
-                            {t('stockManagement.alerts.current', { qty: alert.product?.stock_quantity })} |{' '}
-                            {t('stockManagement.alerts.min', { min: alert.product?.min_stock_level })}
+                            {tf('stockManagement.alerts.current', 'Stock actuel: {{qty}}', {
+                              qty: alert.product?.stock_quantity,
+                            })}{' '}
+                            |{' '}
+                            {tf('stockManagement.alerts.min', 'Stock minimum: {{min}}', {
+                              min: alert.product?.min_stock_level,
+                            })}
                           </AlertDescription>
                         </div>
                       </div>
@@ -1221,14 +1229,16 @@ const StockManagement = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                     <Wallet className="w-4 h-4 text-blue-400" />
-                    {t('stockManagement.cockpit.costValue')}
+                    {tf('stockManagement.cockpit.costValue', 'Valeur au coût')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-400">
                     {formatNumber(inventoryValueAtCost)} {currencySymbol}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">{t('stockManagement.cockpit.costValueSubtitle')}</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {tf('stockManagement.cockpit.costValueSubtitle', 'Coût total du stock valorisé au prix d’achat')}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -1236,14 +1246,16 @@ const StockManagement = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    {t('stockManagement.cockpit.retailValue')}
+                    {tf('stockManagement.cockpit.retailValue', 'Valeur de vente')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-emerald-400">
                     {formatNumber(inventoryValueAtRetail)} {currencySymbol}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">{t('stockManagement.cockpit.retailValueSubtitle')}</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {tf('stockManagement.cockpit.retailValueSubtitle', 'Potentiel de chiffre d’affaires du stock')}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -1251,7 +1263,7 @@ const StockManagement = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                     <Target className="w-4 h-4 text-orange-400" />
-                    {t('stockManagement.cockpit.potentialMargin')}
+                    {tf('stockManagement.cockpit.potentialMargin', 'Marge potentielle')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1260,7 +1272,9 @@ const StockManagement = () => {
                   >
                     {formatNumber(potentialMarginValue)} {currencySymbol}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">{t('stockManagement.cockpit.potentialMarginSubtitle')}</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {tf('stockManagement.cockpit.potentialMarginSubtitle', 'Différence entre valeur de vente et coût')}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -1268,7 +1282,7 @@ const StockManagement = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                    {t('stockManagement.cockpit.replenishmentBudget')}
+                    {tf('stockManagement.cockpit.replenishmentBudget', 'Budget de réapprovisionnement')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1276,7 +1290,10 @@ const StockManagement = () => {
                     {formatNumber(reorderExposure)} {currencySymbol}
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    {t('stockManagement.cockpit.replenishmentBudgetSubtitle')}
+                    {tf(
+                      'stockManagement.cockpit.replenishmentBudgetSubtitle',
+                      'Montant estimé pour revenir au stock cible'
+                    )}
                   </p>
                 </CardContent>
               </Card>
@@ -1289,10 +1306,13 @@ const StockManagement = () => {
                     <div>
                       <CardTitle className="text-white flex items-center gap-2">
                         <BarChart3 className="w-4 h-4 text-orange-400" />
-                        {t('stockManagement.cockpit.strategicItems')}
+                        {tf('stockManagement.cockpit.strategicItems', 'Articles stratégiques')}
                       </CardTitle>
                       <p className="text-sm text-gray-400 mt-1">
-                        {t('stockManagement.cockpit.strategicItemsSubtitle')}
+                        {tf(
+                          'stockManagement.cockpit.strategicItemsSubtitle',
+                          'Produits triés selon l’impact financier'
+                        )}
                       </p>
                     </div>
                     <Select value={valuationMode} onValueChange={setValuationMode}>
@@ -1300,16 +1320,24 @@ const StockManagement = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                        <SelectItem value="cost">{t('stockManagement.valuationModes.cost')}</SelectItem>
-                        <SelectItem value="retail">{t('stockManagement.valuationModes.retail')}</SelectItem>
-                        <SelectItem value="margin">{t('stockManagement.valuationModes.margin')}</SelectItem>
+                        <SelectItem value="cost">
+                          {tf('stockManagement.valuationModes.cost', 'Valeur au coût')}
+                        </SelectItem>
+                        <SelectItem value="retail">
+                          {tf('stockManagement.valuationModes.retail', 'Valeur de vente')}
+                        </SelectItem>
+                        <SelectItem value="margin">
+                          {tf('stockManagement.valuationModes.margin', 'Marge potentielle')}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {highValueProducts.length === 0 ? (
-                    <p className="text-sm text-gray-500">{t('stockManagement.cockpit.noProductsFilter')}</p>
+                    <p className="text-sm text-gray-500">
+                      {tf('stockManagement.cockpit.noProductsFilter', 'Aucun produit ne correspond au filtre')}
+                    </p>
                   ) : (
                     highValueProducts.map((product) => (
                       <div key={product.id} className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
@@ -1321,7 +1349,7 @@ const StockManagement = () => {
                               {getStockBadge(product)}
                             </div>
                             <p className="text-xs text-gray-500">
-                              {t('stockManagement.cockpit.skuStock', {
+                              {tf('stockManagement.cockpit.skuStock', 'SKU {{sku}} • Stock {{stock}} / Min {{min}}', {
                                 sku: product.sku || '—',
                                 stock: product.stockQuantity,
                                 min: product.minStockLevel,
@@ -1338,7 +1366,7 @@ const StockManagement = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 text-sm">
                           <div className="bg-gray-900/60 rounded-md p-3">
                             <p className="text-gray-500 text-xs uppercase tracking-wider">
-                              {t('stockManagement.cockpit.unitCost')}
+                              {tf('stockManagement.cockpit.unitCost', 'Coût unitaire')}
                             </p>
                             <p className="text-white font-medium mt-1">
                               {formatNumber(product.purchasePrice)} {currencySymbol}
@@ -1346,7 +1374,7 @@ const StockManagement = () => {
                           </div>
                           <div className="bg-gray-900/60 rounded-md p-3">
                             <p className="text-gray-500 text-xs uppercase tracking-wider">
-                              {t('stockManagement.cockpit.salePrice')}
+                              {tf('stockManagement.cockpit.salePrice', 'Prix de vente')}
                             </p>
                             <p className="text-white font-medium mt-1">
                               {formatNumber(product.unitPrice)} {currencySymbol}
@@ -1354,13 +1382,13 @@ const StockManagement = () => {
                           </div>
                           <div className="bg-gray-900/60 rounded-md p-3">
                             <p className="text-gray-500 text-xs uppercase tracking-wider">
-                              {t('stockManagement.cockpit.grossMargin')}
+                              {tf('stockManagement.cockpit.grossMargin', 'Marge brute')}
                             </p>
                             <p
                               className={`font-medium mt-1 ${product.grossMarginPct != null && product.grossMarginPct < 0 ? 'text-red-400' : 'text-emerald-400'}`}
                             >
                               {product.grossMarginPct == null
-                                ? t('stockManagement.cockpit.notCalculable')
+                                ? tf('stockManagement.cockpit.notCalculable', 'Non calculable')
                                 : `${formatNumber(product.grossMarginPct, 1)} %`}
                             </p>
                           </div>
@@ -1373,31 +1401,48 @@ const StockManagement = () => {
 
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-white">{t('stockManagement.cockpit.portfolioQuality')}</CardTitle>
-                  <p className="text-sm text-gray-400">{t('stockManagement.cockpit.portfolioQualitySubtitle')}</p>
+                  <CardTitle className="text-white">
+                    {tf('stockManagement.cockpit.portfolioQuality', 'Qualité du portefeuille')}
+                  </CardTitle>
+                  <p className="text-sm text-gray-400">
+                    {tf('stockManagement.cockpit.portfolioQualitySubtitle', 'Indicateurs de fiabilité du stock')}
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <p className="text-sm text-gray-400">{t('stockManagement.cockpit.missingPurchasePrice')}</p>
+                    <p className="text-sm text-gray-400">
+                      {tf('stockManagement.cockpit.missingPurchasePrice', 'Produits sans prix d’achat')}
+                    </p>
                     <p className="text-2xl font-bold text-white mt-1">{missingPurchasePriceCount}</p>
                     <p className="text-xs text-gray-500 mt-2">
-                      {t('stockManagement.cockpit.missingPurchasePriceSubtitle')}
+                      {tf(
+                        'stockManagement.cockpit.missingPurchasePriceSubtitle',
+                        'Complétez les prix d’achat pour fiabiliser les valorisations'
+                      )}
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <p className="text-sm text-gray-400">{t('stockManagement.cockpit.riskMargins')}</p>
+                    <p className="text-sm text-gray-400">
+                      {tf('stockManagement.cockpit.riskMargins', 'Marge à risque')}
+                    </p>
                     <p className="text-2xl font-bold text-red-400 mt-1">{negativeMarginCount}</p>
-                    <p className="text-xs text-gray-500 mt-2">{t('stockManagement.cockpit.riskMarginsSubtitle')}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {tf('stockManagement.cockpit.riskMarginsSubtitle', 'Produits avec marge brute négative')}
+                    </p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <p className="text-sm text-gray-400 mb-3">{t('stockManagement.cockpit.abcMix')}</p>
+                    <p className="text-sm text-gray-400 mb-3">
+                      {tf('stockManagement.cockpit.abcMix', 'Répartition ABC')}
+                    </p>
                     <div className="space-y-3">
                       {abcSummary.map((row) => (
                         <div key={row.abcClass}>
                           <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-                            <span>{t('stockManagement.cockpit.abcClass', { cls: row.abcClass })}</span>
                             <span>
-                              {t('stockManagement.cockpit.abcProducts', {
+                              {tf('stockManagement.cockpit.abcClass', 'Classe {{cls}}', { cls: row.abcClass })}
+                            </span>
+                            <span>
+                              {tf('stockManagement.cockpit.abcProducts', '{{count}} produits • {{share}}%', {
                                 count: row.count,
                                 share: formatNumber(row.share, 1),
                               })}
@@ -1419,14 +1464,18 @@ const StockManagement = () => {
 
             <Card className="bg-gray-900 border-gray-800" data-testid="stock-valuation-panel">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white">{t('stockManagement.cockpit.valuationTitle')}</CardTitle>
-                <p className="text-sm text-gray-400">{t('stockManagement.cockpit.valuationSubtitle')}</p>
+                <CardTitle className="text-white">
+                  {tf('stockManagement.cockpit.valuationTitle', 'Valorisation du stock')}
+                </CardTitle>
+                <p className="text-sm text-gray-400">
+                  {tf('stockManagement.cockpit.valuationSubtitle', 'Comparaison FIFO, CMUP et impact sur le COGS')}
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
                     <p className="text-xs uppercase tracking-wider text-gray-500">
-                      {t('stockManagement.cockpit.fifoStock')}
+                      {tf('stockManagement.cockpit.fifoStock', 'Stock FIFO')}
                     </p>
                     <p className="text-xl font-semibold text-blue-400 mt-2">
                       {formatNumber(stockValuationSummary.totalInventoryFifo)} {currencySymbol}
@@ -1434,7 +1483,7 @@ const StockManagement = () => {
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
                     <p className="text-xs uppercase tracking-wider text-gray-500">
-                      {t('stockManagement.cockpit.cmupStock')}
+                      {tf('stockManagement.cockpit.cmupStock', 'Stock CMUP')}
                     </p>
                     <p className="text-xl font-semibold text-indigo-300 mt-2">
                       {formatNumber(stockValuationSummary.totalInventoryCmup)} {currencySymbol}
@@ -1442,7 +1491,7 @@ const StockManagement = () => {
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
                     <p className="text-xs uppercase tracking-wider text-gray-500">
-                      {t('stockManagement.cockpit.fifoCogs')}
+                      {tf('stockManagement.cockpit.fifoCogs', 'COGS FIFO')}
                     </p>
                     <p className="text-xl font-semibold text-rose-300 mt-2">
                       {formatNumber(stockValuationSummary.totalFifoCogs)} {currencySymbol}
@@ -1450,7 +1499,7 @@ const StockManagement = () => {
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
                     <p className="text-xs uppercase tracking-wider text-gray-500">
-                      {t('stockManagement.cockpit.cmupCogs')}
+                      {tf('stockManagement.cockpit.cmupCogs', 'COGS CMUP')}
                     </p>
                     <p className="text-xl font-semibold text-orange-300 mt-2">
                       {formatNumber(stockValuationSummary.totalCmupCogs)} {currencySymbol}
@@ -1459,9 +1508,13 @@ const StockManagement = () => {
                 </div>
 
                 {valuationContextLoading ? (
-                  <p className="text-sm text-gray-500">{t('stockManagement.cockpit.valuationLoading')}</p>
+                  <p className="text-sm text-gray-500">
+                    {tf('stockManagement.cockpit.valuationLoading', 'Chargement des données de valorisation...')}
+                  </p>
                 ) : stockValuationRows.length === 0 ? (
-                  <p className="text-sm text-gray-500">{t('stockManagement.cockpit.noTrackedFilter')}</p>
+                  <p className="text-sm text-gray-500">
+                    {tf('stockManagement.cockpit.noTrackedFilter', 'Aucun article suivi pour ce filtre')}
+                  </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
@@ -1532,26 +1585,30 @@ const StockManagement = () => {
 
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white">{t('stockManagement.cockpit.replenishmentTitle')}</CardTitle>
-                <p className="text-sm text-gray-400">{t('stockManagement.cockpit.replenishmentSubtitle')}</p>
+                <CardTitle className="text-white">
+                  {tf('stockManagement.cockpit.replenishmentTitle', 'Plan de réapprovisionnement')}
+                </CardTitle>
+                <p className="text-sm text-gray-400">
+                  {tf('stockManagement.cockpit.replenishmentSubtitle', 'Priorisation des commandes fournisseurs')}
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-3">
                     <p className="text-xs uppercase tracking-wider text-gray-500">
-                      {t('stockManagement.cockpit.itemsToOrder')}
+                      {tf('stockManagement.cockpit.itemsToOrder', 'Articles à commander')}
                     </p>
                     <p className="text-xl font-semibold text-white mt-1">{replenishmentSummary.totalRecommendations}</p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-3">
                     <p className="text-xs uppercase tracking-wider text-gray-500">
-                      {t('stockManagement.cockpit.criticalAlerts')}
+                      {tf('stockManagement.cockpit.criticalAlerts', 'Alertes critiques')}
                     </p>
                     <p className="text-xl font-semibold text-red-300 mt-1">{replenishmentSummary.criticalCount}</p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-3">
                     <p className="text-xs uppercase tracking-wider text-gray-500">
-                      {t('stockManagement.cockpit.recommendedBudget')}
+                      {tf('stockManagement.cockpit.recommendedBudget', 'Budget recommandé')}
                     </p>
                     <p className="text-xl font-semibold text-orange-300 mt-1">
                       {formatNumber(replenishmentSummary.totalOrderValue)} {currencySymbol}
@@ -1560,7 +1617,9 @@ const StockManagement = () => {
                 </div>
 
                 {replenishmentRecommendations.length === 0 ? (
-                  <p className="text-sm text-gray-500">{t('stockManagement.cockpit.noReplenishment')}</p>
+                  <p className="text-sm text-gray-500">
+                    {tf('stockManagement.cockpit.noReplenishment', 'Aucun réapprovisionnement nécessaire')}
+                  </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>

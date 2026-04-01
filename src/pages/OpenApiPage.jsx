@@ -18,6 +18,11 @@ const TAB_ICONS = {
   marketplace: Store,
 };
 
+const TAB_LABELS = {
+  keys: 'Clés',
+  marketplace: 'Marketplace',
+};
+
 const OpenApiPage = () => {
   const { t } = useTranslation();
   const {
@@ -275,7 +280,7 @@ const OpenApiPage = () => {
                 }`}
               >
                 <TabIcon className="w-4 h-4" />
-                {t(`api.tabs.${tabKey}`, tabKey)}
+                {t(`api.tabs.${tabKey}`, { defaultValue: TAB_LABELS[tabKey] || tabKey })}
               </button>
             );
           })}

@@ -8,6 +8,7 @@ const ApiKeyCard = ({ apiKey, plainKey = null, onToggle, onDelete, onCopy, usage
   const { t } = useTranslation();
   const { toast } = useToast();
   const [showKey, setShowKey] = useState(false);
+  const tf = (key, fallback, options = {}) => t(key, { defaultValue: fallback, ...options });
 
   const canReveal = typeof plainKey === 'string' && plainKey.length > 0;
   const maskedKey = apiKey.key_prefix ? `${apiKey.key_prefix}${'*'.repeat(24)}` : '****';
@@ -30,7 +31,7 @@ const ApiKeyCard = ({ apiKey, plainKey = null, onToggle, onDelete, onCopy, usage
     }
     toast({
       title: t('common.success'),
-      description: t('openApi.keyCopied'),
+      description: tf('openApi.keyCopied', 'Clé copiée'),
     });
   };
 
@@ -79,7 +80,7 @@ const ApiKeyCard = ({ apiKey, plainKey = null, onToggle, onDelete, onCopy, usage
               onClick={() => canReveal && setShowKey((v) => !v)}
               className="text-gray-500 hover:text-gray-300 transition-colors"
               disabled={!canReveal}
-              title={showKey ? t('openApi.hideKey') : t('openApi.showKey')}
+              title={showKey ? tf('openApi.hideKey', 'Masquer la clé') : tf('openApi.showKey', 'Afficher la clé')}
             >
               {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             </button>
@@ -109,21 +110,21 @@ const ApiKeyCard = ({ apiKey, plainKey = null, onToggle, onDelete, onCopy, usage
           {/* Meta */}
           <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
             <span>
-              {t('openApi.created')}: {formatDate(apiKey.created_at)}
+              {tf('openApi.created', 'Créée')}: {formatDate(apiKey.created_at)}
             </span>
             {apiKey.last_used_at && (
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                {t('openApi.lastUsed')}: {formatDate(apiKey.last_used_at)}
+                {tf('openApi.lastUsed', 'Dernière utilisation')}: {formatDate(apiKey.last_used_at)}
               </span>
             )}
             {apiKey.expires_at && (
               <span className="text-amber-400">
-                {t('openApi.expires')}: {formatDate(apiKey.expires_at)}
+                {tf('openApi.expires', 'Expire le')}: {formatDate(apiKey.expires_at)}
               </span>
             )}
             <span className="text-gray-500">
-              {t('openApi.rateLimit')}: {apiKey.rate_limit}/min
+              {tf('openApi.rateLimit', 'Limite')}: {apiKey.rate_limit}/min
             </span>
           </div>
         </div>
@@ -131,7 +132,7 @@ const ApiKeyCard = ({ apiKey, plainKey = null, onToggle, onDelete, onCopy, usage
         {/* Sparkline + actions */}
         <div className="flex items-center gap-4 flex-shrink-0">
           {/* Mini sparkline */}
-          <div className="flex items-end gap-0.5 h-8" title={t('openApi.usageLast7Days')}>
+          <div className="flex items-end gap-0.5 h-8" title={tf('openApi.usageLast7Days', 'Utilisation sur 7 jours')}>
             {sparklineData.map((val, i) => (
               <div
                 key={i}
@@ -148,7 +149,7 @@ const ApiKeyCard = ({ apiKey, plainKey = null, onToggle, onDelete, onCopy, usage
               size="sm"
               onClick={() => onToggle(!apiKey.is_active)}
               className="border-gray-700 text-gray-300 hover:bg-gray-800"
-              title={apiKey.is_active ? t('openApi.deactivate') : t('openApi.activate')}
+              title={apiKey.is_active ? tf('openApi.deactivate', 'Désactiver') : tf('openApi.activate', 'Activer')}
             >
               {apiKey.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </Button>

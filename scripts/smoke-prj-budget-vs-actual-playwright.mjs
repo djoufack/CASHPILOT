@@ -109,7 +109,10 @@ async function login(page, account) {
 async function ensureProjectAndOpenDetail(page, account) {
   await page.goto(`${BASE_URL}/app/projects`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
-  await page.getByRole('heading', { name: /Projects/i }).first().waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+  await page
+    .getByRole('heading', { name: /Projects|Projets/i })
+    .first()
+    .waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
 
   let detailPath = await page.evaluate(() => {
     const links = Array.from(document.querySelectorAll('a[href]'));
@@ -119,9 +122,9 @@ async function ensureProjectAndOpenDetail(page, account) {
 
   if (!detailPath) {
     const now = Date.now();
-    await page.getByRole('button', { name: /New Project/i }).first().click();
-    await page.getByLabel(/Project Name/i).fill(`Smoke PRJ02 ${account.key} ${now}`);
-    await page.getByRole('button', { name: /Create Project/i }).click();
+    await page.getByRole('button', { name: /New Project|Nouveau projet/i }).first().click();
+    await page.getByLabel(/Project Name|Nom du projet/i).fill(`Smoke PRJ02 ${account.key} ${now}`);
+    await page.getByRole('button', { name: /Create Project|Créer le projet/i }).click();
     await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
 
     detailPath = await page.evaluate(() => {

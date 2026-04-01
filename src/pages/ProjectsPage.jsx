@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '@/hooks/useProjects';
@@ -55,7 +55,14 @@ const getProjectStatusClasses = (status) => {
 const ProjectCard = ({ project, onEdit, onDelete, t }) => {
   const progress = project.progress || 0;
   const status = project.status || 'active';
-  const statusLabel = status.replace('_', ' ');
+  const statusLabelMap = {
+    active: t('status.active', { defaultValue: t('Status.Active', { defaultValue: 'Actif' }) }),
+    in_progress: t('status.inProgress', { defaultValue: t('Status.InProgress', { defaultValue: 'En cours' }) }),
+    on_hold: t('status.onHold', { defaultValue: t('Status.OnHold', { defaultValue: 'En attente' }) }),
+    completed: t('status.completed', { defaultValue: t('Status.Completed', { defaultValue: 'Terminé' }) }),
+    cancelled: t('status.cancelled', { defaultValue: t('Status.Cancelled', { defaultValue: 'Annulé' }) }),
+  };
+  const statusLabel = statusLabelMap[status] || status.replace('_', ' ');
 
   return (
     <motion.div
@@ -155,6 +162,17 @@ const ProjectsPage = () => {
   const [viewMode, setViewMode] = useState('list');
   const [editingProject, setEditingProject] = useState(null);
   const companyCurrency = resolveAccountingCurrency(company);
+  const allLabel = t('common.all', { defaultValue: t('Common.All', { defaultValue: 'Tous' }) });
+  const statusLabels = useMemo(
+    () => ({
+      active: t('status.active', { defaultValue: t('Status.Active', { defaultValue: 'Actif' }) }),
+      in_progress: t('status.inProgress', { defaultValue: t('Status.InProgress', { defaultValue: 'En cours' }) }),
+      on_hold: t('status.onHold', { defaultValue: t('Status.OnHold', { defaultValue: 'En attente' }) }),
+      completed: t('status.completed', { defaultValue: t('Status.Completed', { defaultValue: 'Terminé' }) }),
+      cancelled: t('status.cancelled', { defaultValue: t('Status.Cancelled', { defaultValue: 'Annulé' }) }),
+    }),
+    [t]
+  );
 
   // Get company currency symbol
   const currencySymbol = getCurrencySymbol(companyCurrency);
@@ -168,10 +186,10 @@ const ProjectsPage = () => {
   };
 
   const projectCalendarLegend = [
-    { label: 'Active', color: '#f97316' },
-    { label: 'Completed', color: '#22c55e' },
-    { label: 'On Hold', color: '#eab308' },
-    { label: 'Cancelled', color: '#ef4444' },
+    { label: statusLabels.active, color: '#f97316' },
+    { label: statusLabels.completed, color: '#22c55e' },
+    { label: statusLabels.on_hold, color: '#eab308' },
+    { label: statusLabels.cancelled, color: '#ef4444' },
   ];
 
   const projectCalendarEvents = projects.map((p) => ({
@@ -196,17 +214,17 @@ const ProjectsPage = () => {
       subtitle: p.client?.company_name || '',
       date: p.created_at,
       status: p.status || 'active',
-      statusLabel: (p.status || 'active').replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+      statusLabel: statusLabels[p.status || 'active'] || (p.status || 'active').replace('_', ' '),
       statusColor: statusColorMap[p.status] || 'bg-gray-500/20 text-gray-400',
     };
   });
 
   const projectKanbanColumns = [
-    { id: 'active', title: t('status.active') || 'Active', color: 'bg-orange-500/20 text-orange-400' },
-    { id: 'in_progress', title: t('status.inProgress') || 'In Progress', color: 'bg-blue-500/20 text-blue-400' },
-    { id: 'on_hold', title: t('status.onHold') || 'On Hold', color: 'bg-yellow-500/20 text-yellow-400' },
-    { id: 'completed', title: t('status.completed') || 'Completed', color: 'bg-green-500/20 text-green-400' },
-    { id: 'cancelled', title: t('status.cancelled') || 'Cancelled', color: 'bg-red-500/20 text-red-400' },
+    { id: 'active', title: statusLabels.active, color: 'bg-orange-500/20 text-orange-400' },
+    { id: 'in_progress', title: statusLabels.in_progress, color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'on_hold', title: statusLabels.on_hold, color: 'bg-yellow-500/20 text-yellow-400' },
+    { id: 'completed', title: statusLabels.completed, color: 'bg-green-500/20 text-green-400' },
+    { id: 'cancelled', title: statusLabels.cancelled, color: 'bg-red-500/20 text-red-400' },
   ];
 
   const filteredProjects = projects.filter((p) => {
@@ -332,14 +350,18 @@ const ProjectsPage = () => {
     <>
       <CreditsGuardModal {...modalProps} />
       <Helmet>
-        <title>Projects - CashPilot</title>
+        <title>{t('projects.pageTitle', { defaultValue: 'Projets' })} - CashPilot</title>
       </Helmet>
 
       <div className="container mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">Projects</h1>
-            <p className="text-gray-400 text-sm md:text-base">Manage and track your ongoing work.</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
+              {t('projects.title', { defaultValue: 'Projets' })}
+            </h1>
+            <p className="text-gray-400 text-sm md:text-base">
+              {t('projects.subtitle', { defaultValue: 'Gérez et suivez vos projets en cours.' })}
+            </p>
           </motion.div>
 
           <div className="flex gap-2 w-full md:w-auto flex-wrap">
@@ -391,7 +413,7 @@ const ProjectsPage = () => {
               onClick={handleOpenDialog}
               className="flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white"
             >
-              <Plus className="w-4 h-4 mr-2" /> New Project
+              <Plus className="w-4 h-4 mr-2" /> {t('projects.newProject', { defaultValue: 'Nouveau projet' })}
             </Button>
           </div>
         </div>
@@ -408,12 +430,12 @@ const ProjectsPage = () => {
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
             {[
-              { value: 'all', label: t('common.all') || 'All' },
-              { value: 'active', label: t('status.active') || 'Active' },
-              { value: 'in_progress', label: t('status.inProgress') || 'In Progress' },
-              { value: 'on_hold', label: t('status.onHold') || 'On Hold' },
-              { value: 'completed', label: t('status.completed') || 'Completed' },
-              { value: 'cancelled', label: t('status.cancelled') || 'Cancelled' },
+              { value: 'all', label: allLabel },
+              { value: 'active', label: statusLabels.active },
+              { value: 'in_progress', label: statusLabels.in_progress },
+              { value: 'on_hold', label: statusLabels.on_hold },
+              { value: 'completed', label: statusLabels.completed },
+              { value: 'cancelled', label: statusLabels.cancelled },
             ].map((f) => (
               <Button
                 key={f.value}
@@ -519,7 +541,7 @@ const ProjectsPage = () => {
                               <span
                                 className={`text-xs px-2 py-1 rounded-full border capitalize ${getProjectStatusClasses(status)}`}
                               >
-                                {status.replace('_', ' ')}
+                                {statusLabels[status] || status.replace('_', ' ')}
                               </span>
                             </td>
                             <td className="px-4 md:px-6 py-4 text-sm text-gray-300 hidden xl:table-cell">
@@ -747,19 +769,19 @@ const ProjectsPage = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
                   <SelectItem value="active" className="text-white hover:bg-gray-700">
-                    {t('status.active') || 'Active'}
+                    {statusLabels.active}
                   </SelectItem>
                   <SelectItem value="in_progress" className="text-white hover:bg-gray-700">
-                    {t('status.inProgress') || 'In Progress'}
+                    {statusLabels.in_progress}
                   </SelectItem>
                   <SelectItem value="on_hold" className="text-white hover:bg-gray-700">
-                    {t('status.onHold') || 'On Hold'}
+                    {statusLabels.on_hold}
                   </SelectItem>
                   <SelectItem value="completed" className="text-white hover:bg-gray-700">
-                    {t('status.completed') || 'Completed'}
+                    {statusLabels.completed}
                   </SelectItem>
                   <SelectItem value="cancelled" className="text-white hover:bg-gray-700">
-                    {t('status.cancelled') || 'Cancelled'}
+                    {statusLabels.cancelled}
                   </SelectItem>
                 </SelectContent>
               </Select>

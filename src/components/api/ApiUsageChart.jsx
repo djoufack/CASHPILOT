@@ -5,6 +5,7 @@ import { Activity, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 const ApiUsageChart = ({ usageLogs = [], usageStats = {}, loading = false }) => {
   const { t } = useTranslation();
+  const tf = (key, fallback, options = {}) => t(key, { defaultValue: fallback, ...options });
 
   // -----------------------------------------------------------------------
   // Aggregate logs into daily buckets for the last 7 days
@@ -60,14 +61,14 @@ const ApiUsageChart = ({ usageLogs = [], usageStats = {}, loading = false }) => 
         <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4">
           <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">
             <Activity className="w-3.5 h-3.5" />
-            {t('openApi.totalCalls')}
+            {tf('openApi.totalCalls', 'Appels API')}
           </div>
           <p className="text-2xl font-bold text-white">{usageStats.totalCalls?.toLocaleString() || 0}</p>
         </div>
         <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4">
           <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">
             <Clock className="w-3.5 h-3.5" />
-            {t('openApi.avgResponseTime')}
+            {tf('openApi.avgResponseTime', 'Temps moyen')}
           </div>
           <p className="text-2xl font-bold text-white">
             {usageStats.avgResponseTime || 0}
@@ -77,14 +78,14 @@ const ApiUsageChart = ({ usageLogs = [], usageStats = {}, loading = false }) => 
         <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4">
           <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            {t('openApi.successRate')}
+            {tf('openApi.successRate', 'Taux de succès')}
           </div>
           <p className="text-2xl font-bold text-green-400">{usageStats.successRate || 0}%</p>
         </div>
         <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4">
           <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">
             <AlertTriangle className="w-3.5 h-3.5" />
-            {t('openApi.errorRate')}
+            {tf('openApi.errorRate', 'Taux d erreur')}
           </div>
           <p className="text-2xl font-bold text-red-400">{usageStats.errorRate || 0}%</p>
         </div>
@@ -92,7 +93,9 @@ const ApiUsageChart = ({ usageLogs = [], usageStats = {}, loading = false }) => 
 
       {/* Chart */}
       <div>
-        <h3 className="text-sm font-medium text-gray-300 mb-4">{t('openApi.callsLast7Days')}</h3>
+        <h3 className="text-sm font-medium text-gray-300 mb-4">
+          {tf('openApi.callsLast7Days', 'Appels des 7 derniers jours')}
+        </h3>
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
@@ -118,9 +121,9 @@ const ApiUsageChart = ({ usageLogs = [], usageStats = {}, loading = false }) => 
                   fontSize: '12px',
                 }}
                 formatter={(value, name) => {
-                  if (name === 'calls') return [value, t('openApi.calls')];
-                  if (name === 'errors') return [value, t('openApi.errors')];
-                  if (name === 'avgTime') return [`${value}ms`, t('openApi.avgTime')];
+                  if (name === 'calls') return [value, tf('openApi.calls', 'Appels')];
+                  if (name === 'errors') return [value, tf('openApi.errors', 'Erreurs')];
+                  if (name === 'avgTime') return [`${value}ms`, tf('openApi.avgTime', 'Temps moyen')];
                   return [value, name];
                 }}
               />
