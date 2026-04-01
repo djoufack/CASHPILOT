@@ -45,6 +45,12 @@ const DEFAULT_TABLES = [
   'dashboard_snapshots',
 ];
 
+// Some modules are optional in demo tenants and can legitimately be empty.
+const OPTIONAL_ZERO_MIN_TABLES = new Set([
+  'bank_connections',
+  'bank_transactions',
+]);
+
 function parseArguments(argv) {
   const options = {
     min: 7,
@@ -85,6 +91,13 @@ function ensureEnv(name) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
+}
+
+function getRequiredMinimumForTable(table, defaultMin) {
+  if (OPTIONAL_ZERO_MIN_TABLES.has(table)) {
+    return 0;
+  }
+  return defaultMin;
 }
 
 async function fetchUsersByEmail(client, emails) {
@@ -206,13 +219,15 @@ async function main() {
           continue;
         }
 
+        const requiredMin = getRequiredMinimumForTable(table, options.min);
         for (const [companyId, count] of Object.entries(result.counts)) {
-          if (Number(count) < options.min) {
+          if (Number(count) < requiredMin) {
             deficits.push({
               table,
               company_id: companyId,
               company_name: companyNameById.get(companyId) || companyId,
               count: Number(count),
+              min_required: requiredMin,
             });
           }
         }

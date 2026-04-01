@@ -402,7 +402,11 @@ async function loadExpectations(serviceClient, userId, company) {
     purchases: pickFirstText(purchasesRows, [(row) => row.order_number]),
     supplierInvoices: pickFirstText(supplierInvoiceRows, [(row) => row.invoice_number]),
     stock: pickFirstText(productRows, [(row) => row.product_name, (row) => row.sku]),
-    bankConnections: pickFirstText(bankConnectionRows, [(row) => row.account_name, (row) => row.institution_name]),
+    // Bank integrations can be intentionally disconnected on demo tenants.
+    bankConnections: firstNonEmpty(
+      pickFirstText(bankConnectionRows, [(row) => row.account_name, (row) => row.institution_name]),
+      'Connexions bancaires',
+    ),
     peppol: firstNonEmpty(
       company.peppol_endpoint_id,
       pickFirstText(peppolInvoiceRows, [(row) => row.invoice_number]),
