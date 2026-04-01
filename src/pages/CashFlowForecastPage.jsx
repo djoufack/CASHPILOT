@@ -15,8 +15,18 @@ const PERIOD_OPTIONS = [30, 60, 90, 91, 180];
 const CashFlowForecastPage = () => {
   const { t } = useTranslation();
   const [selectedPeriod, setSelectedPeriod] = useState(90);
-  const { forecast, scenarios, milestones, alerts, analysis, loading, error, fetchForecast } =
-    useCashFlowForecast(selectedPeriod);
+  const {
+    forecast,
+    scenarios,
+    milestones,
+    alerts,
+    analysis,
+    workingCapitalKpis,
+    workingCapitalAlerts,
+    loading,
+    error,
+    fetchForecast,
+  } = useCashFlowForecast(selectedPeriod);
 
   const handlePeriodChange = useCallback(
     (days) => {
@@ -67,6 +77,19 @@ const CashFlowForecastPage = () => {
     formula: 'Sans formule unique: interprétation des projections multi-scénarios.',
     calculationMethod:
       'Récupère les indicateurs fournis par le moteur IA, puis affiche tendance, volatilité, scénarios et recommandations.',
+  };
+
+  const isCfoPreset = selectedPeriod === 91;
+  const workingCapitalMetricRows = [
+    { key: 'dso', label: t('cashflow.workingCapital.dso', 'DSO') },
+    { key: 'dpo', label: t('cashflow.workingCapital.dpo', 'DPO') },
+    { key: 'dio', label: t('cashflow.workingCapital.dio', 'DIO') },
+    { key: 'ccc', label: t('cashflow.workingCapital.ccc', 'CCC') },
+  ];
+
+  const metricValueFormatter = (value) => {
+    if (value == null || Number.isNaN(Number(value))) return '--';
+    return `${Math.round(Number(value) * 10) / 10}${t('cashflow.workingCapital.daysUnit', ' j')}`;
   };
 
   return (
@@ -131,6 +154,59 @@ const CashFlowForecastPage = () => {
 
         {/* Summary Cards */}
         <CashFlowSummaryCards forecast={forecast} milestones={milestones} loading={loading} />
+
+        {isCfoPreset ? (
+          <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-900/25 via-slate-900 to-slate-900 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base font-semibold text-white">
+                  {t('cashflow.workingCapital.title', 'Signal BFR - preset CFO 13 semaines')}
+                </h2>
+                <p className="text-xs text-gray-300">
+                  {t(
+                    'cashflow.workingCapital.subtitle',
+                    'Surveillance DSO / DPO / DIO / CCC pour piloter la tension de tresorerie sur 13 semaines.'
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+              {workingCapitalMetricRows.map((metric) => (
+                <div key={metric.key} className="rounded-xl border border-cyan-500/20 bg-black/20 p-3">
+                  <p className="text-xs text-gray-400">{metric.label}</p>
+                  <p className="mt-1 text-lg font-semibold text-cyan-100">
+                    {metricValueFormatter(workingCapitalKpis?.[metric.key])}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-300">
+                {t('cashflow.workingCapital.alertsTitle', 'Alertes cycle cash')}
+              </p>
+              {workingCapitalAlerts?.length > 0 ? (
+                workingCapitalAlerts.map((alert) => (
+                  <div
+                    key={alert.key}
+                    className={`rounded-lg border px-3 py-2 text-sm ${
+                      alert.severity === 'critical'
+                        ? 'border-red-500/40 bg-red-500/10 text-red-200'
+                        : 'border-amber-500/40 bg-amber-500/10 text-amber-100'
+                    }`}
+                  >
+                    {alert.message}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+                  {t('cashflow.workingCapital.allGood', 'Aucun depassement majeur detecte sur les KPI cycle cash.')}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         {/* Main Chart */}
         <CashFlowChart

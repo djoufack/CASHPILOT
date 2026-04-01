@@ -1144,9 +1144,12 @@
       "description": "Assistent voor periodeafsluiting: afschrijvingsboekingen, balanscontrole en historiek.",
       "period": "Periode",
       "run": "Start begeleide afsluiting",
+      "runChecks": "Voer J+5 / J+10 controles uit",
+      "finalize": "Valideer afsluiting J+15",
       "lastCloseDate": "Laatste afsluiting",
       "statusDraft": "Voor te bereiden",
       "statusClosed": "Afgesloten",
+      "statusRunning": "In validatie",
       "statusBlocked": "Geblokkeerd",
       "checkDepreciation": "Afschrijvingsboekingen",
       "checkDepreciationOk": "Alle afschrijvingslijnen zijn geboekt.",
@@ -1181,6 +1184,8 @@
       },
       "successTitle": "Begeleide afsluiting voltooid",
       "successDescription": "Periode afgesloten met afschrijvingsgeneratie en consistentiecontroles.",
+      "runningTitle": "Afsluitcontroles afgerond",
+      "runningDescription": "J+5/J+10 controles zijn gevalideerd. Finale goedkeuring J+15 ontbreekt nog.",
       "blockedTitle": "Begeleide afsluiting geblokkeerd",
       "blockedDescription": "Periode blijft geblokkeerd: controleer niet-geboekte afschrijvingen of journaalverschil."
     },
@@ -4376,6 +4381,17 @@
       "scenariosTitle": "Scenarios",
       "recommendations": "Recommandations",
       "noData": "Lancez une prevision pour obtenir l'analyse IA"
+    },
+    "workingCapital": {
+      "title": "BFR-signaal - 13 weken CFO preset",
+      "subtitle": "Volg DSO / DPO / DIO / CCC om kasdruk over 13 weken te sturen.",
+      "dso": "DSO",
+      "dpo": "DPO",
+      "dio": "DIO",
+      "ccc": "CCC",
+      "daysUnit": " d",
+      "alertsTitle": "Cash-cycle waarschuwingen",
+      "allGood": "Geen belangrijke afwijking op cash-cycle KPI's."
     }
   },
   "consolidation": {

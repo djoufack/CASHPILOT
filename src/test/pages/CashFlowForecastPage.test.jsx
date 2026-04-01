@@ -26,6 +26,19 @@ vi.mock('@/hooks/useCashFlowForecast', () => ({
     milestones: [],
     alerts: [],
     analysis: null,
+    workingCapitalKpis: {
+      dso: 52,
+      dpo: 29,
+      dio: 67,
+      ccc: 90,
+    },
+    workingCapitalAlerts: [
+      {
+        key: 'working_capital_dso',
+        severity: 'warning',
+        message: 'DSO au-dessus de la cible: acceleration recouvrement recommandee.',
+      },
+    ],
     loading: false,
     error: null,
     fetchForecast: mockFetchForecast,
@@ -55,5 +68,16 @@ describe('CashFlowForecastPage', () => {
 
     fireEvent.click(thirteenWeeksButton);
     expect(mockFetchForecast).toHaveBeenCalledWith(91);
+  });
+
+  it('shows working-capital monitoring panel for 13-week preset', () => {
+    render(<CashFlowForecastPage />);
+
+    expect(screen.queryByText(/Signal BFR - preset CFO 13 semaines/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '13 sem' }));
+
+    expect(screen.getByText(/Signal BFR - preset CFO 13 semaines/i)).toBeInTheDocument();
+    expect(screen.getByText(/DSO au-dessus de la cible/i)).toBeInTheDocument();
   });
 });

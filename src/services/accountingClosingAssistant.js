@@ -41,12 +41,20 @@ export function computeJournalGap(entries = []) {
   };
 }
 
-export function determineClosingStatus({ journalGap = 0, unpostedDepreciationAfter = 0 } = {}) {
+export function determineClosingStatus({
+  journalGap = 0,
+  unpostedDepreciationAfter = 0,
+  finalizeRequested = false,
+} = {}) {
   if (Number(unpostedDepreciationAfter || 0) > 0) {
     return 'blocked';
   }
 
-  return Number(journalGap || 0) <= 0.01 ? 'closed' : 'blocked';
+  if (Number(journalGap || 0) > 0.01) {
+    return 'blocked';
+  }
+
+  return finalizeRequested ? 'closed' : 'running';
 }
 
 export function buildClosingWorkflow({
@@ -150,6 +158,7 @@ export function buildClosingChecklist({
   unpostedDepreciationAfter = 0,
   depreciationEntriesGenerated = 0,
   status = 'draft',
+  finalizeRequested = false,
   journalSummary = { totalDebit: 0, totalCredit: 0, gap: 0, balanced: true },
 }) {
   const workflow = buildClosingWorkflow({
@@ -165,6 +174,7 @@ export function buildClosingChecklist({
     unpostedDepreciationBefore: Number(unpostedDepreciationBefore || 0),
     unpostedDepreciationAfter: Number(unpostedDepreciationAfter || 0),
     depreciationEntriesGenerated: Number(depreciationEntriesGenerated || 0),
+    finalizeRequested: Boolean(finalizeRequested),
     journal: {
       totalDebit: roundToCents(journalSummary.totalDebit),
       totalCredit: roundToCents(journalSummary.totalCredit),

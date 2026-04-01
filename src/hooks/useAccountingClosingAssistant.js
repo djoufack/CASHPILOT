@@ -102,7 +102,7 @@ export function useAccountingClosingAssistant() {
   );
 
   const runClosing = useCallback(
-    async ({ periodStart, periodEnd, notes = null } = {}) => {
+    async ({ periodStart, periodEnd, notes = null, finalizeClosing = true, skipGeneration = false } = {}) => {
       if (!user || !activeCompanyId) return null;
 
       const window = derivePeriodWindow(periodStart, periodEnd);
@@ -110,16 +110,15 @@ export function useAccountingClosingAssistant() {
 
       try {
         const unpostedBefore = await countUnpostedDepreciation(window);
-
-        const { data: depreciationGenerated, error: depreciationError } = await supabase.rpc(
-          'generate_depreciation_entries',
-          {
+        let depreciationGenerated = 0;
+        if (!skipGeneration) {
+          const { data, error: depreciationError } = await supabase.rpc('generate_depreciation_entries', {
             p_user_id: user.id,
             p_date: window.periodEnd,
-          }
-        );
-
-        if (depreciationError) throw depreciationError;
+          });
+          if (depreciationError) throw depreciationError;
+          depreciationGenerated = Number(data || 0);
+        }
 
         let entriesQuery = supabase
           .from('accounting_entries')
@@ -137,14 +136,16 @@ export function useAccountingClosingAssistant() {
         const status = determineClosingStatus({
           journalGap: journalSummary.gap,
           unpostedDepreciationAfter: unpostedAfter,
+          finalizeRequested: finalizeClosing,
         });
         const checklist = buildClosingChecklist({
           periodStart: window.periodStart,
           periodEnd: window.periodEnd,
           unpostedDepreciationBefore: unpostedBefore,
           unpostedDepreciationAfter: unpostedAfter,
-          depreciationEntriesGenerated: Number(depreciationGenerated || 0),
+          depreciationEntriesGenerated: depreciationGenerated,
           status,
+          finalizeRequested: finalizeClosing,
           journalSummary,
         });
 
@@ -154,9 +155,9 @@ export function useAccountingClosingAssistant() {
             company_id: activeCompanyId,
             period_start: window.periodStart,
             period_end: window.periodEnd,
-            closed_on: window.periodEnd,
+            closed_on: finalizeClosing ? window.periodEnd : new Date().toISOString().slice(0, 10),
             status,
-            depreciation_entries_generated: Number(depreciationGenerated || 0),
+            depreciation_entries_generated: depreciationGenerated,
             unposted_depreciation_before: unpostedBefore,
             journal_gap: journalSummary.gap,
             checklist,
@@ -175,28 +176,36 @@ export function useAccountingClosingAssistant() {
           title:
             status === 'closed'
               ? t('accounting.closingAssistant.successTitle', 'Cloture assistee terminee')
-              : t('accounting.closingAssistant.blockedTitle', 'Cloture assistee bloquee'),
+              : status === 'running'
+                ? t('accounting.closingAssistant.runningTitle', 'Controles de cloture termines')
+                : t('accounting.closingAssistant.blockedTitle', 'Cloture assistee bloquee'),
           description:
             status === 'closed'
               ? t(
                   'accounting.closingAssistant.successDescription',
                   'La periode a ete cloturee avec generation des dotations et controle de coherence.'
                 )
-              : t(
-                  'accounting.closingAssistant.blockedDescription',
-                  'La periode reste bloquee: verifiez les dotations non postees ou l ecart de journal.'
-                ),
-          variant: status === 'closed' ? 'default' : 'destructive',
+              : status === 'running'
+                ? t(
+                    'accounting.closingAssistant.runningDescription',
+                    'Les controles J+5/J+10 sont valides. Il reste la validation finale J+15.'
+                  )
+                : t(
+                    'accounting.closingAssistant.blockedDescription',
+                    'La periode reste bloquee: verifiez les dotations non postees ou l ecart de journal.'
+                  ),
+          variant: status === 'blocked' ? 'destructive' : 'default',
         });
 
         return {
           status,
           periodStart: window.periodStart,
           periodEnd: window.periodEnd,
-          depreciationEntriesGenerated: Number(depreciationGenerated || 0),
+          depreciationEntriesGenerated: depreciationGenerated,
           journalSummary,
           unpostedBefore,
           unpostedAfter,
+          finalizeRequested: finalizeClosing,
           workflow: checklist.workflow,
         };
       } catch (err) {
@@ -211,6 +220,18 @@ export function useAccountingClosingAssistant() {
       }
     },
     [activeCompanyId, applyCompanyScope, countUnpostedDepreciation, fetchClosureHistory, t, toast, user]
+  );
+
+  const confirmClosing = useCallback(
+    async ({ periodStart, periodEnd, notes = null } = {}) =>
+      runClosing({
+        periodStart,
+        periodEnd,
+        notes,
+        finalizeClosing: true,
+        skipGeneration: true,
+      }),
+    [runClosing]
   );
 
   const refresh = useCallback(
@@ -237,6 +258,7 @@ export function useAccountingClosingAssistant() {
     latestClosure,
     countUnpostedDepreciation,
     runClosing,
+    confirmClosing,
     refresh,
   };
 }

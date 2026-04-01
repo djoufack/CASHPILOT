@@ -31,6 +31,16 @@ describe('accountingClosingAssistant service', () => {
     expect(status).toBe('blocked');
   });
 
+  it('marks period as running when checks pass but final validation is pending', () => {
+    const status = determineClosingStatus({
+      unpostedDepreciationAfter: 0,
+      journalGap: 0,
+      finalizeRequested: false,
+    });
+
+    expect(status).toBe('running');
+  });
+
   it('builds checklist payload for closure persistence', () => {
     const checklist = buildClosingChecklist({
       periodStart: '2026-03-01',

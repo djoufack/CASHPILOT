@@ -1114,9 +1114,12 @@
       "description": "Period closing assistant: depreciation posting, journal balance controls, and closing history.",
       "period": "Period",
       "run": "Run Assisted Closing",
+      "runChecks": "Run J+5 / J+10 checks",
+      "finalize": "Validate J+15 closing",
       "lastCloseDate": "Last closing date",
       "statusDraft": "To prepare",
       "statusClosed": "Closed",
+      "statusRunning": "Awaiting validation",
       "statusBlocked": "Blocked",
       "checkDepreciation": "Depreciation postings",
       "checkDepreciationOk": "All depreciation lines are posted.",
@@ -1151,6 +1154,8 @@
       },
       "successTitle": "Assisted closing completed",
       "successDescription": "Period closed with depreciation generation and consistency checks.",
+      "runningTitle": "Closing checks completed",
+      "runningDescription": "J+5/J+10 checks are validated. Final J+15 approval is still required.",
       "blockedTitle": "Assisted closing blocked",
       "blockedDescription": "Period remains blocked: review unposted depreciation or journal imbalance."
     },
@@ -4479,6 +4484,17 @@
       "scenariosTitle": "Scenarios",
       "recommendations": "Recommendations",
       "noData": "Run a forecast to get AI analysis"
+    },
+    "workingCapital": {
+      "title": "Working-capital signal - 13-week CFO preset",
+      "subtitle": "Track DSO / DPO / DIO / CCC to manage cash pressure over 13 weeks.",
+      "dso": "DSO",
+      "dpo": "DPO",
+      "dio": "DIO",
+      "ccc": "CCC",
+      "daysUnit": " d",
+      "alertsTitle": "Cash-cycle alerts",
+      "allGood": "No material drift detected on cash-cycle KPIs."
     }
   },
   "banking": {

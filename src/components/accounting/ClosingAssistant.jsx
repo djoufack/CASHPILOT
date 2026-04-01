@@ -21,7 +21,7 @@ function asMoney(value) {
 
 export default function ClosingAssistant({ period }) {
   const { t } = useTranslation();
-  const { loading, running, latestClosure, refresh, runClosing } = useAccountingClosingAssistant();
+  const { loading, running, latestClosure, refresh, runClosing, confirmClosing } = useAccountingClosingAssistant();
   const [unposted, setUnposted] = useState(0);
   const [lastResult, setLastResult] = useState(null);
 
@@ -49,6 +49,12 @@ export default function ClosingAssistant({ period }) {
       return {
         label: t('accounting.closingAssistant.statusClosed', 'Cloturee'),
         className: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      };
+    }
+    if (source === 'running') {
+      return {
+        label: t('accounting.closingAssistant.statusRunning', 'En validation'),
+        className: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
       };
     }
     if (source === 'blocked') {
@@ -126,8 +132,21 @@ export default function ClosingAssistant({ period }) {
     });
   }, [t, workflow?.nextAction]);
 
-  const handleRunClosing = async () => {
+  const handleRunClosingChecks = async () => {
     const result = await runClosing({
+      periodStart,
+      periodEnd,
+      finalizeClosing: false,
+    });
+    if (!result) return;
+    setLastResult(result);
+    setUnposted(Number(result.unpostedAfter || 0));
+  };
+
+  const canFinalizeClosing = workflow?.nextAction?.key === 'finalize_closing_validation';
+
+  const handleFinalizeClosing = async () => {
+    const result = await confirmClosing({
       periodStart,
       periodEnd,
     });
@@ -244,10 +263,22 @@ export default function ClosingAssistant({ period }) {
           ) : null}
         </div>
 
-        <Button onClick={handleRunClosing} disabled={loading || running} className="bg-indigo-600 hover:bg-indigo-500">
-          {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarCheck2 className="mr-2 h-4 w-4" />}
-          {t('accounting.closingAssistant.run', 'Lancer la cloture assistee')}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={handleRunClosingChecks}
+            disabled={loading || running}
+            className="bg-indigo-600 hover:bg-indigo-500"
+          >
+            {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarCheck2 className="mr-2 h-4 w-4" />}
+            {t('accounting.closingAssistant.runChecks', 'Executer controles J+5 / J+10')}
+          </Button>
+          {canFinalizeClosing ? (
+            <Button onClick={handleFinalizeClosing} disabled={loading || running} variant="secondary">
+              {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              {t('accounting.closingAssistant.finalize', 'Valider cloture J+15')}
+            </Button>
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   );

@@ -1101,9 +1101,12 @@
       "description": "Assistant de clôture de période: génération des dotations, contrôle d'équilibre et historisation.",
       "period": "Période",
       "run": "Lancer la clôture assistée",
+      "runChecks": "Exécuter contrôles J+5 / J+10",
+      "finalize": "Valider clôture J+15",
       "lastCloseDate": "Dernière clôture",
       "statusDraft": "À préparer",
       "statusClosed": "Clôturée",
+      "statusRunning": "En validation",
       "statusBlocked": "Bloquée",
       "checkDepreciation": "Dotations aux amortissements",
       "checkDepreciationOk": "Toutes les lignes sont comptabilisées.",
@@ -1138,6 +1141,8 @@
       },
       "successTitle": "Clôture assistée terminée",
       "successDescription": "La période a été clôturée avec génération des dotations et contrôle de cohérence.",
+      "runningTitle": "Contrôles de clôture terminés",
+      "runningDescription": "Les contrôles J+5/J+10 sont validés. Il reste la validation finale J+15.",
       "blockedTitle": "Clôture assistée bloquée",
       "blockedDescription": "La période reste bloquée: vérifiez les dotations non postées ou l'écart de journal."
     },
@@ -4466,6 +4471,17 @@
       "scenariosTitle": "Scenarios",
       "recommendations": "Recommandations",
       "noData": "Lancez une prevision pour obtenir l'analyse IA"
+    },
+    "workingCapital": {
+      "title": "Signal BFR - preset CFO 13 semaines",
+      "subtitle": "Surveillance DSO / DPO / DIO / CCC pour piloter la tension de tresorerie sur 13 semaines.",
+      "dso": "DSO",
+      "dpo": "DPO",
+      "dio": "DIO",
+      "ccc": "CCC",
+      "daysUnit": " j",
+      "alertsTitle": "Alertes cycle cash",
+      "allGood": "Aucun depassement majeur detecte sur les KPI cycle cash."
     }
   },
   "accountant": {

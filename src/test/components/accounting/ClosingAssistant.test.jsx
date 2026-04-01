@@ -6,6 +6,7 @@ const { mockUseAccountingClosingAssistant, refreshMock, runClosingMock, countUnp
   mockUseAccountingClosingAssistant: vi.fn(),
   refreshMock: vi.fn(),
   runClosingMock: vi.fn(),
+  confirmClosingMock: vi.fn(),
   countUnpostedMock: vi.fn(),
 }));
 
@@ -29,11 +30,22 @@ describe('ClosingAssistant', () => {
 
     refreshMock.mockResolvedValue({ unposted: 1, history: [] });
     runClosingMock.mockResolvedValue({
-      status: 'closed',
+      status: 'running',
       depreciationEntriesGenerated: 2,
       unpostedBefore: 1,
       unpostedAfter: 0,
       journalSummary: { gap: 0, balanced: true, totalDebit: 2000, totalCredit: 2000 },
+      workflow: {
+        nextAction: {
+          key: 'finalize_closing_validation',
+        },
+        progress: {
+          completed: 2,
+          total: 3,
+          percent: 67,
+        },
+        milestones: [],
+      },
     });
     countUnpostedMock.mockResolvedValue(1);
 
@@ -44,6 +56,7 @@ describe('ClosingAssistant', () => {
       latestClosure: null,
       countUnpostedDepreciation: countUnpostedMock,
       runClosing: runClosingMock,
+      confirmClosing: vi.fn(),
       refresh: refreshMock,
     });
   });
@@ -66,11 +79,12 @@ describe('ClosingAssistant', () => {
     expect(screen.getByRole('heading', { name: /Cloture assistee/i })).toBeInTheDocument();
     expect(screen.getByText(/Workflow de cloture guidee/i)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Lancer la cloture assistee/i }));
+    await user.click(screen.getByRole('button', { name: /Executer controles J\+5 \/ J\+10/i }));
 
     expect(runClosingMock).toHaveBeenCalledWith({
       periodStart: '2026-03-01',
       periodEnd: '2026-03-31',
+      finalizeClosing: false,
     });
   });
 });
