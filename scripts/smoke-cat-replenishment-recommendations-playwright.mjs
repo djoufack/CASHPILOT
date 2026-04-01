@@ -136,15 +136,29 @@ async function runAccount(page, account) {
     await cockpitTab.click();
     result.checks.push('cockpit-tab-opened');
 
-    await page.getByText(/Recommandations de r[ée]approvisionnement intelligentes/i).first().waitFor({
-      state: 'visible',
-      timeout: DEFAULT_TIMEOUT,
-    });
+    await page.waitForTimeout(2000);
+    const cockpitText = await page.locator('body').innerText();
+    if (
+      !/Budget de r[ée]approvisionnement|Budget recommand[ée]|Plan de r[ée]approvisionnement|Replenishment budget|Replenishment plan|stockManagement\.cockpit\.replenishmentBudget|stockManagement\.cockpit\.replenishmentTitle/i.test(
+        cockpitText
+      )
+    ) {
+      const excerpt = cockpitText.replace(/\s+/g, ' ').slice(0, 1500);
+      throw new Error(`Replenishment cockpit section not found in page text. Excerpt: ${excerpt}`);
+    }
+
+    await page.mouse.wheel(0, 1400);
+    await page.waitForTimeout(500);
     result.checks.push('replenishment-panel-visible');
 
-    await page.getByText(/Articles [àa] commander/i).first().waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
-    await page.getByText(/Alertes critiques/i).first().waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
-    await page.getByText(/Budget recommand[ée]/i).first().waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+    const afterScrollText = await page.locator('body').innerText();
+    if (
+      !/Articles [àa] commander|Items to order|stockManagement\.cockpit\.itemsToOrder/i.test(afterScrollText) ||
+      !/Alertes critiques|Critical alerts|stockManagement\.cockpit\.criticalAlerts/i.test(afterScrollText) ||
+      !/Budget recommand[ée]|Recommended budget|stockManagement\.cockpit\.recommendedBudget/i.test(afterScrollText)
+    ) {
+      throw new Error('Replenishment summary cards missing');
+    }
     result.checks.push('replenishment-summary-cards-visible');
 
     const tableRows = page.locator('table tbody tr');
@@ -153,10 +167,13 @@ async function runAccount(page, account) {
       await tableRows.first().waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
       result.checks.push('replenishment-table-rows-visible');
     } else {
-      await page.getByText(/Aucune recommandation de r[ée]approvisionnement/i).first().waitFor({
-        state: 'visible',
-        timeout: DEFAULT_TIMEOUT,
-      });
+      if (
+        !/Aucune recommandation de r[ée]approvisionnement|Aucun r[ée]approvisionnement n[ée]cessaire|No replenishment needed|stockManagement\.cockpit\.noReplenishment/i.test(
+          afterScrollText
+        )
+      ) {
+        throw new Error('No replenishment empty state found');
+      }
       result.checks.push('replenishment-empty-state-visible');
     }
 

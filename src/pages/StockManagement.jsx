@@ -709,7 +709,7 @@ const StockManagement = () => {
 
               <TabsList className="bg-gray-900 border border-gray-800 w-full h-auto p-1 grid grid-cols-2 md:grid-cols-5 gap-1">
                 <TabsTrigger value="cockpit">{t('stockManagement.tabs.cockpit', 'Stock Cockpit')}</TabsTrigger>
-                <TabsTrigger value="warehouses">{t('stockManagement.tabs.warehouses')}</TabsTrigger>
+                <TabsTrigger value="warehouses">{t('stockManagement.tabs.warehouses', 'Entrepôts')}</TabsTrigger>
                 <TabsTrigger value="inventory">{t('stockManagement.tabs.inventory', 'Inventory')}</TabsTrigger>
                 <TabsTrigger value="history">{t('stockManagement.tabs.history', 'History')}</TabsTrigger>
                 <TabsTrigger value="adjustments">
@@ -724,7 +724,7 @@ const StockManagement = () => {
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400">
-                    {t('stockManagement.warehouses.activeWarehouses')}
+                    {tf('stockManagement.warehouses.activeWarehouses', 'Entrepôts actifs')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -734,7 +734,7 @@ const StockManagement = () => {
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400">
-                    {t('stockManagement.warehouses.lots')}
+                    {tf('stockManagement.warehouses.lots', 'Lots')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -744,7 +744,7 @@ const StockManagement = () => {
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400">
-                    {t('stockManagement.warehouses.serializedLots')}
+                    {tf('stockManagement.warehouses.serializedLots', 'Lots sérialisés')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -754,7 +754,7 @@ const StockManagement = () => {
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400">
-                    {t('stockManagement.warehouses.trackedQuantity')}
+                    {tf('stockManagement.warehouses.trackedQuantity', 'Quantité suivie')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -768,13 +768,17 @@ const StockManagement = () => {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-white">{t('stockManagement.warehouses.title')}</CardTitle>
-                  <p className="text-sm text-gray-400">{t('stockManagement.warehouses.subtitle')}</p>
+                  <CardTitle className="text-white">
+                    {tf('stockManagement.warehouses.title', 'Gestion des entrepôts')}
+                  </CardTitle>
+                  <p className="text-sm text-gray-400">
+                    {tf('stockManagement.warehouses.subtitle', 'Pilotez les entrepôts, lots et numéros de série.')}
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label>{t('stockManagement.warehouses.warehouseCode')}</Label>
+                      <Label>{tf('stockManagement.warehouses.warehouseCode', 'Code entrepôt')}</Label>
                       <Input
                         className="bg-gray-800 border-gray-700"
                         placeholder="MAIN"
@@ -788,10 +792,10 @@ const StockManagement = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>{t('stockManagement.warehouses.warehouseName')}</Label>
+                      <Label>{tf('stockManagement.warehouses.warehouseName', "Nom de l'entrepôt")}</Label>
                       <Input
                         className="bg-gray-800 border-gray-700"
-                        placeholder={t('stockManagement.warehouses.warehouseName')}
+                        placeholder={tf('stockManagement.warehouses.warehouseName', "Nom de l'entrepôt")}
                         value={warehouseForm.warehouse_name}
                         onChange={(event) =>
                           setWarehouseForm((current) => ({ ...current, warehouse_name: event.target.value }))
@@ -800,10 +804,10 @@ const StockManagement = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>{t('stockManagement.warehouses.description')}</Label>
+                    <Label>{tf('stockManagement.warehouses.description', 'Description')}</Label>
                     <Input
                       className="bg-gray-800 border-gray-700"
-                      placeholder={t('stockManagement.warehouses.descriptionPlaceholder')}
+                      placeholder={tf('stockManagement.warehouses.descriptionPlaceholder', "Description de l'entrepôt")}
                       value={warehouseForm.description}
                       onChange={(event) =>
                         setWarehouseForm((current) => ({ ...current, description: event.target.value }))
@@ -811,7 +815,9 @@ const StockManagement = () => {
                     />
                   </div>
                   <div className="flex items-center justify-between rounded border border-gray-800 bg-gray-950/50 px-3 py-2">
-                    <p className="text-sm text-gray-300">{t('stockManagement.warehouses.setDefault')}</p>
+                    <p className="text-sm text-gray-300">
+                      {tf('stockManagement.warehouses.setDefault', 'Définir comme entrepôt par défaut')}
+                    </p>
                     <Switch
                       checked={warehouseForm.is_default}
                       onCheckedChange={(checked) =>
@@ -824,12 +830,14 @@ const StockManagement = () => {
                     onClick={handleCreateWarehouse}
                     disabled={warehousesLoading || !warehouseForm.warehouse_code || !warehouseForm.warehouse_name}
                   >
-                    {t('stockManagement.warehouses.createWarehouse')}
+                    {tf('stockManagement.warehouses.createWarehouse', "Créer l'entrepôt")}
                   </Button>
 
                   <div className="space-y-2 pt-2">
                     {warehouses.length === 0 ? (
-                      <p className="text-sm text-gray-500">{t('stockManagement.warehouses.noWarehouses')}</p>
+                      <p className="text-sm text-gray-500">
+                        {tf('stockManagement.warehouses.noWarehouses', 'Aucun entrepôt configuré')}
+                      </p>
                     ) : (
                       warehouses.map((warehouse) => (
                         <div
@@ -841,13 +849,14 @@ const StockManagement = () => {
                               {warehouse.warehouse_code} - {warehouse.warehouse_name}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {warehouse.description || t('stockManagement.warehouses.noDescription')}
+                              {warehouse.description ||
+                                tf('stockManagement.warehouses.noDescription', 'Aucune description')}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
                             {warehouse.is_default ? (
                               <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
-                                {t('stockManagement.warehouses.default')}
+                                {tf('stockManagement.warehouses.default', 'Par défaut')}
                               </Badge>
                             ) : null}
                             <Badge
@@ -858,8 +867,8 @@ const StockManagement = () => {
                               }
                             >
                               {warehouse.is_active !== false
-                                ? t('stockManagement.warehouses.active')
-                                : t('stockManagement.warehouses.inactive')}
+                                ? tf('stockManagement.warehouses.active', 'Actif')
+                                : tf('stockManagement.warehouses.inactive', 'Inactif')}
                             </Badge>
                             <Button
                               size="sm"
@@ -870,8 +879,8 @@ const StockManagement = () => {
                               disabled={warehousesLoading}
                             >
                               {warehouse.is_active !== false
-                                ? t('stockManagement.warehouses.deactivate')
-                                : t('stockManagement.warehouses.activate')}
+                                ? tf('stockManagement.warehouses.deactivate', 'Désactiver')
+                                : tf('stockManagement.warehouses.activate', 'Activer')}
                             </Button>
                           </div>
                         </div>
@@ -883,13 +892,17 @@ const StockManagement = () => {
 
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-white">{t('stockManagement.warehouses.lotsTitle')}</CardTitle>
-                  <p className="text-sm text-gray-400">{t('stockManagement.warehouses.lotsSubtitle')}</p>
+                  <CardTitle className="text-white">
+                    {tf('stockManagement.warehouses.lotsTitle', 'Gestion des lots')}
+                  </CardTitle>
+                  <p className="text-sm text-gray-400">
+                    {tf('stockManagement.warehouses.lotsSubtitle', 'Suivez les entrées par lot et numéro de série.')}
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label>{t('stockManagement.warehouses.product')}</Label>
+                      <Label>{tf('stockManagement.warehouses.product', 'Produit')}</Label>
                       <Select
                         value={lotForm.product_id || 'none'}
                         onValueChange={(value) =>
@@ -897,10 +910,14 @@ const StockManagement = () => {
                         }
                       >
                         <SelectTrigger className="bg-gray-800 border-gray-700">
-                          <SelectValue placeholder={t('stockManagement.warehouses.selectProduct')} />
+                          <SelectValue
+                            placeholder={tf('stockManagement.warehouses.selectProduct', 'Sélectionner un produit')}
+                          />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                          <SelectItem value="none">{t('stockManagement.warehouses.selectProduct')}</SelectItem>
+                          <SelectItem value="none">
+                            {tf('stockManagement.warehouses.selectProduct', 'Sélectionner un produit')}
+                          </SelectItem>
                           {trackedProducts.map((product) => (
                             <SelectItem key={product.id} value={product.id}>
                               {product.product_name}
@@ -910,7 +927,7 @@ const StockManagement = () => {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>{t('stockManagement.warehouses.warehouse')}</Label>
+                      <Label>{tf('stockManagement.warehouses.warehouse', 'Entrepôt')}</Label>
                       <Select
                         value={lotForm.warehouse_id || 'none'}
                         onValueChange={(value) =>
@@ -918,10 +935,14 @@ const StockManagement = () => {
                         }
                       >
                         <SelectTrigger className="bg-gray-800 border-gray-700">
-                          <SelectValue placeholder={t('stockManagement.warehouses.selectWarehouse')} />
+                          <SelectValue
+                            placeholder={tf('stockManagement.warehouses.selectWarehouse', 'Sélectionner un entrepôt')}
+                          />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                          <SelectItem value="none">{t('stockManagement.warehouses.selectWarehouse')}</SelectItem>
+                          <SelectItem value="none">
+                            {tf('stockManagement.warehouses.selectWarehouse', 'Sélectionner un entrepôt')}
+                          </SelectItem>
                           {warehouses.map((warehouse) => (
                             <SelectItem key={warehouse.id} value={warehouse.id}>
                               {warehouse.warehouse_code} - {warehouse.warehouse_name}
@@ -933,7 +954,7 @@ const StockManagement = () => {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="space-y-2">
-                      <Label>{t('stockManagement.warehouses.lotNumberLabel')}</Label>
+                      <Label>{tf('stockManagement.warehouses.lotNumberLabel', 'Numéro de lot')}</Label>
                       <Input
                         className="bg-gray-800 border-gray-700"
                         placeholder="LOT-2026-0001"
@@ -942,7 +963,7 @@ const StockManagement = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>{t('stockManagement.warehouses.serialNumberLabel')}</Label>
+                      <Label>{tf('stockManagement.warehouses.serialNumberLabel', 'Numéro de série')}</Label>
                       <Input
                         className="bg-gray-800 border-gray-700"
                         placeholder="SN-00001"
@@ -953,7 +974,7 @@ const StockManagement = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>{t('stockManagement.warehouses.quantityLabel')}</Label>
+                      <Label>{tf('stockManagement.warehouses.quantityLabel', 'Quantité')}</Label>
                       <Input
                         type="number"
                         className="bg-gray-800 border-gray-700"
@@ -964,7 +985,7 @@ const StockManagement = () => {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label>{t('stockManagement.warehouses.receptionDate')}</Label>
+                      <Label>{tf('stockManagement.warehouses.receptionDate', 'Date de réception')}</Label>
                       <Input
                         type="date"
                         className="bg-gray-800 border-gray-700"
@@ -973,7 +994,7 @@ const StockManagement = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>{t('stockManagement.warehouses.expiryDate')}</Label>
+                      <Label>{tf('stockManagement.warehouses.expiryDate', "Date d'expiration")}</Label>
                       <Input
                         type="date"
                         className="bg-gray-800 border-gray-700"
@@ -983,10 +1004,10 @@ const StockManagement = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>{t('stockManagement.warehouses.notes')}</Label>
+                    <Label>{tf('stockManagement.warehouses.notes', 'Notes')}</Label>
                     <Input
                       className="bg-gray-800 border-gray-700"
-                      placeholder={t('stockManagement.warehouses.notesTip')}
+                      placeholder={tf('stockManagement.warehouses.notesTip', 'Informations complémentaires')}
                       value={lotForm.notes}
                       onChange={(event) => setLotForm((current) => ({ ...current, notes: event.target.value }))}
                     />
@@ -1002,7 +1023,7 @@ const StockManagement = () => {
                       lotsLoading
                     }
                   >
-                    {t('stockManagement.warehouses.saveLot')}
+                    {tf('stockManagement.warehouses.saveLot', 'Enregistrer le lot')}
                   </Button>
                 </CardContent>
               </Card>
@@ -1010,29 +1031,47 @@ const StockManagement = () => {
 
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white">{t('stockManagement.warehouses.lotsRegistry')}</CardTitle>
-                <p className="text-sm text-gray-400">{t('stockManagement.warehouses.lotsRegistrySubtitle')}</p>
+                <CardTitle className="text-white">
+                  {tf('stockManagement.warehouses.lotsRegistry', 'Registre des lots')}
+                </CardTitle>
+                <p className="text-sm text-gray-400">
+                  {tf('stockManagement.warehouses.lotsRegistrySubtitle', 'Historique des lots enregistrés')}
+                </p>
               </CardHeader>
               <CardContent>
                 {lots.length === 0 ? (
-                  <p className="text-sm text-gray-500">{t('stockManagement.warehouses.noLots')}</p>
+                  <p className="text-sm text-gray-500">
+                    {tf('stockManagement.warehouses.noLots', 'Aucun lot enregistré')}
+                  </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-gray-800 hover:bg-transparent">
-                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.product')}</TableHead>
-                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.warehouse')}</TableHead>
-                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.lotNumber')}</TableHead>
                           <TableHead className="text-gray-400">
-                            {t('stockManagement.warehouses.serialNumber')}
+                            {tf('stockManagement.warehouses.product', 'Produit')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">
+                            {tf('stockManagement.warehouses.warehouse', 'Entrepôt')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">
+                            {tf('stockManagement.warehouses.lotNumber', 'Lot')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">
+                            {tf('stockManagement.warehouses.serialNumber', 'Série')}
                           </TableHead>
                           <TableHead className="text-gray-400 text-right">
-                            {t('stockManagement.warehouses.quantity')}
+                            {tf('stockManagement.warehouses.quantity', 'Quantité')}
                           </TableHead>
-                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.status')}</TableHead>
-                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.reception')}</TableHead>
-                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.expiry')}</TableHead>
+                          <TableHead className="text-gray-400">
+                            {tf('stockManagement.warehouses.status', 'Statut')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">
+                            {tf('stockManagement.warehouses.reception', 'Réception')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">
+                            {tf('stockManagement.warehouses.expiry', 'Expiration')}
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1041,10 +1080,10 @@ const StockManagement = () => {
                             <TableCell>
                               <div>
                                 <p className="font-medium text-white">
-                                  {lot.product?.product_name || t('stockManagement.warehouses.product')}
+                                  {lot.product?.product_name || tf('stockManagement.warehouses.product', 'Produit')}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  {lot.product?.sku || t('stockManagement.warehouses.noSku')}
+                                  {lot.product?.sku || tf('stockManagement.warehouses.noSku', 'Sans SKU')}
                                 </p>
                               </div>
                             </TableCell>
