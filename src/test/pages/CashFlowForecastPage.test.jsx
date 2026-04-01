@@ -63,7 +63,7 @@ describe('CashFlowForecastPage', () => {
   it('exposes the 13-week preset and requests forecast on click', () => {
     render(<CashFlowForecastPage />);
 
-    const thirteenWeeksButton = screen.getByRole('button', { name: '13 sem' });
+    const thirteenWeeksButton = screen.getByRole('button', { name: 'Mode CFO' });
     expect(thirteenWeeksButton).toBeInTheDocument();
 
     fireEvent.click(thirteenWeeksButton);
@@ -73,11 +73,11 @@ describe('CashFlowForecastPage', () => {
   it('shows working-capital monitoring panel for 13-week preset', () => {
     render(<CashFlowForecastPage />);
 
-    expect(screen.queryByText(/Signal BFR - preset CFO 13 semaines/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Signal BFR - Mode CFO/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '13 sem' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mode CFO' }));
 
-    expect(screen.getByText(/Signal BFR - preset CFO 13 semaines/i)).toBeInTheDocument();
+    expect(screen.getByText(/Signal BFR - Mode CFO/i)).toBeInTheDocument();
     expect(screen.getByText(/DSO au-dessus de la cible/i)).toBeInTheDocument();
   });
 });

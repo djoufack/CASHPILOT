@@ -4295,7 +4295,7 @@
       "title": "AI Liquiditeitsprognoses",
       "description": "Intelligente prognose van uw liquiditeit met scenario's en waarschuwingen",
       "days": "d",
-      "period13Weeks": "13 wk",
+      "period13Weeks": "CFO-modus",
       "refresh": "Vernieuwen"
     },
     "summary": {
@@ -4383,8 +4383,8 @@
       "noData": "Lancez une prevision pour obtenir l'analyse IA"
     },
     "workingCapital": {
-      "title": "BFR-signaal - 13 weken CFO preset",
-      "subtitle": "Volg DSO / DPO / DIO / CCC om kasdruk over 13 weken te sturen.",
+      "title": "BFR-signaal - CFO-modus",
+      "subtitle": "Volg DSO / DPO / DIO / CCC om kasdruk te sturen.",
       "dso": "DSO",
       "dpo": "DPO",
       "dio": "DIO",

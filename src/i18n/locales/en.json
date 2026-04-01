@@ -4434,7 +4434,7 @@
       "title": "AI Cash Flow Forecast",
       "description": "Intelligent cash flow predictions with scenarios and alerts",
       "days": "d",
-      "period13Weeks": "13 wk",
+      "period13Weeks": "CFO mode",
       "refresh": "Refresh"
     },
     "summary": {
@@ -4486,8 +4486,8 @@
       "noData": "Run a forecast to get AI analysis"
     },
     "workingCapital": {
-      "title": "Working-capital signal - 13-week CFO preset",
-      "subtitle": "Track DSO / DPO / DIO / CCC to manage cash pressure over 13 weeks.",
+      "title": "Working-capital signal - CFO mode",
+      "subtitle": "Track DSO / DPO / DIO / CCC to manage cash pressure.",
       "dso": "DSO",
       "dpo": "DPO",
       "dio": "DIO",

@@ -131,7 +131,9 @@ const CashFlowForecastPage = () => {
                       : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                   }`}
                 >
-                  {days === 91 ? t('cashflow.page.period13Weeks', '13 sem') : `${days}${t('cashflow.page.days', 'j')}`}
+                  {days === 91
+                    ? t('cashflow.page.period13Weeks', 'Mode CFO')
+                    : `${days}${t('cashflow.page.days', 'j')}`}
                 </button>
               ))}
             </div>
@@ -160,12 +162,12 @@ const CashFlowForecastPage = () => {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="text-base font-semibold text-white">
-                  {t('cashflow.workingCapital.title', 'Signal BFR - preset CFO 13 semaines')}
+                  {t('cashflow.workingCapital.title', 'Signal BFR - Mode CFO')}
                 </h2>
                 <p className="text-xs text-gray-300">
                   {t(
                     'cashflow.workingCapital.subtitle',
-                    'Surveillance DSO / DPO / DIO / CCC pour piloter la tension de tresorerie sur 13 semaines.'
+                    'Surveillance DSO / DPO / DIO / CCC pour piloter la tension de tresorerie.'
                   )}
                 </p>
               </div>

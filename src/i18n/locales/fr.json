@@ -4421,7 +4421,7 @@
       "title": "Previsions de Tresorerie IA",
       "description": "Prediction intelligente de votre tresorerie avec scenarios et alertes",
       "days": "j",
-      "period13Weeks": "13 sem",
+      "period13Weeks": "Mode CFO",
       "refresh": "Actualiser"
     },
     "summary": {
@@ -4473,8 +4473,8 @@
       "noData": "Lancez une prevision pour obtenir l'analyse IA"
     },
     "workingCapital": {
-      "title": "Signal BFR - preset CFO 13 semaines",
-      "subtitle": "Surveillance DSO / DPO / DIO / CCC pour piloter la tension de tresorerie sur 13 semaines.",
+      "title": "Signal BFR - Mode CFO",
+      "subtitle": "Surveillance DSO / DPO / DIO / CCC pour piloter la tension de tresorerie.",
       "dso": "DSO",
       "dpo": "DPO",
       "dio": "DIO",
