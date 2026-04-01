@@ -9,6 +9,8 @@ const corsHeaders = {
 };
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const VALID_CHANNELS = new Set(['email', 'sms', 'whatsapp', 'letter']);
+const VALID_TONES = new Set(['friendly', 'professional', 'firm', 'urgent']);
 
 /** Default templates by tone and channel */
 const DEFAULT_TEMPLATES: Record<string, Record<string, { subject: string; body: string }>> = {
@@ -139,7 +141,7 @@ serve(async (req) => {
     const serviceClient = createServiceClient();
 
     const body = await req.json();
-    const { company_id, campaign_id, invoice_id, client_id, channel, tone, step_number } = body;
+    const { company_id, campaign_id, invoice_id, client_id, channel, tone, step_number, rule_id } = body;
 
     // Validate company_id
     if (!company_id || !UUID_REGEX.test(company_id)) {
@@ -149,6 +151,9 @@ serve(async (req) => {
     // Validate invoice_id
     if (!invoice_id || !UUID_REGEX.test(invoice_id)) {
       throw new HttpError(400, 'Valid invoice_id is required');
+    }
+    if (rule_id != null && (!String(rule_id) || !UUID_REGEX.test(String(rule_id)))) {
+      throw new HttpError(400, 'rule_id must be a valid UUID when provided');
     }
 
     // Verify company ownership
@@ -187,15 +192,100 @@ serve(async (req) => {
       throw new HttpError(404, 'Client not found');
     }
 
-    // Determine channel and tone
-    const selectedChannel = channel || 'email';
-    const selectedTone = tone || 'professional';
-    const selectedStep = step_number || 1;
+    // Resolve smart dunning rule either explicitly (rule_id) or by overdue threshold.
+    const now = Date.now();
+    const dueDateMs = invoice.due_date ? new Date(`${invoice.due_date}T00:00:00Z`).getTime() : now;
+    const daysOverdue = Math.max(0, Math.floor((now - dueDateMs) / 86400000));
+
+    let resolvedRule: {
+      id: string;
+      channel: string;
+      tone: string;
+      dunning_step: number | null;
+      max_reminders: number | null;
+      days_after_due: number | null;
+    } | null = null;
+
+    if (rule_id) {
+      const { data: explicitRule, error: explicitRuleError } = await supabase
+        .from('payment_reminder_rules')
+        .select('id, channel, tone, dunning_step, max_reminders, days_after_due')
+        .eq('id', rule_id)
+        .eq('user_id', user.id)
+        .eq('company_id', company_id)
+        .eq('rule_category', 'smart_dunning')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (explicitRuleError) throw explicitRuleError;
+      if (!explicitRule) throw new HttpError(404, 'Smart dunning rule not found');
+      resolvedRule = explicitRule;
+    }
+
+    if (!resolvedRule && (!channel || !tone || !step_number)) {
+      const { data: thresholdRule, error: thresholdRuleError } = await supabase
+        .from('payment_reminder_rules')
+        .select('id, channel, tone, dunning_step, max_reminders, days_after_due')
+        .eq('user_id', user.id)
+        .eq('company_id', company_id)
+        .eq('rule_category', 'smart_dunning')
+        .eq('is_active', true)
+        .lte('days_after_due', daysOverdue)
+        .order('days_after_due', { ascending: false })
+        .order('dunning_step', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (thresholdRuleError) throw thresholdRuleError;
+      resolvedRule = thresholdRule ?? null;
+    }
+
+    // Determine channel, tone and step (request overrides, then rule, then fallback defaults)
+    const selectedChannel = String(channel || resolvedRule?.channel || 'email').toLowerCase();
+    if (!VALID_CHANNELS.has(selectedChannel)) {
+      throw new HttpError(400, `Unsupported channel: ${selectedChannel}`);
+    }
+
+    const selectedTone = String(tone || resolvedRule?.tone || 'professional').toLowerCase();
+    if (!VALID_TONES.has(selectedTone)) {
+      throw new HttpError(400, `Unsupported tone: ${selectedTone}`);
+    }
+
+    const selectedStepRaw = step_number ?? resolvedRule?.dunning_step ?? 1;
+    const selectedStep = Number(selectedStepRaw);
+    if (!Number.isInteger(selectedStep) || selectedStep < 1 || selectedStep > 10) {
+      throw new HttpError(400, 'step_number must be an integer between 1 and 10');
+    }
+
+    // Enforce max reminders for this invoice/rule when configured.
+    const maxReminders = Number(resolvedRule?.max_reminders ?? 0);
+    if (Number.isFinite(maxReminders) && maxReminders > 0) {
+      const { data: reminderExecutions, error: remindersError } = await supabase
+        .from('dunning_executions')
+        .select('step_number, status, metadata')
+        .eq('user_id', user.id)
+        .eq('company_id', company_id)
+        .eq('invoice_id', invoice_id);
+
+      if (remindersError) throw remindersError;
+
+      const remindersForRule = (reminderExecutions || []).filter((row: any) => {
+        if (row.status === 'pending' || row.status === 'failed') return false;
+        const metadataRuleId = row?.metadata?.rule_id;
+        if (resolvedRule?.id && metadataRuleId === resolvedRule.id) return true;
+        return Number(row.step_number) === selectedStep;
+      }).length;
+
+      if (remindersForRule >= maxReminders) {
+        throw new HttpError(409, `Reminder limit reached for this invoice (step ${selectedStep}, max ${maxReminders})`);
+      }
+    }
 
     // Try to find a custom template from the campaign
     let messageSubject = '';
     let messageBody = '';
 
+    let usedCustomTemplate = false;
     if (campaign_id && UUID_REGEX.test(campaign_id)) {
       const { data: customTemplate } = await supabase
         .from('dunning_templates')
@@ -206,6 +296,7 @@ serve(async (req) => {
         .maybeSingle();
 
       if (customTemplate) {
+        usedCustomTemplate = true;
         messageSubject = customTemplate.subject || '';
         messageBody = customTemplate.body || '';
       }
@@ -278,7 +369,11 @@ serve(async (req) => {
         metadata: {
           subject: renderedSubject,
           tone: selectedTone,
-          template_type: campaign_id ? 'custom' : 'default',
+          template_type: usedCustomTemplate ? 'custom' : 'default',
+          rule_id: resolvedRule?.id || null,
+          rule_days_after_due: resolvedRule?.days_after_due ?? null,
+          rule_max_reminders: Number.isFinite(maxReminders) && maxReminders > 0 ? maxReminders : null,
+          days_overdue: daysOverdue,
           rendered_at: new Date().toISOString(),
         },
       })
@@ -299,6 +394,7 @@ serve(async (req) => {
       .from('dunning_history')
       .insert({
         user_id: user.id,
+        company_id,
         invoice_id,
         sent_at: new Date().toISOString(),
         method: selectedChannel === 'whatsapp' ? 'sms' : selectedChannel === 'letter' ? 'letter' : selectedChannel,
@@ -315,6 +411,7 @@ serve(async (req) => {
         channel: selectedChannel,
         tone: selectedTone,
         step_number: selectedStep,
+        rule_id: resolvedRule?.id || null,
         message: {
           subject: renderedSubject,
           body: renderedBody,

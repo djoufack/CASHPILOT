@@ -5,6 +5,58 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { isMissingRelationError } from '@/lib/supabaseCompatibility';
 
+const SMART_DUNNING_RULE_CATEGORY = 'smart_dunning';
+const DEFAULT_SMART_DUNNING_RULES = [
+  {
+    dunning_step: 1,
+    name: 'Relance J+5',
+    days_after_due: 5,
+    channel: 'email',
+    tone: 'friendly',
+    max_reminders: 1,
+    is_active: true,
+  },
+  {
+    dunning_step: 2,
+    name: 'Relance J+15',
+    days_after_due: 15,
+    channel: 'sms',
+    tone: 'professional',
+    max_reminders: 1,
+    is_active: true,
+  },
+  {
+    dunning_step: 3,
+    name: 'Relance J+30',
+    days_after_due: 30,
+    channel: 'whatsapp',
+    tone: 'firm',
+    max_reminders: 1,
+    is_active: true,
+  },
+];
+
+export const selectDunningRuleForDays = (rules = [], daysOverdue = 0) => {
+  const safeDays = Number(daysOverdue) || 0;
+
+  const eligibleRules = (Array.isArray(rules) ? rules : [])
+    .filter(
+      (rule) =>
+        rule &&
+        rule.rule_category === SMART_DUNNING_RULE_CATEGORY &&
+        rule.is_active !== false &&
+        Number.isFinite(Number(rule.days_after_due)) &&
+        Number(rule.days_after_due) <= safeDays
+    )
+    .sort((a, b) => {
+      const daysDiff = Number(b.days_after_due) - Number(a.days_after_due);
+      if (daysDiff !== 0) return daysDiff;
+      return Number(a.dunning_step || 999) - Number(b.dunning_step || 999);
+    });
+
+  return eligibleRules[0] || null;
+};
+
 /**
  * Hook for Smart Dunning IA.
  * Manages campaigns, executions, AI client scores/suggestions, and stats.
@@ -24,6 +76,7 @@ export const useSmartDunning = () => {
   const [campaigns, setCampaigns] = useState([]);
   const [executions, setExecutions] = useState([]);
   const [clientScores, setClientScores] = useState([]);
+  const [dunningRules, setDunningRules] = useState([]);
   const [stats, setStats] = useState({
     totalOverdue: 0,
     recoveredAmount: 0,
@@ -280,6 +333,122 @@ export const useSmartDunning = () => {
   );
 
   // ------------------------------------------
+  // Fetch Smart Dunning company rules (J+5/J+15/J+30)
+  // ------------------------------------------
+  const fetchDunningRules = useCallback(async () => {
+    if (!user || !activeCompanyId) return [];
+
+    try {
+      let query = supabase
+        .from('payment_reminder_rules')
+        .select(
+          'id, name, days_after_due, max_reminders, is_active, rule_category, dunning_step, channel, tone, updated_at'
+        )
+        .eq('user_id', user.id)
+        .eq('rule_category', SMART_DUNNING_RULE_CATEGORY)
+        .order('dunning_step', { ascending: true })
+        .order('days_after_due', { ascending: true });
+
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error: fetchError } = await query;
+      if (fetchError) throw fetchError;
+
+      let nextRules = Array.isArray(data) ? data : [];
+
+      // Ensure default J+5/J+15/J+30 rules exist for each company.
+      if (nextRules.length === 0) {
+        const payloads = DEFAULT_SMART_DUNNING_RULES.map((rule) =>
+          withCompanyScope({
+            user_id: user.id,
+            name: rule.name,
+            days_before_due: 0,
+            days_after_due: rule.days_after_due,
+            max_reminders: rule.max_reminders,
+            is_active: rule.is_active,
+            rule_category: SMART_DUNNING_RULE_CATEGORY,
+            dunning_step: rule.dunning_step,
+            channel: rule.channel,
+            tone: rule.tone,
+            updated_at: new Date().toISOString(),
+          })
+        );
+
+        const { error: upsertError } = await supabase.from('payment_reminder_rules').upsert(payloads, {
+          onConflict: 'company_id,rule_category,dunning_step',
+        });
+
+        if (upsertError) throw upsertError;
+
+        let retryQuery = supabase
+          .from('payment_reminder_rules')
+          .select(
+            'id, name, days_after_due, max_reminders, is_active, rule_category, dunning_step, channel, tone, updated_at'
+          )
+          .eq('user_id', user.id)
+          .eq('rule_category', SMART_DUNNING_RULE_CATEGORY)
+          .order('dunning_step', { ascending: true })
+          .order('days_after_due', { ascending: true });
+
+        retryQuery = applyCompanyScope(retryQuery, { includeUnassigned: false });
+        const { data: seededRules, error: retryError } = await retryQuery;
+        if (retryError) throw retryError;
+        nextRules = Array.isArray(seededRules) ? seededRules : [];
+      }
+
+      setDunningRules(nextRules);
+      return nextRules;
+    } catch (err) {
+      console.error('useSmartDunning fetchDunningRules error:', err);
+      setError(err.message || 'Failed to fetch dunning rules');
+      return [];
+    }
+  }, [activeCompanyId, applyCompanyScope, user, withCompanyScope]);
+
+  // ------------------------------------------
+  // Update one Smart Dunning rule
+  // ------------------------------------------
+  const updateDunningRule = useCallback(
+    async (ruleId, updates) => {
+      if (!user || !activeCompanyId || !ruleId) return null;
+
+      try {
+        const normalizedUpdates = withCompanyScope({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        });
+
+        const { data, error: updateError } = await supabase
+          .from('payment_reminder_rules')
+          .update(normalizedUpdates)
+          .eq('id', ruleId)
+          .eq('user_id', user.id)
+          .eq('company_id', activeCompanyId)
+          .eq('rule_category', SMART_DUNNING_RULE_CATEGORY)
+          .select(
+            'id, name, days_after_due, max_reminders, is_active, rule_category, dunning_step, channel, tone, updated_at'
+          )
+          .single();
+
+        if (updateError) throw updateError;
+
+        await fetchDunningRules();
+        return data;
+      } catch (err) {
+        console.error('useSmartDunning updateDunningRule error:', err);
+        setError(err.message || 'Failed to update dunning rule');
+        return null;
+      }
+    },
+    [activeCompanyId, fetchDunningRules, user, withCompanyScope]
+  );
+
+  const toggleDunningRule = useCallback(
+    async (ruleId, isActive) => updateDunningRule(ruleId, { is_active: isActive }),
+    [updateDunningRule]
+  );
+
+  // ------------------------------------------
   // Create a campaign with optional templates
   // ------------------------------------------
   const createCampaign = useCallback(
@@ -498,7 +667,7 @@ export const useSmartDunning = () => {
   useEffect(() => {
     if (user && activeCompanyId) {
       setLoading(true);
-      Promise.allSettled([fetchCampaigns(), fetchExecutions(), fetchClientScores()])
+      Promise.allSettled([fetchCampaigns(), fetchExecutions(), fetchClientScores(), fetchDunningRules()])
         .then((results) => {
           results.forEach((r, i) => {
             if (r.status === 'rejected') console.error(`SmartDunning initial fetch ${i} failed:`, r.reason);
@@ -507,7 +676,7 @@ export const useSmartDunning = () => {
         .finally(() => setLoading(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, activeCompanyId]);
+  }, [user, activeCompanyId, fetchCampaigns, fetchExecutions, fetchClientScores, fetchDunningRules]);
 
   // Recompute stats when data changes
   useEffect(() => {
@@ -518,16 +687,20 @@ export const useSmartDunning = () => {
     campaigns,
     executions,
     clientScores,
+    dunningRules,
     stats,
     loading,
     error,
     fetchCampaigns,
     fetchExecutions,
     fetchClientScores,
+    fetchDunningRules,
     createCampaign,
     updateCampaign,
     deleteCampaign,
     launchDunning,
     toggleCampaign,
+    updateDunningRule,
+    toggleDunningRule,
   };
 };

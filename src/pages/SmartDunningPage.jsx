@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
-import { useSmartDunning } from '@/hooks/useSmartDunning';
+import { selectDunningRuleForDays, useSmartDunning } from '@/hooks/useSmartDunning';
 import { formatNumber } from '@/utils/dateLocale';
 import { useCompany } from '@/hooks/useCompany';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
@@ -9,6 +9,7 @@ import DunningPipeline from '@/components/dunning/DunningPipeline';
 import DunningScoreCard from '@/components/dunning/DunningScoreCard';
 import DunningCampaignCard from '@/components/dunning/DunningCampaignCard';
 import DunningCampaignForm from '@/components/dunning/DunningCampaignForm';
+import DunningRulesPanel from '@/components/dunning/DunningRulesPanel';
 import { Button } from '@/components/ui/button';
 import {
   Brain,
@@ -46,15 +47,19 @@ const SmartDunningPage = () => {
     campaigns,
     executions,
     clientScores,
+    dunningRules,
     stats,
     loading,
     error,
     fetchCampaigns,
     fetchExecutions,
     fetchClientScores,
+    fetchDunningRules,
     createCampaign,
     launchDunning,
     toggleCampaign,
+    updateDunningRule,
+    toggleDunningRule,
   } = useSmartDunning();
   // BUG-003 fix: resolve currency dynamically from company data (not hardcoded EUR)
   const { company } = useCompany();
@@ -67,7 +72,8 @@ const SmartDunningPage = () => {
     fetchClientScores();
     fetchCampaigns();
     fetchExecutions();
-  }, [fetchClientScores, fetchCampaigns, fetchExecutions]);
+    fetchDunningRules();
+  }, [fetchClientScores, fetchCampaigns, fetchExecutions, fetchDunningRules]);
 
   const handleCreateCampaign = useCallback(
     async (campaignData, templates) => {
@@ -84,29 +90,38 @@ const SmartDunningPage = () => {
       // Launch dunning for ALL overdue client scores matching this campaign's channels.
       // Filter scores to those whose recommended channel is supported by the campaign
       // (or fall back to the campaign's first channel when no match).
-      const campaignChannels = campaign.channels || ['email'];
-      const matchingScores = clientScores.filter(
-        (score) => !score.recommendedChannel || campaignChannels.includes(score.recommendedChannel)
-      );
+      const campaignChannels =
+        Array.isArray(campaign.channels) && campaign.channels.length > 0 ? campaign.channels : ['email'];
+      const matchingScores = clientScores.filter((score) => {
+        const matchedRule = selectDunningRuleForDays(dunningRules, score.daysOverdue);
+        const targetChannel = matchedRule?.channel || score.recommendedChannel || campaignChannels[0] || 'email';
+        return !targetChannel || campaignChannels.includes(targetChannel);
+      });
 
       if (matchingScores.length === 0) return;
 
       // Fire dunning executions in parallel for all matching overdue invoices
       await Promise.allSettled(
-        matchingScores.map((score) =>
-          launchDunning({
+        matchingScores.map((score) => {
+          const matchedRule = selectDunningRuleForDays(dunningRules, score.daysOverdue);
+          const selectedChannel = matchedRule?.channel || score.recommendedChannel || campaignChannels[0] || 'email';
+          const selectedTone = matchedRule?.tone || score.recommendedTone || 'professional';
+          const selectedStep = matchedRule?.dunning_step || score.recommendedStep || 1;
+
+          return launchDunning({
             campaign_id: campaign.id,
             invoice_id: score.invoiceId,
             client_id: score.clientId,
-            channel: score.recommendedChannel || campaignChannels[0] || 'email',
-            tone: score.recommendedTone || 'professional',
-            step_number: score.recommendedStep || 1,
+            channel: selectedChannel,
+            tone: selectedTone,
+            step_number: selectedStep,
+            rule_id: matchedRule?.id || null,
             ai_score: score.score,
-          })
-        )
+          });
+        })
       );
     },
-    [launchDunning, clientScores]
+    [launchDunning, clientScores, dunningRules]
   );
 
   const handleToggleCampaign = useCallback(
@@ -114,6 +129,20 @@ const SmartDunningPage = () => {
       await toggleCampaign(campaignId, isActive);
     },
     [toggleCampaign]
+  );
+
+  const handleToggleRule = useCallback(
+    async (ruleId, isActive) => {
+      await toggleDunningRule(ruleId, isActive);
+    },
+    [toggleDunningRule]
+  );
+
+  const handleUpdateRule = useCallback(
+    async (ruleId, updates) => {
+      await updateDunningRule(ruleId, updates);
+    },
+    [updateDunningRule]
   );
 
   return (
@@ -245,6 +274,13 @@ const SmartDunningPage = () => {
             </p>
           </div>
         </div>
+
+        <DunningRulesPanel
+          rules={dunningRules}
+          loading={loading}
+          onToggleRule={handleToggleRule}
+          onUpdateRule={handleUpdateRule}
+        />
 
         {/* Tab Navigation */}
         <div className="flex bg-[#141c33] rounded-lg border border-gray-700/50 overflow-hidden w-fit">
