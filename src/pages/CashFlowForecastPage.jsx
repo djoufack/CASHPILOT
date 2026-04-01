@@ -10,7 +10,7 @@ import { getLocale } from '@/utils/dateLocale';
 import { Button } from '@/components/ui/button';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
-const PERIOD_OPTIONS = [30, 60, 90, 180];
+const PERIOD_OPTIONS = [30, 60, 90, 91, 180];
 
 const CashFlowForecastPage = () => {
   const { t } = useTranslation();
@@ -108,8 +108,7 @@ const CashFlowForecastPage = () => {
                       : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                   }`}
                 >
-                  {days}
-                  {t('cashflow.page.days', 'j')}
+                  {days === 91 ? t('cashflow.page.period13Weeks', '13 sem') : `${days}${t('cashflow.page.days', 'j')}`}
                 </button>
               ))}
             </div>

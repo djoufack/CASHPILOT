@@ -53,3 +53,7 @@ Desktop.ini
 .vercel
 .env*.local
 nul
+
+# Local training source files (kept outside git history)
+Demo/CashPilot - Pilotage 360 degré - Guide De Formation CFO - DAF.pdf
+Demo/CashPilot - Pilotage 360 degré - Guide De Formation CFO - DAF.pptx

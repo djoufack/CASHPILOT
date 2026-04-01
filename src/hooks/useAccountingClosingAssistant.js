@@ -142,7 +142,9 @@ export function useAccountingClosingAssistant() {
           periodStart: window.periodStart,
           periodEnd: window.periodEnd,
           unpostedDepreciationBefore: unpostedBefore,
+          unpostedDepreciationAfter: unpostedAfter,
           depreciationEntriesGenerated: Number(depreciationGenerated || 0),
+          status,
           journalSummary,
         });
 
@@ -189,10 +191,13 @@ export function useAccountingClosingAssistant() {
 
         return {
           status,
+          periodStart: window.periodStart,
+          periodEnd: window.periodEnd,
           depreciationEntriesGenerated: Number(depreciationGenerated || 0),
           journalSummary,
           unpostedBefore,
           unpostedAfter,
+          workflow: checklist.workflow,
         };
       } catch (err) {
         toast({

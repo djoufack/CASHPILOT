@@ -2,12 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
-import {
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
-  Activity,
-} from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Activity } from 'lucide-react';
 
 const STATUS_CONFIG = {
   excellent: {
@@ -77,9 +72,22 @@ const RATIO_DEFS = [
     key: 'dso',
     labelKey: 'pilotage.ratios.dso',
     getValue: (data) => data.pilotageRatios?.activity?.dso,
-    format: (v, t) =>
-      v != null ? `${Math.round(v)} ${t('pilotage.ratios.days')}` : '--',
+    format: (v, t) => (v != null ? `${Math.round(v)} ${t('pilotage.ratios.days')}` : '--'),
     evalKey: 'dso',
+  },
+  {
+    key: 'dpo',
+    labelKey: 'pilotage.ratios.dpo',
+    getValue: (data) => data.pilotageRatios?.activity?.dpo,
+    format: (v, t) => (v != null ? `${Math.round(v)} ${t('pilotage.ratios.days')}` : '--'),
+    evalKey: 'dpo',
+  },
+  {
+    key: 'dio',
+    labelKey: 'pilotage.ratios.dio',
+    getValue: (data) => data.pilotageRatios?.activity?.stockRotationDays,
+    format: (v, t) => (v != null ? `${Math.round(v)} ${t('pilotage.ratios.days')}` : '--'),
+    evalKey: 'dio',
   },
   {
     key: 'gearing',
@@ -91,25 +99,19 @@ const RATIO_DEFS = [
 ];
 
 const RatioStatusCard = ({ label, formattedValue, evaluation }) => {
-  const statusLevel = typeof evaluation === 'string' ? evaluation : (evaluation?.status || evaluation?.level);
+  const statusLevel = typeof evaluation === 'string' ? evaluation : evaluation?.status || evaluation?.level;
   const statusCfg = STATUS_CONFIG[statusLevel] || DEFAULT_STATUS;
   const StatusIcon = statusCfg.icon;
-  const statusLabel = typeof evaluation === 'string' ? evaluation : (evaluation?.label || statusLevel || '--');
+  const statusLabel = typeof evaluation === 'string' ? evaluation : evaluation?.label || statusLevel || '--';
 
   return (
-    <div
-      className={`rounded-lg border ${statusCfg.border} ${statusCfg.bg} p-4 flex flex-col gap-2`}
-    >
+    <div className={`rounded-lg border ${statusCfg.border} ${statusCfg.bg} p-4 flex flex-col gap-2`}>
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-gray-400 truncate pr-2">
-          {label}
-        </p>
+        <p className="text-xs font-medium text-gray-400 truncate pr-2">{label}</p>
         <StatusIcon className={`w-4 h-4 flex-shrink-0 ${statusCfg.color}`} />
       </div>
       <p className="text-lg font-bold text-gray-100">{formattedValue}</p>
-      <p className={`text-xs font-medium ${statusCfg.color} capitalize`}>
-        {statusLabel}
-      </p>
+      <p className={`text-xs font-medium ${statusCfg.color} capitalize`}>{statusLabel}</p>
     </div>
   );
 };
@@ -132,7 +134,7 @@ const RatioStatusGrid = ({ data }) => {
   );
 
   return (
-      <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl h-full">
+    <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold text-gray-200 flex items-center gap-2">
           <Activity className="w-4 h-4 text-orange-400" />

@@ -1124,6 +1124,31 @@
       "checkJournal": "Debit / credit balance",
       "checkJournalOk": "No journal gap detected.",
       "checkJournalGap": "Current gap: {{value}}",
+      "workflowTitle": "Guided closing workflow",
+      "workflowProgress": "{{done}} / {{total}} milestone(s) completed ({{percent}}%)",
+      "milestoneCompleted": "Completed",
+      "milestonePending": "Pending",
+      "nextActionLabel": "Next action",
+      "milestones": {
+        "j5": {
+          "title": "J+5 - Depreciation posted",
+          "description": "All period depreciation entries should be posted."
+        },
+        "j10": {
+          "title": "J+10 - Journals balanced",
+          "description": "Ensure debit and credit journal totals are balanced."
+        },
+        "j15": {
+          "title": "J+15 - Closing validated",
+          "description": "Finalize and validate the period closing package."
+        }
+      },
+      "nextActions": {
+        "post_depreciation": "Post remaining depreciation lines before J+5 ({{count}} unposted line(s)).",
+        "resolve_journal_gap": "Resolve journal gap before J+10 (current gap: {{value}}).",
+        "finalize_closing_validation": "Validate period closing and archive decision trail before J+15.",
+        "monitor_next_period": "Closing complete. You can prepare the next period."
+      },
       "successTitle": "Assisted closing completed",
       "successDescription": "Period closed with depreciation generation and consistency checks.",
       "blockedTitle": "Assisted closing blocked",
@@ -2686,6 +2711,7 @@
       "profitability": "Profitability Ratios",
       "dso": "Days Sales Outstanding (DSO)",
       "dpo": "Days Payable Outstanding (DPO)",
+      "dio": "Days Inventory Outstanding (DIO)",
       "stockRotation": "Stock Rotation",
       "cashConversionCycle": "Cash Conversion Cycle",
       "bfrToRevenue": "Working Capital / Revenue",
@@ -2823,6 +2849,8 @@
       "financialIndependence": "Financial Independence",
       "gearing": "Gearing (Leverage)",
       "dso": "Days Sales Outstanding (DSO)",
+      "dpo": "Days Payable Outstanding (DPO)",
+      "dio": "Days Inventory Outstanding (DIO)",
       "roe": "ROE",
       "roa": "ROA"
     },
@@ -4401,6 +4429,7 @@
       "title": "AI Cash Flow Forecast",
       "description": "Intelligent cash flow predictions with scenarios and alerts",
       "days": "d",
+      "period13Weeks": "13 wk",
       "refresh": "Refresh"
     },
     "summary": {

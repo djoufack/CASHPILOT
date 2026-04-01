@@ -1111,6 +1111,31 @@
       "checkJournal": "Équilibre débit / crédit",
       "checkJournalOk": "Aucun écart de journal détecté.",
       "checkJournalGap": "Écart courant: {{value}}",
+      "workflowTitle": "Workflow de clôture guidée",
+      "workflowProgress": "{{done}} / {{total}} jalon(x) atteint(s) ({{percent}}%)",
+      "milestoneCompleted": "Validé",
+      "milestonePending": "En attente",
+      "nextActionLabel": "Prochaine action",
+      "milestones": {
+        "j5": {
+          "title": "J+5 - Dotations comptabilisées",
+          "description": "Toutes les dotations de la période doivent être comptabilisées."
+        },
+        "j10": {
+          "title": "J+10 - Équilibre des journaux",
+          "description": "Vérifier que le journal est équilibré en débit / crédit."
+        },
+        "j15": {
+          "title": "J+15 - Clôture validée",
+          "description": "Finaliser et valider la clôture de période."
+        }
+      },
+      "nextActions": {
+        "post_depreciation": "Comptabiliser les dotations restantes avant J+5 ({{count}} ligne(s) non comptabilisée(s)).",
+        "resolve_journal_gap": "Résoudre l'écart de journal avant J+10 (écart courant: {{value}}).",
+        "finalize_closing_validation": "Valider la clôture de période et historiser la décision avant J+15.",
+        "monitor_next_period": "Clôture terminée. Vous pouvez préparer la période suivante."
+      },
       "successTitle": "Clôture assistée terminée",
       "successDescription": "La période a été clôturée avec génération des dotations et contrôle de cohérence.",
       "blockedTitle": "Clôture assistée bloquée",
@@ -2673,6 +2698,7 @@
       "profitability": "Ratios de Rentabilité",
       "dso": "Délai Client (DSO)",
       "dpo": "Délai Fournisseur (DPO)",
+      "dio": "Stock Moyen (DIO)",
       "stockRotation": "Rotation des Stocks",
       "cashConversionCycle": "Cycle de Conversion Cash",
       "bfrToRevenue": "BFR / CA",
@@ -2810,6 +2836,8 @@
       "financialIndependence": "Indépendance Financière",
       "gearing": "Levier (Gearing)",
       "dso": "Délai Client (DSO)",
+      "dpo": "Délai Fournisseur (DPO)",
+      "dio": "Stock Moyen (DIO)",
       "roe": "ROE",
       "roa": "ROA"
     },
@@ -4388,6 +4416,7 @@
       "title": "Previsions de Tresorerie IA",
       "description": "Prediction intelligente de votre tresorerie avec scenarios et alertes",
       "days": "j",
+      "period13Weeks": "13 sem",
       "refresh": "Actualiser"
     },
     "summary": {

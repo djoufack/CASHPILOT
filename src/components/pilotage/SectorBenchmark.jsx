@@ -93,6 +93,22 @@ const SectorBenchmark = ({ data, sector }) => {
         lowerIsBetter: true,
       },
       {
+        key: 'dpo',
+        label: t('pilotage.benchmark.dpo'),
+        actual: pilotageRatios?.activity?.dpo,
+        target: benchmarks.dpo?.target,
+        format: 'days',
+        lowerIsBetter: false,
+      },
+      {
+        key: 'dio',
+        label: t('pilotage.benchmark.dio'),
+        actual: pilotageRatios?.activity?.stockRotationDays,
+        target: (benchmarks.dio ?? benchmarks.stockRotationDays)?.target,
+        format: 'days',
+        lowerIsBetter: true,
+      },
+      {
         key: 'roe',
         label: t('pilotage.benchmark.roe'),
         actual: diagnostic?.ratios?.profitability?.roe,

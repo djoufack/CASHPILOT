@@ -36,6 +36,7 @@ import { formatCurrency } from '@/utils/calculations';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
+import { getApprovalWorkflowSummary } from '@/services/supplierApprovalWorkflow';
 import { exportExpensesListPDF, exportExpensesListHTML } from '@/services/exportListsPDF';
 import ExportButton from '@/components/ExportButton';
 import { usePagination } from '@/hooks/usePagination';
@@ -54,8 +55,28 @@ import { formatDateInput } from '@/utils/dateFormatting';
 import VirtualizedTable from '@/components/VirtualizedTable';
 import SectionErrorBoundary from '@/components/SectionErrorBoundary';
 
-const ExpenseActions = ({ expense, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => {
+const APPROVAL_BADGE_STYLES = {
+  pending: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+  approved: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+  rejected: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+};
+
+const ExpenseActions = ({
+  expense,
+  approvalSummary,
+  onView,
+  onEdit,
+  onDelete,
+  onExportPDF,
+  onExportHTML,
+  onApprove,
+  onReject,
+  onResetApproval,
+}) => {
   const [open, setOpen] = useState(false);
+  const canApprove = approvalSummary?.status === 'pending';
+  const canReset = approvalSummary?.status !== 'pending';
+
   return (
     <div className="relative">
       <button
@@ -107,6 +128,37 @@ const ExpenseActions = ({ expense, onView, onEdit, onDelete, onExportPDF, onExpo
             <div className="border-t border-gray-700 my-1" />
             <button
               onClick={() => {
+                onApprove(expense);
+                setOpen(false);
+              }}
+              disabled={!canApprove}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span className="font-mono text-xs">N{approvalSummary?.currentLevel || 1}</span> Valider
+            </button>
+            <button
+              onClick={() => {
+                onReject(expense);
+                setOpen(false);
+              }}
+              disabled={!canApprove}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-300 hover:bg-rose-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Rejeter
+            </button>
+            <button
+              onClick={() => {
+                onResetApproval(expense);
+                setOpen(false);
+              }}
+              disabled={!canReset}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-amber-300 hover:bg-amber-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Reinitialiser approbation
+            </button>
+            <div className="border-t border-gray-700 my-1" />
+            <button
+              onClick={() => {
                 onDelete(expense);
                 setOpen(false);
               }}
@@ -123,7 +175,16 @@ const ExpenseActions = ({ expense, onView, onEdit, onDelete, onExportPDF, onExpo
 
 const ExpensesPage = () => {
   const { t } = useTranslation();
-  const { expenses, loading, createExpense, updateExpense, deleteExpense } = useExpenses();
+  const {
+    expenses,
+    loading,
+    createExpense,
+    updateExpense,
+    deleteExpense,
+    advanceApproval,
+    rejectApproval,
+    resetApproval,
+  } = useExpenses();
   const { suppliers } = useSuppliers();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -217,6 +278,29 @@ const ExpensesPage = () => {
     } catch (err) {
       console.error('Error deleting expense:', err);
     }
+  };
+
+  const getApprovalLabel = (status) => {
+    if (status === 'approved') return 'Approuvee';
+    if (status === 'rejected') return 'Rejetee';
+    return "En attente d'approbation";
+  };
+
+  const handleAdvanceApproval = async (expense) => {
+    if (!expense?.id) return;
+    await advanceApproval(expense.id);
+  };
+
+  const handleRejectApproval = async (expense) => {
+    if (!expense?.id) return;
+    const reason = window.prompt('Motif de rejet (optionnel)', expense?.rejected_reason || '');
+    if (reason === null) return;
+    await rejectApproval(expense.id, reason || null);
+  };
+
+  const handleResetApproval = async (expense) => {
+    if (!expense?.id) return;
+    await resetApproval(expense.id);
   };
 
   const handleSingleExportPDF = (exp) => {
@@ -462,39 +546,59 @@ const ExpensesPage = () => {
                         </div>
                       </div>
                     }
-                    renderRow={(exp, index, style) => (
-                      <div
-                        key={exp.id}
-                        style={style}
-                        className="flex items-center border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors text-sm"
-                      >
-                        <div className="p-4 text-gray-400 truncate" style={{ flex: 1 }}>
-                          {exp.expense_date ? formatDate(exp.expense_date) : '—'}
-                        </div>
-                        <div className="p-4 text-gradient font-medium truncate" style={{ flex: 2 }}>
-                          {exp.description || '—'}
-                        </div>
-                        <div className="p-4 text-gray-400 capitalize truncate hidden md:block" style={{ flex: 1 }}>
-                          {exp.category || '—'}
-                        </div>
-                        <div className="p-4 text-gray-400 truncate hidden lg:block" style={{ flex: 1.5 }}>
-                          {exp.supplier?.company_name || '—'}
-                        </div>
-                        <div className="p-4 text-right text-gradient font-semibold truncate" style={{ flex: 1 }}>
-                          {formatCurrency(exp.amount || 0, companyCurrency)}
-                        </div>
-                        <div className="p-4 text-right" style={{ width: 64 }}>
-                          <ExpenseActions
-                            expense={exp}
-                            onView={handleView}
-                            onEdit={handleEdit}
-                            onDelete={setDeleteTarget}
-                            onExportPDF={handleSingleExportPDF}
-                            onExportHTML={handleSingleExportHTML}
-                          />
-                        </div>
-                      </div>
-                    )}
+                    renderRow={(exp, index, style) =>
+                      (() => {
+                        const approvalSummary = getApprovalWorkflowSummary(exp.approval_steps, exp.approval_stage);
+                        const approvalStatus = exp.approval_status || approvalSummary.status || 'pending';
+                        const approvalClass = APPROVAL_BADGE_STYLES[approvalStatus] || APPROVAL_BADGE_STYLES.pending;
+
+                        return (
+                          <div
+                            key={exp.id}
+                            style={style}
+                            className="flex items-center border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors text-sm"
+                          >
+                            <div className="p-4 text-gray-400 truncate" style={{ flex: 1 }}>
+                              {exp.expense_date ? formatDate(exp.expense_date) : '—'}
+                            </div>
+                            <div className="p-4 text-gradient font-medium truncate" style={{ flex: 2 }}>
+                              {exp.description || '—'}
+                            </div>
+                            <div className="p-4 text-gray-400 capitalize truncate hidden md:block" style={{ flex: 1 }}>
+                              {exp.category || '—'}
+                            </div>
+                            <div className="p-4 text-gray-400 truncate hidden lg:block" style={{ flex: 1.5 }}>
+                              {exp.supplier?.company_name || '—'}
+                            </div>
+                            <div className="p-4 text-right text-gradient font-semibold truncate" style={{ flex: 1 }}>
+                              {formatCurrency(exp.amount || 0, companyCurrency)}
+                            </div>
+                            <div className="p-4 text-right" style={{ width: 64 }}>
+                              <ExpenseActions
+                                expense={exp}
+                                approvalSummary={approvalSummary}
+                                onView={handleView}
+                                onEdit={handleEdit}
+                                onDelete={setDeleteTarget}
+                                onExportPDF={handleSingleExportPDF}
+                                onExportHTML={handleSingleExportHTML}
+                                onApprove={handleAdvanceApproval}
+                                onReject={handleRejectApproval}
+                                onResetApproval={handleResetApproval}
+                              />
+                            </div>
+                            <div className="pr-3 hidden xl:flex flex-col items-end min-w-[120px]">
+                              <span className={`rounded-full border px-2 py-0.5 text-[10px] ${approvalClass}`}>
+                                {getApprovalLabel(approvalStatus)}
+                              </span>
+                              <span className="mt-1 text-[10px] text-gray-400">
+                                N{approvalSummary.currentLevel} / N{approvalSummary.requiredLevels}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    }
                   />
                   <PaginationControls
                     currentPage={pagination.currentPage}
@@ -610,6 +714,22 @@ const ExpensesPage = () => {
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Méthode de paiement</p>
                   <p className="text-white capitalize">{viewExpense.payment_method || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Approbation</p>
+                  <p className="text-white">{getApprovalLabel(viewExpense.approval_status || 'pending')}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Niveau workflow</p>
+                  <p className="text-white">
+                    {(() => {
+                      const summary = getApprovalWorkflowSummary(
+                        viewExpense.approval_steps,
+                        viewExpense.approval_stage
+                      );
+                      return `N${summary.currentLevel} / N${summary.requiredLevels}`;
+                    })()}
+                  </p>
                 </div>
                 {viewExpense.amount_ht != null && (
                   <div>

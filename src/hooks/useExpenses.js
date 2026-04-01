@@ -34,7 +34,9 @@ export const useExpenses = () => {
       }
       let query = supabase
         .from('expenses')
-        .select('*, supplier:suppliers(id, company_name)')
+        .select(
+          '*, supplier:suppliers(id, company_name), approval_steps:expense_approval_steps(id, level, required_role, status, approver_id, decided_at, comment)'
+        )
         .order('expense_date', { ascending: false });
 
       query = applyCompanyScope(query);
@@ -58,7 +60,10 @@ export const useExpenses = () => {
         const usePagination = page != null && pageSize != null;
         let query = supabase
           .from('expenses')
-          .select('*, supplier:suppliers(id, company_name)', usePagination ? { count: 'exact' } : undefined)
+          .select(
+            '*, supplier:suppliers(id, company_name), approval_steps:expense_approval_steps(id, level, required_role, status, approver_id, decided_at, comment)',
+            usePagination ? { count: 'exact' } : undefined
+          )
           .order('expense_date', { ascending: false });
 
         query = applyCompanyScope(query);
@@ -179,6 +184,89 @@ export const useExpenses = () => {
     }
   };
 
+  const advanceApproval = useCallback(
+    async (id, comment = null) => {
+      if (!user) return null;
+      if (!supabase) throw new Error('Supabase not configured');
+      setLoading(true);
+      try {
+        const { error } = await supabase.rpc('expense_approve_step', {
+          p_expense_id: id,
+          p_comment: comment || null,
+        });
+        if (error) throw error;
+        await fetchExpenses();
+        toast({
+          title: t('hooks.expenses.approvalUpdatedTitle', 'Approbation mise a jour'),
+          description: t('hooks.expenses.approvalUpdatedDesc', 'La depense a ete validee sur le niveau courant.'),
+        });
+        return true;
+      } catch (err) {
+        setError(err.message);
+        toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchExpenses, setError, setLoading, t, toast, user]
+  );
+
+  const rejectApproval = useCallback(
+    async (id, reason = null) => {
+      if (!user) return null;
+      if (!supabase) throw new Error('Supabase not configured');
+      setLoading(true);
+      try {
+        const { error } = await supabase.rpc('expense_reject_step', {
+          p_expense_id: id,
+          p_reason: reason || null,
+        });
+        if (error) throw error;
+        await fetchExpenses();
+        toast({
+          title: t('hooks.expenses.approvalUpdatedTitle', 'Approbation mise a jour'),
+          description: t('hooks.expenses.approvalRejectedDesc', 'La depense a ete rejetee.'),
+        });
+        return true;
+      } catch (err) {
+        setError(err.message);
+        toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchExpenses, setError, setLoading, t, toast, user]
+  );
+
+  const resetApproval = useCallback(
+    async (id) => {
+      if (!user) return null;
+      if (!supabase) throw new Error('Supabase not configured');
+      setLoading(true);
+      try {
+        const { error } = await supabase.rpc('expense_reset_approval_workflow', {
+          p_expense_id: id,
+        });
+        if (error) throw error;
+        await fetchExpenses();
+        toast({
+          title: t('hooks.expenses.approvalUpdatedTitle', 'Approbation mise a jour'),
+          description: t('hooks.expenses.approvalResetDesc', "Le workflow d'approbation a ete reinitialise."),
+        });
+        return true;
+      } catch (err) {
+        setError(err.message);
+        toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchExpenses, setError, setLoading, t, toast, user]
+  );
+
   return {
     expenses,
     loading,
@@ -188,5 +276,8 @@ export const useExpenses = () => {
     createExpense,
     updateExpense,
     deleteExpense,
+    advanceApproval,
+    rejectApproval,
+    resetApproval,
   };
 };

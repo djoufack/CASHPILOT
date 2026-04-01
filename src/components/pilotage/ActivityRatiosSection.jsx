@@ -1,4 +1,3 @@
-
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import RatioInfoPopover from '@/components/accounting/RatioInfoPopover';
@@ -22,9 +21,7 @@ const getStatusColor = (evaluation) => {
 
 const ActivityRatioCard = ({ label, value, suffix, benchmark, evaluation, info }) => {
   const displayValue =
-    value === null || value === undefined
-      ? '-'
-      : `${typeof value === 'number' ? value.toFixed(1) : value}${suffix}`;
+    value === null || value === undefined ? '-' : `${typeof value === 'number' ? value.toFixed(1) : value}${suffix}`;
 
   const statusDotClass = getStatusColor(evaluation);
 
@@ -46,7 +43,8 @@ const ActivityRatioCard = ({ label, value, suffix, benchmark, evaluation, info }
         {/* Benchmark target */}
         {benchmark?.target !== null && benchmark?.target !== undefined && (
           <p className="text-xs text-gray-500">
-            Cible&nbsp;: {benchmark.target}{suffix}
+            Cible&nbsp;: {benchmark.target}
+            {suffix}
           </p>
         )}
       </CardContent>
@@ -60,6 +58,8 @@ const ActivityRatiosSection = ({ data, _sector }) => {
   const activity = data?.pilotageRatios?.activity;
   const benchmarks = data?.benchmarks ?? {};
   const evaluations = data?.ratioEvaluations ?? {};
+  const dioBenchmark = benchmarks.dio ?? benchmarks.stockRotationDays ?? null;
+  const dioEvaluation = evaluations.dio ?? evaluations.stockRotationDays ?? null;
 
   const daysSuffix = ` ${t('pilotage.ratios.days')}`;
 
@@ -75,9 +75,10 @@ const ActivityRatiosSection = ({ data, _sector }) => {
         info={{
           title: 'DSO (Delai moyen de recouvrement clients)',
           formula: 'DSO = (creances clients / CA TTC) x 365',
-          definition: "Le DSO mesure le nombre moyen de jours pour encaisser les paiements clients.",
+          definition: 'Le DSO mesure le nombre moyen de jours pour encaisser les paiements clients.',
           utility: "Il permet de piloter l'efficacite du recouvrement et d'anticiper les tensions de tresorerie.",
-          interpretation: "Un DSO faible indique des encaissements rapides. Un DSO eleve signale des retards de paiement ou des conditions trop souples.",
+          interpretation:
+            'Un DSO faible indique des encaissements rapides. Un DSO eleve signale des retards de paiement ou des conditions trop souples.',
         }}
       />
 
@@ -91,25 +92,28 @@ const ActivityRatiosSection = ({ data, _sector }) => {
         info={{
           title: 'DPO (Delai moyen de paiement fournisseurs)',
           formula: 'DPO = (dettes fournisseurs / achats TTC) x 365',
-          definition: "Le DPO mesure le nombre moyen de jours pour payer les fournisseurs.",
-          utility: "Il aide a evaluer la politique de paiement et son impact sur la tresorerie.",
-          interpretation: "Un DPO eleve preserve la tresorerie mais peut deteriorer les relations fournisseurs. Un DPO trop court peut peser sur le cash.",
+          definition: 'Le DPO mesure le nombre moyen de jours pour payer les fournisseurs.',
+          utility: 'Il aide a evaluer la politique de paiement et son impact sur la tresorerie.',
+          interpretation:
+            'Un DPO eleve preserve la tresorerie mais peut deteriorer les relations fournisseurs. Un DPO trop court peut peser sur le cash.',
         }}
       />
 
-      {/* 3. Stock Rotation */}
+      {/* 3. DIO */}
       <ActivityRatioCard
-        label={t('pilotage.ratios.stockRotation')}
+        label={t('pilotage.ratios.dio')}
         value={activity?.stockRotationDays ?? null}
         suffix={daysSuffix}
-        benchmark={benchmarks.stockRotationDays}
-        evaluation={evaluations.stockRotationDays}
+        benchmark={dioBenchmark}
+        evaluation={dioEvaluation}
         info={{
-          title: 'Rotation des stocks',
-          formula: 'Rotation = (stocks moyens / cout des ventes) x 365',
-          definition: "Ce ratio mesure le nombre de jours pendant lesquels les stocks restent en entrepot avant d'etre vendus.",
-          utility: "Il permet d'optimiser la gestion des stocks et de limiter le capital immobilise.",
-          interpretation: "Une rotation rapide (peu de jours) est positive. Une rotation lente peut signaler des surstocks ou des invendus.",
+          title: 'DIO (Days Inventory Outstanding)',
+          formula: 'DIO = (stock moyen / cout des ventes) x 365',
+          definition:
+            "Le DIO mesure le nombre moyen de jours pendant lesquels le stock reste immobilise avant d'etre vendu.",
+          utility: 'Il permet de piloter le cash immobilise dans le stock et de detecter les surstocks.',
+          interpretation:
+            'Un DIO faible est generalement positif. Un DIO eleve peut signaler des invendus ou une rotation trop lente.',
         }}
       />
 
@@ -122,10 +126,11 @@ const ActivityRatiosSection = ({ data, _sector }) => {
         evaluation={evaluations.ccc}
         info={{
           title: 'Cycle de Conversion de Tresorerie (CCC)',
-          formula: 'CCC = DSO + rotation stocks - DPO',
+          formula: 'CCC = DSO + DIO - DPO',
           definition: "Le CCC mesure le temps entre le paiement des fournisseurs et l'encaissement des clients.",
           utility: "Il synthetise l'efficacite globale du cycle d'exploitation en termes de cash.",
-          interpretation: "Un CCC court ou negatif est excellent: l'entreprise encaisse avant de payer. Un CCC long signale un besoin de financement du cycle.",
+          interpretation:
+            "Un CCC court ou negatif est excellent: l'entreprise encaisse avant de payer. Un CCC long signale un besoin de financement du cycle.",
         }}
       />
 
@@ -140,8 +145,10 @@ const ActivityRatiosSection = ({ data, _sector }) => {
           title: "BFR / Chiffre d'affaires",
           formula: "BFR / CA = (BFR / chiffre d'affaires) x 100",
           definition: "Ce ratio exprime le BFR en proportion du chiffre d'affaires.",
-          utility: "Il permet de comparer le poids du BFR entre periodes et entre entreprises, independamment de la taille.",
-          interpretation: "Un ratio faible est favorable. Un ratio en hausse indique que le BFR croit plus vite que l'activite.",
+          utility:
+            'Il permet de comparer le poids du BFR entre periodes et entre entreprises, independamment de la taille.',
+          interpretation:
+            "Un ratio faible est favorable. Un ratio en hausse indique que le BFR croit plus vite que l'activite.",
         }}
       />
     </div>

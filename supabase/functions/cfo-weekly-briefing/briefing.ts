@@ -15,6 +15,12 @@ export type WeeklyBriefingContext = {
     clientCount: number;
     invoiceCount: number;
   };
+  workingCapitalKpis?: {
+    dso: number | null;
+    dpo: number | null;
+    dio: number | null;
+    ccc: number | null;
+  } | null;
   topClientsByRevenue: Array<{
     client_name?: string | null;
     revenue_ttc?: number | null;
@@ -43,6 +49,11 @@ export const buildWeeklyBriefing = (context: WeeklyBriefingContext, generatedAt 
   const weekStartKey = weekStart.toISOString().slice(0, 10);
   const healthScore = computeCfoHealthScore(context.summary);
   const topClient = context.topClientsByRevenue[0] || null;
+  const dso = context.workingCapitalKpis?.dso ?? null;
+  const dpo = context.workingCapitalKpis?.dpo ?? null;
+  const dio = context.workingCapitalKpis?.dio ?? null;
+  const ccc = context.workingCapitalKpis?.ccc ?? null;
+  const hasWorkingCapitalMetrics = [dso, dpo, dio, ccc].some((metric) => typeof metric === 'number');
   const sourceEvidence = buildCfoSourceEvidence(
     {
       companyId: context.companyId,
@@ -68,6 +79,11 @@ export const buildWeeklyBriefing = (context: WeeklyBriefingContext, generatedAt 
       )} encore dus)`
     );
   }
+  if (hasWorkingCapitalMetrics) {
+    highlights.push(
+      `Cycle cash: DSO ${dso ?? 'N/A'} j | DIO ${dio ?? 'N/A'} j | DPO ${dpo ?? 'N/A'} j | CCC ${ccc ?? 'N/A'} j`
+    );
+  }
 
   const recommendedActions = [];
   if (context.summary.overdueCount > 0) {
@@ -84,6 +100,18 @@ export const buildWeeklyBriefing = (context: WeeklyBriefingContext, generatedAt 
   if (topClient?.client_name) {
     recommendedActions.push(`Sécuriser le compte ${topClient.client_name} pour protéger le CA récurrent.`);
   }
+  if (typeof dso === 'number' && dso > 45) {
+    recommendedActions.push(`Plan recouvrement ciblé pour ramener le DSO sous 45 jours.`);
+  }
+  if (typeof dio === 'number' && dio > 60) {
+    recommendedActions.push(`Réduire les stocks lents pour faire baisser le DIO sous 60 jours.`);
+  }
+  if (typeof dpo === 'number' && dpo < 30) {
+    recommendedActions.push(`Renégocier les conditions fournisseurs pour rapprocher le DPO de 45 jours.`);
+  }
+  if (typeof ccc === 'number' && ccc > 30) {
+    recommendedActions.push(`Lancer un plan cash inter-modules pour réduire le CCC sous 30 jours.`);
+  }
 
   const briefingText = [
     `Briefing hebdomadaire CFO - ${context.companyName}`,
@@ -94,6 +122,10 @@ export const buildWeeklyBriefing = (context: WeeklyBriefingContext, generatedAt 
     `Résultat net: ${formatMoney(context.summary.netResult)}`,
     `Encours clients: ${formatMoney(context.summary.unpaidTotal)}`,
     `Factures en retard: ${context.summary.overdueCount}`,
+    `DSO: ${dso ?? 'N/A'} j`,
+    `DPO: ${dpo ?? 'N/A'} j`,
+    `DIO: ${dio ?? 'N/A'} j`,
+    `CCC: ${ccc ?? 'N/A'} j`,
     '',
     'Points clés:',
     ...highlights.map((line) => `- ${line}`),
@@ -113,6 +145,10 @@ export const buildWeeklyBriefing = (context: WeeklyBriefingContext, generatedAt 
       generated_at: generatedAt.toISOString(),
       summary: {
         ...context.summary,
+        dso,
+        dpo,
+        dio,
+        ccc,
         health_score: healthScore.score,
         factors: healthScore.factors,
       },

@@ -1154,6 +1154,31 @@
       "checkJournal": "Debet / credit in balans",
       "checkJournalOk": "Geen journaalverschil gedetecteerd.",
       "checkJournalGap": "Huidig verschil: {{value}}",
+      "workflowTitle": "Begeleide afsluitworkflow",
+      "workflowProgress": "{{done}} / {{total}} mijlpa(a)l(en) afgerond ({{percent}}%)",
+      "milestoneCompleted": "Afgerond",
+      "milestonePending": "Open",
+      "nextActionLabel": "Volgende actie",
+      "milestones": {
+        "j5": {
+          "title": "J+5 - Afschrijvingen geboekt",
+          "description": "Alle afschrijvingen van de periode moeten geboekt zijn."
+        },
+        "j10": {
+          "title": "J+10 - Journalen in balans",
+          "description": "Controleer dat debet en credit volledig in evenwicht zijn."
+        },
+        "j15": {
+          "title": "J+15 - Afsluiting gevalideerd",
+          "description": "Finaliseer en valideer de periodeafsluiting."
+        }
+      },
+      "nextActions": {
+        "post_depreciation": "Boek resterende afschrijvingen voor J+5 ({{count}} niet-geboekte lijn(en)).",
+        "resolve_journal_gap": "Los het journaalverschil op voor J+10 (huidig verschil: {{value}}).",
+        "finalize_closing_validation": "Valideer de periodeafsluiting en archiveer de beslissing voor J+15.",
+        "monitor_next_period": "Afsluiting voltooid. U kunt de volgende periode voorbereiden."
+      },
       "successTitle": "Begeleide afsluiting voltooid",
       "successDescription": "Periode afgesloten met afschrijvingsgeneratie en consistentiecontroles.",
       "blockedTitle": "Begeleide afsluiting geblokkeerd",
@@ -3517,6 +3542,7 @@
       "profitability": "Rendementskencijfers",
       "dso": "Debiteurendagen (DSO)",
       "dpo": "Crediteurendagen (DPO)",
+      "dio": "Voorraaddagen (DIO)",
       "stockRotation": "Voorraadrotatie",
       "cashConversionCycle": "Kasconversiecyclus",
       "bfrToRevenue": "Werkkapitaal / Omzet",
@@ -3654,6 +3680,8 @@
       "financialIndependence": "Financiële onafhankelijkheid",
       "gearing": "Hefboomwerking (leverage)",
       "dso": "Debiteurendagen (DSO)",
+      "dpo": "Crediteurendagen (DPO)",
+      "dio": "Voorraaddagen (DIO)",
       "roe": "ROE",
       "roa": "ROA"
     },
@@ -4262,6 +4290,7 @@
       "title": "AI Liquiditeitsprognoses",
       "description": "Intelligente prognose van uw liquiditeit met scenario's en waarschuwingen",
       "days": "d",
+      "period13Weeks": "13 wk",
       "refresh": "Vernieuwen"
     },
     "summary": {

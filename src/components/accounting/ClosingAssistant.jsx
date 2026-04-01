@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAccountingClosingAssistant } from '@/hooks/useAccountingClosingAssistant';
+import { buildClosingWorkflow } from '@/services/accountingClosingAssistant';
 import { formatDate as formatDateLocale, formatNumber } from '@/utils/dateLocale';
 
 function formatDate(value) {
@@ -92,6 +93,39 @@ export default function ClosingAssistant({ period }) {
     ];
   }, [lastResult?.journalSummary?.gap, latestClosure?.journal_gap, t, unposted]);
 
+  const workflow = useMemo(() => {
+    if (lastResult?.workflow) return lastResult.workflow;
+    if (latestClosure?.checklist?.workflow) return latestClosure.checklist.workflow;
+
+    return buildClosingWorkflow({
+      periodEnd: latestClosure?.period_end || periodEnd,
+      status: lastResult?.status || latestClosure?.status || 'draft',
+      unpostedDepreciationAfter: unposted,
+      journalGap: Number(lastResult?.journalSummary?.gap ?? latestClosure?.journal_gap ?? 0),
+    });
+  }, [
+    lastResult?.journalSummary?.gap,
+    lastResult?.status,
+    lastResult?.workflow,
+    latestClosure?.checklist?.workflow,
+    latestClosure?.journal_gap,
+    latestClosure?.period_end,
+    latestClosure?.status,
+    periodEnd,
+    unposted,
+  ]);
+
+  const nextActionDetail = useMemo(() => {
+    const action = workflow?.nextAction;
+    if (!action) return null;
+
+    return t(action.descriptionKey, {
+      defaultValue: action.defaultDescription || '',
+      count: Number(action?.metadata?.count || 0),
+      value: asMoney(action?.metadata?.value || 0),
+    });
+  }, [t, workflow?.nextAction]);
+
   const handleRunClosing = async () => {
     const result = await runClosing({
       periodStart,
@@ -152,6 +186,62 @@ export default function ClosingAssistant({ period }) {
             {t('accounting.closingAssistant.lastCloseDate', 'Derniere cloture')}:{' '}
             {formatDate(lastResult?.periodEnd || latestClosure?.closed_on)}
           </p>
+        </div>
+
+        <div className="rounded-lg border border-slate-700 bg-slate-900/70 p-3">
+          <p className="text-sm font-medium text-white">
+            {t('accounting.closingAssistant.workflowTitle', 'Workflow de cloture guidee')}
+          </p>
+          <p className="mt-1 text-xs text-slate-300">
+            {t('accounting.closingAssistant.workflowProgress', {
+              defaultValue: '{{done}} / {{total}} jalon(x) atteint(s) ({{percent}}%)',
+              done: Number(workflow?.progress?.completed || 0),
+              total: Number(workflow?.progress?.total || 0),
+              percent: Number(workflow?.progress?.percent || 0),
+            })}
+          </p>
+
+          <div className="mt-3 grid gap-2 md:grid-cols-3">
+            {(workflow?.milestones || []).map((milestone) => (
+              <div
+                key={milestone.key}
+                className={`rounded-lg border p-2 ${
+                  milestone.completed ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-slate-700 bg-slate-900'
+                }`}
+              >
+                <p className="text-xs font-semibold text-white">{milestone.code}</p>
+                <p className="mt-1 text-xs text-slate-200">
+                  {t(milestone.titleKey, milestone.defaultTitle || milestone.code)}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-400">{formatDate(milestone.targetDate)}</p>
+                <div className="mt-2 flex items-center gap-1 text-[11px]">
+                  {milestone.completed ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                  ) : (
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-300" />
+                  )}
+                  <span className={milestone.completed ? 'text-emerald-300' : 'text-amber-300'}>
+                    {milestone.completed
+                      ? t('accounting.closingAssistant.milestoneCompleted', 'Valide')
+                      : t('accounting.closingAssistant.milestonePending', 'En attente')}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {nextActionDetail ? (
+            <div
+              className={`mt-3 rounded-md border px-3 py-2 text-xs ${
+                workflow?.nextAction?.severity === 'success'
+                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+                  : 'border-amber-500/40 bg-amber-500/10 text-amber-100'
+              }`}
+            >
+              <p className="font-medium">{t('accounting.closingAssistant.nextActionLabel', 'Prochaine action')}</p>
+              <p className="mt-1">{nextActionDetail}</p>
+            </div>
+          ) : null}
         </div>
 
         <Button onClick={handleRunClosing} disabled={loading || running} className="bg-indigo-600 hover:bg-indigo-500">

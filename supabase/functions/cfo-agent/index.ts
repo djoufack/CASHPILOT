@@ -60,7 +60,7 @@ serve(async (req) => {
     }
 
     // Gather financial context
-    const financialContext = await gatherFinancialContext(scopedSupabase, companyId);
+    const financialContext = await gatherFinancialContext(scopedSupabase, companyId, authUser.id);
     const healthScore = computeCfoHealthScore(financialContext.summary);
     const sourceEvidence = buildCfoSourceEvidence(
       {
@@ -100,6 +100,10 @@ SITUATION FINANCIERE:
 - Impayes: ${formatMoney(financialContext.summary.unpaidTotal)}
 - Factures en retard: ${financialContext.summary.overdueCount}
 - Nombre de clients: ${financialContext.summary.clientCount}
+- DSO: ${financialContext.workingCapitalKpis?.dso ?? 'N/A'} jours
+- DPO: ${financialContext.workingCapitalKpis?.dpo ?? 'N/A'} jours
+- DIO: ${financialContext.workingCapitalKpis?.dio ?? 'N/A'} jours
+- CCC: ${financialContext.workingCapitalKpis?.ccc ?? 'N/A'} jours
 - Score de sante financiere: ${healthScore.score}/100
 
 FACTURES EN RETARD:

@@ -25,7 +25,9 @@ export const usePurchaseOrders = () => {
       try {
         let query = supabase
           .from('purchase_orders')
-          .select('*, client:clients(company_name)')
+          .select(
+            '*, client:clients(company_name), approval_steps:purchase_order_approval_steps(id, level, required_role, status, approver_id, decided_at, comment)'
+          )
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         query = applyCompanyScope(query, { includeUnassigned: true });
@@ -155,6 +157,101 @@ export const usePurchaseOrders = () => {
     }
   };
 
+  const advanceApproval = useCallback(
+    async (id, comment = null) => {
+      if (!user) return null;
+      if (!supabase) throw new Error('Supabase not configured');
+      setLoading(true);
+      try {
+        const { error } = await supabase.rpc('purchase_order_approve_step', {
+          p_purchase_order_id: id,
+          p_comment: comment || null,
+        });
+        if (error) throw error;
+        await fetchPurchaseOrders();
+        toast({
+          title: 'Succès',
+          description: 'Approbation du bon de commande mise à jour',
+        });
+        return true;
+      } catch (err) {
+        setError(err.message);
+        toast({
+          title: 'Erreur',
+          description: err.message,
+          variant: 'destructive',
+        });
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchPurchaseOrders, toast, user]
+  );
+
+  const rejectApproval = useCallback(
+    async (id, reason = null) => {
+      if (!user) return null;
+      if (!supabase) throw new Error('Supabase not configured');
+      setLoading(true);
+      try {
+        const { error } = await supabase.rpc('purchase_order_reject_step', {
+          p_purchase_order_id: id,
+          p_reason: reason || null,
+        });
+        if (error) throw error;
+        await fetchPurchaseOrders();
+        toast({
+          title: 'Succès',
+          description: 'Le bon de commande a été rejeté',
+        });
+        return true;
+      } catch (err) {
+        setError(err.message);
+        toast({
+          title: 'Erreur',
+          description: err.message,
+          variant: 'destructive',
+        });
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchPurchaseOrders, toast, user]
+  );
+
+  const resetApproval = useCallback(
+    async (id) => {
+      if (!user) return null;
+      if (!supabase) throw new Error('Supabase not configured');
+      setLoading(true);
+      try {
+        const { error } = await supabase.rpc('purchase_order_reset_approval_workflow', {
+          p_purchase_order_id: id,
+        });
+        if (error) throw error;
+        await fetchPurchaseOrders();
+        toast({
+          title: 'Succès',
+          description: "Le workflow d'approbation a été réinitialisé",
+        });
+        return true;
+      } catch (err) {
+        setError(err.message);
+        toast({
+          title: 'Erreur',
+          description: err.message,
+          variant: 'destructive',
+        });
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchPurchaseOrders, toast, user]
+  );
+
   useEffect(() => {
     fetchPurchaseOrders();
   }, [fetchPurchaseOrders]);
@@ -167,5 +264,8 @@ export const usePurchaseOrders = () => {
     createPurchaseOrder,
     updatePurchaseOrder,
     deletePurchaseOrder,
+    advanceApproval,
+    rejectApproval,
+    resetApproval,
   };
 };

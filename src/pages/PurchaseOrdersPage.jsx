@@ -9,6 +9,7 @@ import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import { formatDate } from '@/utils/dateLocale';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportPurchaseOrderPDF, exportPurchaseOrderHTML } from '@/services/exportDocuments';
+import { getApprovalWorkflowSummary } from '@/services/supplierApprovalWorkflow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,9 @@ import {
   FileText,
   Eye,
   Pencil,
+  ShieldCheck,
+  XCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
@@ -68,9 +72,24 @@ const createInitialFormData = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
   items: [createEmptyItem(taxRate)],
 });
 
-const POCard = ({ po, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => {
+const APPROVAL_BADGE_STYLES = {
+  pending: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+  approved: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+  rejected: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+};
+
+const getApprovalLabel = (status) => {
+  if (status === 'approved') return 'Approuvee';
+  if (status === 'rejected') return 'Rejetee';
+  return "En attente d'approbation";
+};
+
+const POCard = ({ po, onView, onEdit, onDelete, onExportPDF, onExportHTML, onApprove, onReject, onResetApproval }) => {
   const { t, i18n } = useTranslation();
   const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
+  const workflowSummary = getApprovalWorkflowSummary(po.approval_steps, po.approval_stage);
+  const approvalStatus = po.approval_status || workflowSummary.status || 'pending';
+  const approvalClass = APPROVAL_BADGE_STYLES[approvalStatus] || APPROVAL_BADGE_STYLES.pending;
 
   const statusColors = {
     draft: 'bg-gray-500/20 text-gray-400 border-gray-700',
@@ -105,12 +124,48 @@ const POCard = ({ po, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => 
           {statusLabels[po.status] || po.status}
         </span>
       </div>
+      <div className="mb-3 flex items-center justify-between gap-2 text-[11px]">
+        <span className={`rounded-full border px-2 py-0.5 ${approvalClass}`}>{getApprovalLabel(approvalStatus)}</span>
+        <span className="text-gray-400">
+          N{workflowSummary.currentLevel} / N{workflowSummary.requiredLevels}
+        </span>
+      </div>
       <div className="flex justify-between items-center text-sm text-gray-400 mb-4">
         <span>{po.date ? new Date(po.date).toLocaleDateString(locale) : '—'}</span>
         <span className="text-gradient font-bold text-lg">{formatCurrency(po.total || 0)}</span>
       </div>
       {po.notes && <p className="text-xs text-gray-500 mb-4 line-clamp-2">{po.notes}</p>}
       <div className="flex justify-end gap-2 border-t border-gray-800 pt-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onApprove(po)}
+          disabled={approvalStatus !== 'pending'}
+          className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          title={`Valider N${workflowSummary.currentLevel}`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onReject(po)}
+          disabled={approvalStatus !== 'pending'}
+          className="text-rose-400 hover:text-rose-300 hover:bg-rose-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Rejeter"
+        >
+          <XCircle className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onResetApproval(po)}
+          disabled={approvalStatus === 'pending'}
+          className="text-amber-400 hover:text-amber-300 hover:bg-amber-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Reinitialiser approbation"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -162,8 +217,16 @@ const POCard = ({ po, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => 
 
 const PurchaseOrdersPage = () => {
   const { t } = useTranslation();
-  const { purchaseOrders, loading, createPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder } =
-    usePurchaseOrders();
+  const {
+    purchaseOrders,
+    loading,
+    createPurchaseOrder,
+    updatePurchaseOrder,
+    deletePurchaseOrder,
+    advanceApproval,
+    rejectApproval,
+    resetApproval,
+  } = usePurchaseOrders();
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -334,6 +397,23 @@ const PurchaseOrdersPage = () => {
     } catch {
       // Error handled by hook toast
     }
+  };
+
+  const handleAdvanceApproval = async (po) => {
+    if (!po?.id) return;
+    await advanceApproval(po.id);
+  };
+
+  const handleRejectApproval = async (po) => {
+    if (!po?.id) return;
+    const reason = window.prompt('Motif de rejet (optionnel)', po?.rejected_reason || '');
+    if (reason === null) return;
+    await rejectApproval(po.id, reason || null);
+  };
+
+  const handleResetApproval = async (po) => {
+    if (!po?.id) return;
+    await resetApproval(po.id);
   };
 
   const handleView = (po) => setViewPO(po);
@@ -548,6 +628,9 @@ const PurchaseOrdersPage = () => {
                       onDelete={(id) => setDeleteTarget(purchaseOrders.find((p) => p.id === id))}
                       onExportPDF={handleExportPurchaseOrderPDF}
                       onExportHTML={handleExportPurchaseOrderHTML}
+                      onApprove={handleAdvanceApproval}
+                      onReject={handleRejectApproval}
+                      onResetApproval={handleResetApproval}
                     />
                   ))}
                 </div>
@@ -874,6 +957,19 @@ const PurchaseOrdersPage = () => {
                   <p className="text-xs text-gray-500 uppercase">Date de livraison</p>
                   <p className="text-white">{viewPO.due_date ? formatDate(viewPO.due_date) : '—'}</p>
                 </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Approbation</p>
+                  <p className="text-white">{getApprovalLabel(viewPO.approval_status || 'pending')}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Niveau workflow</p>
+                  <p className="text-white">
+                    {(() => {
+                      const summary = getApprovalWorkflowSummary(viewPO.approval_steps, viewPO.approval_stage);
+                      return `N${summary.currentLevel} / N${summary.requiredLevels}`;
+                    })()}
+                  </p>
+                </div>
                 <div className="col-span-2">
                   <p className="text-xs text-gray-500 uppercase">Total</p>
                   <p className="text-gradient font-bold text-lg">{formatCurrency(viewPO.total || 0)}</p>
@@ -935,6 +1031,33 @@ const PurchaseOrdersPage = () => {
                   onClick={() => handleExportPurchaseOrderHTML(viewPO)}
                 >
                   <FileText className="w-4 h-4 mr-2" /> HTML
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                  onClick={() => handleAdvanceApproval(viewPO)}
+                  disabled={(viewPO.approval_status || 'pending') !== 'pending'}
+                >
+                  <ShieldCheck className="w-4 h-4 mr-2" /> Valider
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-rose-500/40 text-rose-300 hover:bg-rose-500/10"
+                  onClick={() => handleRejectApproval(viewPO)}
+                  disabled={(viewPO.approval_status || 'pending') !== 'pending'}
+                >
+                  <XCircle className="w-4 h-4 mr-2" /> Rejeter
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+                  onClick={() => handleResetApproval(viewPO)}
+                  disabled={(viewPO.approval_status || 'pending') === 'pending'}
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" /> Reset approbation
                 </Button>
                 <Button
                   size="sm"

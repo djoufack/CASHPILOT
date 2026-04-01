@@ -22,6 +22,12 @@ describe('cfo-weekly-briefing logic', () => {
           clientCount: 5,
           invoiceCount: 12,
         },
+        workingCapitalKpis: {
+          dso: 48.2,
+          dpo: 26.9,
+          dio: 64.1,
+          ccc: 85.4,
+        },
         topClientsByRevenue: [
           { client_name: 'Client Alpha', revenue_ttc: 5000, unpaid_ttc: 500 },
           { client_name: 'Client Beta', revenue_ttc: 3000, unpaid_ttc: 0 },
@@ -40,10 +46,20 @@ describe('cfo-weekly-briefing logic', () => {
         briefing_text: expect.stringContaining('Acme SARL'),
       })
     );
+    expect(briefing.briefing_text).toContain('DSO: 48.2 j');
+    expect(briefing.briefing_text).toContain('DPO: 26.9 j');
+    expect(briefing.briefing_text).toContain('DIO: 64.1 j');
+    expect(briefing.briefing_text).toContain('CCC: 85.4 j');
 
     expect(briefing.briefing_json).toEqual(
       expect.objectContaining({
-        summary: expect.objectContaining({ health_score: expect.any(Number) }),
+        summary: expect.objectContaining({
+          health_score: expect.any(Number),
+          dso: 48.2,
+          dpo: 26.9,
+          dio: 64.1,
+          ccc: 85.4,
+        }),
         highlights: expect.arrayContaining([expect.stringContaining('Client Alpha')]),
         recommended_actions: expect.arrayContaining([expect.any(String)]),
       })

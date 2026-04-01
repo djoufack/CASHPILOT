@@ -186,12 +186,14 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
   // 5. Evaluate ratios against benchmarks (pure UI function)
   const ratioEvaluations = useMemo(() => {
     if (!pilotageRatios || !benchmarks) return {};
+    const dioBenchmark = benchmarks.dio ?? benchmarks.stockRotationDays ?? null;
     return {
       dso: evaluateRatio(pilotageRatios.activity?.dso, benchmarks.dso, true),
       dpo: evaluateRatio(pilotageRatios.activity?.dpo, benchmarks.dpo, false),
-      stockRotationDays: benchmarks.stockRotationDays
-        ? evaluateRatio(pilotageRatios.activity?.stockRotationDays, benchmarks.stockRotationDays, true)
+      stockRotationDays: dioBenchmark
+        ? evaluateRatio(pilotageRatios.activity?.stockRotationDays, dioBenchmark, true)
         : null,
+      dio: dioBenchmark ? evaluateRatio(pilotageRatios.activity?.stockRotationDays, dioBenchmark, true) : null,
       ccc: evaluateRatio(pilotageRatios.activity?.ccc, benchmarks.ccc, true),
       bfrToRevenue: evaluateRatio(pilotageRatios.activity?.bfrToRevenue, benchmarks.bfrToRevenue, true),
       financialIndependence: evaluateRatio(

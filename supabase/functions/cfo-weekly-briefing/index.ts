@@ -58,12 +58,13 @@ serve(async (req) => {
       });
     }
 
-    const financialContext = await gatherFinancialContext(authClient, companyId);
+    const financialContext = await gatherFinancialContext(authClient, companyId, authUser.id);
     const briefing = buildWeeklyBriefing(
       {
         companyId,
         companyName: company.company_name || financialContext.companyName,
         summary: financialContext.summary,
+        workingCapitalKpis: financialContext.workingCapitalKpis,
         topClientsByRevenue: financialContext.topClientsByRevenue,
         overdueInvoices: financialContext.overdueInvoices,
       },

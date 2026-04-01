@@ -1,0 +1,2 @@
+-- Placeholder migration to align local migration history with remote.
+-- No-op by design.

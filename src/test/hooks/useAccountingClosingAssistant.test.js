@@ -125,13 +125,14 @@ describe('useAccountingClosingAssistant', () => {
 
   it('runs assisted closing and persists a closed period record', async () => {
     const { result } = renderHook(() => useAccountingClosingAssistant());
+    let runResult = null;
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.runClosing({
+      runResult = await result.current.runClosing({
         periodStart: '2026-03-01',
         periodEnd: '2026-03-31',
       });
@@ -142,6 +143,12 @@ describe('useAccountingClosingAssistant', () => {
       p_date: '2026-03-31',
     });
     expect(mockFrom).toHaveBeenCalledWith('accounting_period_closures');
+    expect(mockUpsert).toHaveBeenCalled();
+    const [payload] = mockUpsert.mock.calls[0];
+    expect(payload.status).toBe('closed');
+    expect(payload.checklist.workflow.progress.percent).toBe(100);
+    expect(payload.checklist.workflow.nextAction.key).toBe('monitor_next_period');
+    expect(runResult?.workflow?.progress?.completed).toBe(3);
     expect(toastSpy).toHaveBeenCalled();
   });
 });

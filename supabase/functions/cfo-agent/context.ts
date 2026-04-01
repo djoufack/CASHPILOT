@@ -5,11 +5,16 @@ const toNumber = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const toNullableNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.round(parsed * 10) / 10 : null;
+};
+
 export const formatMoney = (value: number) =>
   `${value.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR`;
 
 /** Gather financial data for CFO analysis */
-export const gatherFinancialContext = async (supabase: any, companyId: string) => {
+export const gatherFinancialContext = async (supabase: any, companyId: string, userId?: string) => {
   const [invoicesRes, expensesRes, paymentsRes, clientsRes, companyRes] = await Promise.all([
     supabase
       .from('invoices')
@@ -57,6 +62,36 @@ export const gatherFinancialContext = async (supabase: any, companyId: string) =
     .filter((i) => i.payment_status !== 'paid')
     .reduce((sum, i) => sum + toNumber(i.balance_due || i.total_ttc), 0);
 
+  let workingCapitalKpis: {
+    dso: number | null;
+    dpo: number | null;
+    dio: number | null;
+    ccc: number | null;
+  } | null = null;
+
+  if (userId) {
+    const { data: pilotageRatios, error: pilotageError } = await supabase.rpc('f_pilotage_ratios', {
+      p_user_id: userId,
+      p_company_id: companyId,
+      p_start_date: null,
+      p_end_date: null,
+      p_region: 'france',
+    });
+
+    if (!pilotageError) {
+      const activity = pilotageRatios?.activity || {};
+      const dso = toNullableNumber(activity.dso);
+      const dpo = toNullableNumber(activity.dpo);
+      const dio = toNullableNumber(activity.stockRotationDays);
+      const ccc = toNullableNumber(activity.ccc);
+
+      const hasMetric = [dso, dpo, dio, ccc].some((metric) => metric !== null);
+      if (hasMetric) {
+        workingCapitalKpis = { dso, dpo, dio, ccc };
+      }
+    }
+  }
+
   return {
     companyName: companyRes.data?.company_name || 'Entreprise',
     summary: {
@@ -76,5 +111,6 @@ export const gatherFinancialContext = async (supabase: any, companyId: string) =
     invoicesWithClient: invoicesWithClient.slice(0, 20),
     topClientsByRevenue: clientBreakdown.topClientsByRevenue.slice(0, 10),
     unassignedInvoicesCount: clientBreakdown.unassignedInvoicesCount,
+    workingCapitalKpis,
   };
 };

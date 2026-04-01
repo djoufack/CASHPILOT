@@ -64,6 +64,7 @@ describe('ClosingAssistant', () => {
     });
 
     expect(screen.getByRole('heading', { name: /Cloture assistee/i })).toBeInTheDocument();
+    expect(screen.getByText(/Workflow de cloture guidee/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Lancer la cloture assistee/i }));
 
