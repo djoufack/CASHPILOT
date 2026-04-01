@@ -12,6 +12,56 @@ const DEFAULT_WORKING_CAPITAL_BENCHMARKS = {
 };
 
 const INVERSE_METRICS = new Set(['dso', 'dio', 'ccc']);
+const CASHFLOW_FORECAST_TIMEOUT_MS = 45_000;
+
+async function getFreshAccessToken({ forceRefresh = false } = {}) {
+  if (forceRefresh) {
+    const { data, error: forcedRefreshError } = await supabase.auth.refreshSession();
+    if (forcedRefreshError) throw forcedRefreshError;
+    return data?.session?.access_token || null;
+  }
+
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (session?.access_token) {
+    const expiresAtMs = Number(session.expires_at || 0) * 1000;
+    const tokenHasSafetyMargin = Number.isFinite(expiresAtMs) && expiresAtMs > Date.now() + 30_000;
+    if (tokenHasSafetyMargin) {
+      return session.access_token;
+    }
+  }
+
+  const { data, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) throw refreshError;
+  return data?.session?.access_token || null;
+}
+
+async function callCashflowForecastEndpoint(body, accessToken, timeoutMs = CASHFLOW_FORECAST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(`${supabaseUrl}/functions/v1/cashflow-forecast`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        apikey: supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function isAbortError(error) {
+  return error instanceof Error && error.name === 'AbortError';
+}
 
 function toNullableNumber(value) {
   const numeric = Number(value);
@@ -200,26 +250,24 @@ export const useCashFlowForecast = (initialDays = 90) => {
       });
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session?.access_token) {
-          throw new Error('Session expired');
+        let accessToken = await getFreshAccessToken();
+        if (!accessToken) {
+          throw new Error('Session expiree. Veuillez vous reconnecter.');
         }
 
-        const response = await fetch(`${supabaseUrl}/functions/v1/cashflow-forecast`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: supabaseAnonKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            company_id: activeCompanyId,
-            days,
-          }),
-        });
+        const payload = {
+          company_id: activeCompanyId,
+          days,
+        };
+
+        let response = await callCashflowForecastEndpoint(payload, accessToken);
+        if (response.status === 401) {
+          accessToken = await getFreshAccessToken({ forceRefresh: true });
+          if (!accessToken) {
+            throw new Error('Session expiree. Veuillez vous reconnecter.');
+          }
+          response = await callCashflowForecastEndpoint(payload, accessToken);
+        }
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -259,7 +307,11 @@ export const useCashFlowForecast = (initialDays = 90) => {
         setWorkingCapitalAlerts(workingCapitalSignals.workingCapitalAlerts);
       } catch (err) {
         console.error('useCashFlowForecast error:', err);
-        setError(err.message || 'Failed to fetch forecast');
+        setError(
+          isAbortError(err)
+            ? `La requete cashflow a expire apres ${Math.round(CASHFLOW_FORECAST_TIMEOUT_MS / 1000)}s.`
+            : err.message || 'Failed to fetch forecast'
+        );
 
         // Fallback: try direct RPC call if edge function is unavailable
         try {

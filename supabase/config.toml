@@ -235,7 +235,9 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.cashflow-forecast]
-verify_jwt = true
+# Keep gateway JWT validation disabled to avoid "Invalid JWT" rejects observed in
+# preview/prod sessions; function enforces auth internally via requireAuthenticatedUser.
+verify_jwt = false
 
 [functions.cfo-agent]
 verify_jwt = false
