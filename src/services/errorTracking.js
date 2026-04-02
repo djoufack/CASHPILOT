@@ -40,6 +40,9 @@ export const initializeErrorTracking = () => {
     dsn: SENTRY_DSN,
     environment: APP_ENVIRONMENT,
     release: APP_RELEASE,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+    ],
     tracesSampleRate: Number.isFinite(SENTRY_TRACES_SAMPLE_RATE) ? SENTRY_TRACES_SAMPLE_RATE : 0,
     enabled: import.meta.env.PROD || SENTRY_ENABLED_IN_DEV,
   });
