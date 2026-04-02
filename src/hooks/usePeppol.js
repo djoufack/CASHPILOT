@@ -50,7 +50,7 @@ const parseInboundUblSummary = (ublXml) => {
 export function usePeppol() {
   const { user } = useAuth();
   const { company } = useCompany();
-  const { applyCompanyScope } = useCompanyScope();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
   const inboundPdfCacheRef = useRef(new Map());
   const inboundUblCacheRef = useRef(new Map());
   const inboundFetchInFlightRef = useRef(new Map());
@@ -78,7 +78,7 @@ export function usePeppol() {
         `
         )
         .eq('user_id', user.id)
-        .eq('status', 'sent')
+        .in('status', ['sent', 'paid', 'partial', 'overdue', 'cancelled'])
         .order('created_at', { ascending: false });
       query = applyCompanyScope(query, { includeUnassigned: false });
 
@@ -109,6 +109,32 @@ export function usePeppol() {
       return data || [];
     },
     { deps: [user?.id, applyCompanyScope], defaultData: [], enabled: !!user }
+  );
+
+  // ─── Supplier invoices linked to inbound Peppol docs (business status source) ───
+  const {
+    data: inboundSupplierInvoices,
+    loading: loadingInboundSupplierInvoices,
+    refetch: fetchInboundSupplierInvoices,
+  } = useSupabaseQuery(
+    async (_guard) => {
+      if (!user || !company?.id) return [];
+      let query = supabase
+        .from('supplier_invoices')
+        .select(
+          'id, company_id, invoice_number, payment_status, status, due_date, notes, updated_at, dispute_status, disputed_at, dispute_note'
+        )
+        .eq('user_id', user.id)
+        .eq('company_id', company.id)
+        .order('updated_at', { ascending: false })
+        .limit(500);
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    { deps: [user?.id, company?.id, applyCompanyScope], defaultData: [], enabled: !!user && !!company?.id }
   );
 
   // ─── All transmission logs ───
@@ -490,6 +516,24 @@ export function usePeppol() {
         { onConflict: 'company_id,source_table,source_id' }
       );
 
+      // Mark inbound Peppol document as integrated in accounting workflow.
+      const inboundMetadata = doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
+      const { error: inboundUpdateError } = await supabase
+        .from('peppol_inbound_documents')
+        .update({
+          status: 'processed',
+          metadata: {
+            ...inboundMetadata,
+            supplier_invoice_id: createdInvoice.id,
+            accounting_integration_status: 'integrated',
+            accounting_integrated_at: new Date().toISOString(),
+          },
+        })
+        .eq('id', doc.id)
+        .eq('user_id', user.id)
+        .eq('company_id', company.id);
+      if (inboundUpdateError) throw inboundUpdateError;
+
       return {
         supplierInvoiceId: createdInvoice.id,
         invoiceNumber: createdInvoice.invoice_number,
@@ -546,15 +590,15 @@ export function usePeppol() {
 
   // ─── Outbound management (cancel/delete) ───
   const manageOutbound = useCallback(
-    async (action, invoiceId) => {
+    async (action, payload = {}) => {
       if (!user) return null;
       setManagingOutbound(true);
       try {
         const { data, error } = await supabase.functions.invoke('peppol-outbound-manage', {
           body: {
             action,
-            invoice_id: invoiceId,
             company_id: company?.id || null,
+            ...payload,
           },
         });
         if (error) throw error;
@@ -570,21 +614,281 @@ export function usePeppol() {
   );
 
   const cancelOutboundNetwork = useCallback(
-    async (invoiceId) => manageOutbound('cancel_network', invoiceId),
+    async (invoiceId) => manageOutbound('cancel_network', { invoice_id: invoiceId }),
     [manageOutbound]
   );
 
   const deleteOutboundLocal = useCallback(
-    async (invoiceId) => manageOutbound('delete_local', invoiceId),
+    async (invoiceId) => manageOutbound('delete_local', { invoice_id: invoiceId }),
     [manageOutbound]
+  );
+
+  const deleteOutboundInvoiceDb = useCallback(
+    async (invoiceId) => manageOutbound('delete_invoice_db', { invoice_id: invoiceId }),
+    [manageOutbound]
+  );
+
+  const purgeAllPeppolInvoices = useCallback(async () => manageOutbound('purge_peppol_db'), [manageOutbound]);
+
+  const setOutboundDisputeStatus = useCallback(
+    async (invoiceId, { open, note = null } = {}) => {
+      if (!user || !company?.id || !invoiceId) return null;
+      const payload = open
+        ? {
+            dispute_status: 'open',
+            disputed_at: new Date().toISOString(),
+            dispute_note: note || 'Litige Peppol',
+          }
+        : {
+            dispute_status: 'none',
+            disputed_at: null,
+            dispute_note: null,
+          };
+
+      const { data, error } = await supabase
+        .from('invoices')
+        .update(payload)
+        .eq('id', invoiceId)
+        .eq('user_id', user.id)
+        .eq('company_id', company.id)
+        .select('id')
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    [company?.id, user]
+  );
+
+  const setInboundDisputeStatus = useCallback(
+    async (supplierInvoiceId, { open, note = null } = {}) => {
+      if (!user || !company?.id || !supplierInvoiceId) return null;
+      const payload = open
+        ? {
+            dispute_status: 'open',
+            disputed_at: new Date().toISOString(),
+            dispute_note: note || 'Litige Peppol entrant',
+          }
+        : {
+            dispute_status: 'none',
+            disputed_at: null,
+            dispute_note: null,
+          };
+
+      const { data, error } = await supabase
+        .from('supplier_invoices')
+        .update(payload)
+        .eq('id', supplierInvoiceId)
+        .eq('user_id', user.id)
+        .eq('company_id', company.id)
+        .select('id')
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    [company?.id, user]
+  );
+
+  const updateInboundOperationalStatus = useCallback(
+    async (documentId, nextStatus) => {
+      if (!user || !company?.id || !documentId) return null;
+      const normalized = String(nextStatus || '').toLowerCase();
+      const statusMap = {
+        a_traiter: 'new',
+        en_revue: 'processed',
+        archivee: 'archived',
+        new: 'new',
+        processed: 'processed',
+        archived: 'archived',
+      };
+      const targetStatus = statusMap[normalized];
+      if (!targetStatus) {
+        throw new Error('Statut operationnel entrant invalide.');
+      }
+
+      const { data, error } = await supabase
+        .from('peppol_inbound_documents')
+        .update({ status: targetStatus })
+        .eq('id', documentId)
+        .eq('user_id', user.id)
+        .eq('company_id', company.id)
+        .select('id, status')
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    [company?.id, user]
+  );
+
+  const updateOutboundBusinessStatus = useCallback(
+    async (invoiceId, nextStatus) => {
+      if (!user || !company?.id || !invoiceId) return null;
+      const invoice = (invoices || []).find((row) => row.id === invoiceId);
+      if (!invoice) throw new Error('Facture introuvable.');
+
+      const normalized = String(nextStatus || '').toLowerCase();
+      if (normalized === 'litige') {
+        return await setOutboundDisputeStatus(invoiceId, { open: true });
+      }
+
+      if (normalized === 'paye') {
+        const total = Number(invoice.total_ttc || 0);
+        const balanceDue = Math.max(0, Number(invoice.balance_due || 0));
+        const amountToSettle = balanceDue > 0 ? balanceDue : total;
+
+        if (amountToSettle > 0) {
+          const paymentPayload = withCompanyScope({
+            user_id: user.id,
+            client_id: invoice.client_id || null,
+            invoice_id: invoice.id,
+            payment_date: new Date().toISOString().slice(0, 10),
+            amount: amountToSettle,
+            payment_method: 'bank_transfer',
+            reference: `PEPPOL-${invoice.invoice_number || invoice.id}`,
+            notes: 'Reglement depuis vue Peppol',
+            is_lump_sum: false,
+          });
+          const { error: paymentError } = await supabase.from('payments').insert(paymentPayload);
+          if (paymentError) throw paymentError;
+        }
+
+        const { data, error } = await supabase
+          .from('invoices')
+          .update({
+            status: 'paid',
+            payment_status: 'paid',
+            balance_due: 0,
+            amount_paid: Number(invoice.total_ttc || invoice.amount_paid || 0),
+            dispute_status: 'none',
+            disputed_at: null,
+            dispute_note: null,
+          })
+          .eq('id', invoiceId)
+          .eq('user_id', user.id)
+          .eq('company_id', company.id)
+          .select('id')
+          .single();
+        if (error) throw error;
+        return data;
+      }
+
+      const baseUpdate = {
+        dispute_status: 'none',
+        disputed_at: null,
+        dispute_note: null,
+      };
+
+      if (normalized === 'echue') {
+        const { data, error } = await supabase
+          .from('invoices')
+          .update({
+            ...baseUpdate,
+            status: 'overdue',
+          })
+          .eq('id', invoiceId)
+          .eq('user_id', user.id)
+          .eq('company_id', company.id)
+          .select('id')
+          .single();
+        if (error) throw error;
+        return data;
+      }
+
+      if (normalized === 'envoye' || normalized === 'non_paye') {
+        const { data, error } = await supabase
+          .from('invoices')
+          .update({
+            ...baseUpdate,
+            status: 'sent',
+            payment_status: normalized === 'non_paye' ? 'unpaid' : String(invoice.payment_status || 'unpaid'),
+          })
+          .eq('id', invoiceId)
+          .eq('user_id', user.id)
+          .eq('company_id', company.id)
+          .select('id')
+          .single();
+        if (error) throw error;
+        return data;
+      }
+
+      throw new Error('Statut metier sortant invalide.');
+    },
+    [company?.id, invoices, setOutboundDisputeStatus, user, withCompanyScope]
+  );
+
+  const updateInboundBusinessStatus = useCallback(
+    async (supplierInvoiceId, nextStatus) => {
+      if (!user || !company?.id || !supplierInvoiceId) return null;
+      const normalized = String(nextStatus || '').toLowerCase();
+      if (normalized === 'litige') {
+        return await setInboundDisputeStatus(supplierInvoiceId, { open: true });
+      }
+
+      if (normalized === 'paye') {
+        const { data, error } = await supabase
+          .from('supplier_invoices')
+          .update({
+            payment_status: 'paid',
+            dispute_status: 'none',
+            disputed_at: null,
+            dispute_note: null,
+          })
+          .eq('id', supplierInvoiceId)
+          .eq('user_id', user.id)
+          .eq('company_id', company.id)
+          .select('id')
+          .single();
+        if (error) throw error;
+        return data;
+      }
+
+      if (normalized === 'echue') {
+        const { data, error } = await supabase
+          .from('supplier_invoices')
+          .update({
+            payment_status: 'overdue',
+            dispute_status: 'none',
+            disputed_at: null,
+            dispute_note: null,
+          })
+          .eq('id', supplierInvoiceId)
+          .eq('user_id', user.id)
+          .eq('company_id', company.id)
+          .select('id')
+          .single();
+        if (error) throw error;
+        return data;
+      }
+
+      if (normalized === 'non_paye') {
+        const { data, error } = await supabase
+          .from('supplier_invoices')
+          .update({
+            payment_status: 'pending',
+            dispute_status: 'none',
+            disputed_at: null,
+            dispute_note: null,
+          })
+          .eq('id', supplierInvoiceId)
+          .eq('user_id', user.id)
+          .eq('company_id', company.id)
+          .select('id')
+          .single();
+        if (error) throw error;
+        return data;
+      }
+
+      throw new Error('Statut metier entrant invalide.');
+    },
+    [company?.id, setInboundDisputeStatus, user]
   );
 
   // ─── Refresh all data ───
   const refreshAll = useCallback(() => {
     fetchOutboundInvoices();
     fetchInboundDocuments();
+    fetchInboundSupplierInvoices();
     fetchAllLogs();
-  }, [fetchAllLogs, fetchInboundDocuments, fetchOutboundInvoices]);
+  }, [fetchAllLogs, fetchInboundDocuments, fetchInboundSupplierInvoices, fetchOutboundInvoices]);
 
   return {
     // Outbound invoices
@@ -596,6 +900,9 @@ export function usePeppol() {
     inboundDocuments,
     loadingInbound,
     fetchInboundDocuments,
+    inboundSupplierInvoices,
+    loadingInboundSupplierInvoices,
+    fetchInboundSupplierInvoices,
 
     // All logs (journal)
     allLogs,
@@ -623,6 +930,13 @@ export function usePeppol() {
     managingOutbound,
     cancelOutboundNetwork,
     deleteOutboundLocal,
+    deleteOutboundInvoiceDb,
+    purgeAllPeppolInvoices,
+    setOutboundDisputeStatus,
+    setInboundDisputeStatus,
+    updateOutboundBusinessStatus,
+    updateInboundBusinessStatus,
+    updateInboundOperationalStatus,
 
     // Convenience
     refreshAll,

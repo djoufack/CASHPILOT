@@ -9,6 +9,9 @@ import { usePeppolSend } from '@/hooks/usePeppolSend';
 import { formatDate as formatDateLocale, formatNumber } from '@/utils/dateLocale';
 import { usePeppolCheck } from '@/hooks/usePeppolCheck';
 import PeppolStatusBadge from '@/components/peppol/PeppolStatusBadge';
+import GenericCalendarView from '@/components/GenericCalendarView';
+import GenericAgendaView from '@/components/GenericAgendaView';
+import GenericKanbanView from '@/components/GenericKanbanView';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +53,10 @@ import {
   Upload,
   FolderOpen,
   HardDrive,
-  FileText,
+  CalendarDays,
+  CalendarClock,
+  Kanban,
+  List,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreview from '@/components/InvoicePreview';
@@ -70,6 +76,7 @@ const PeppolPage = () => {
     fetchOutboundInvoices,
     inboundDocuments,
     loadingInbound,
+    inboundSupplierInvoices,
     allLogs,
     loadingLogs,
     fetchAllLogs,
@@ -79,7 +86,6 @@ const PeppolPage = () => {
     fetchInvoiceItems,
     syncingInbound,
     syncInbound,
-    fetchInboundUbl,
     fetchInboundPdf,
     warmInboundDocuments,
     sendInboundToGed,
@@ -89,6 +95,13 @@ const PeppolPage = () => {
     managingOutbound,
     cancelOutboundNetwork,
     deleteOutboundLocal,
+    deleteOutboundInvoiceDb,
+    purgeAllPeppolInvoices,
+    setOutboundDisputeStatus,
+    setInboundDisputeStatus,
+    updateOutboundBusinessStatus,
+    updateInboundBusinessStatus,
+    updateInboundOperationalStatus,
     refreshAll,
   } = usePeppol();
   const { sendViaPeppol, sending, polling: _polling, peppolStatus: _peppolStatus, creditsModalProps } = usePeppolSend();
@@ -114,6 +127,9 @@ const PeppolPage = () => {
   const [selectedGedVersionId, setSelectedGedVersionId] = useState('');
   const [loadingGedXmlDocs, setLoadingGedXmlDocs] = useState(false);
   const [sendingExternal, setSendingExternal] = useState(false);
+  const [purgingPeppol, setPurgingPeppol] = useState(false);
+  const [outboundViewMode, setOutboundViewMode] = useState('list');
+  const [inboundViewMode, setInboundViewMode] = useState('list');
   const warmedInboundIdsRef = useRef(new Set());
 
   const isPeppolConfigured = !!company?.peppol_endpoint_id;
@@ -169,6 +185,32 @@ const PeppolPage = () => {
     const errors = invoices.filter((inv) => inv.peppol_status === 'error' || inv.peppol_status === 'rejected').length;
     return { total, delivered, pending, errors };
   }, [invoices]);
+
+  const inboundSupplierInvoiceById = useMemo(() => {
+    const map = new Map();
+    (inboundSupplierInvoices || []).forEach((invoice) => {
+      if (invoice?.id) {
+        map.set(String(invoice.id), invoice);
+      }
+    });
+    return map;
+  }, [inboundSupplierInvoices]);
+
+  const inboundSupplierInvoiceByDocumentId = useMemo(() => {
+    const map = new Map();
+    const docIdFromNotesRegex = /Import Peppol entrant\s+([a-zA-Z0-9-]+)/i;
+
+    (inboundSupplierInvoices || []).forEach((invoice) => {
+      const noteText = String(invoice?.notes || '');
+      const noteMatch = noteText.match(docIdFromNotesRegex);
+      const docId = String(noteMatch?.[1] || '').trim();
+      if (docId && !map.has(docId)) {
+        map.set(docId, invoice);
+      }
+    });
+
+    return map;
+  }, [inboundSupplierInvoices]);
 
   // --- Filtered invoices for outbound tab ---
   const filteredInvoices = useMemo(() => {
@@ -344,6 +386,201 @@ const PeppolPage = () => {
     }
   };
 
+  const isPeppolInvoiceRow = useCallback((invoice) => {
+    if (!invoice) return false;
+    const status = String(invoice.peppol_status || '')
+      .trim()
+      .toLowerCase();
+    const hasDocumentId = String(invoice.peppol_document_id || '').trim().length > 0;
+    const notes = String(invoice.notes || '').toLowerCase();
+    return (status && status !== 'none') || hasDocumentId || notes.includes('import ubl externe');
+  }, []);
+
+  const handleDeleteOutboundFromDb = async (invoice) => {
+    if (!invoice?.id) return;
+    const confirmed = window.confirm(
+      t(
+        'peppol.deleteDbConfirm',
+        'Supprimer definitivement cette facture Peppol de la base de donnees et de la comptabilite ?'
+      )
+    );
+    if (!confirmed) return;
+
+    setOutboundActionInvoiceId(invoice.id);
+    try {
+      await deleteOutboundInvoiceDb(invoice.id);
+      toast({
+        title: t('peppol.deleteDbSuccess', 'Facture supprimee de la base'),
+        description: t('peppol.deleteDbSuccessDesc', 'La journalisation comptable a ete remise a jour.'),
+      });
+      refreshAll();
+    } catch (err) {
+      toast({
+        title: t('common.error'),
+        description: err?.error || err?.message || String(err),
+        variant: 'destructive',
+      });
+    } finally {
+      setOutboundActionInvoiceId(null);
+    }
+  };
+
+  const handlePurgeAllPeppolFromDb = useCallback(async () => {
+    const confirmed = window.confirm(
+      t(
+        'peppol.purgeAllConfirm',
+        'Supprimer TOUTES les factures Peppol (onglet Envoi) de la base et remettre a jour la comptabilite ?'
+      )
+    );
+    if (!confirmed) return;
+
+    setPurgingPeppol(true);
+    try {
+      const result = await purgeAllPeppolInvoices();
+      toast({
+        title: t('peppol.purgeAllSuccess', 'Purge Peppol terminee'),
+        description: `${Number(result?.purgedInvoices || 0)} facture(s) supprimee(s).`,
+      });
+      refreshAll();
+    } catch (err) {
+      toast({
+        title: t('common.error'),
+        description: err?.error || err?.message || String(err),
+        variant: 'destructive',
+      });
+    } finally {
+      setPurgingPeppol(false);
+    }
+  }, [purgeAllPeppolInvoices, refreshAll, t, toast]);
+
+  const getInboundActionKey = useCallback((doc) => {
+    if (!doc) return '';
+    return String(doc.scrada_document_id || doc.id || '');
+  }, []);
+
+  const handleSetOutboundBusinessStatus = useCallback(
+    async (invoice, nextStatus) => {
+      if (!invoice?.id) return;
+      setOutboundActionInvoiceId(invoice.id);
+      try {
+        await updateOutboundBusinessStatus(invoice.id, nextStatus);
+        toast({
+          title: t('common.success', 'Termine'),
+          description: `Statut facture ${invoice.invoice_number || ''} mis a jour.`,
+        });
+        refreshAll();
+      } catch (err) {
+        toast({
+          title: t('common.error'),
+          description: err?.error || err?.message || String(err),
+          variant: 'destructive',
+        });
+      } finally {
+        setOutboundActionInvoiceId(null);
+      }
+    },
+    [refreshAll, t, toast, updateOutboundBusinessStatus]
+  );
+
+  const handleToggleOutboundDispute = useCallback(
+    async (invoice, open) => {
+      if (!invoice?.id) return;
+      setOutboundActionInvoiceId(invoice.id);
+      try {
+        await setOutboundDisputeStatus(invoice.id, { open });
+        toast({
+          title: t('common.success', 'Termine'),
+          description: open ? 'Facture marquee en litige.' : 'Statut litige retire pour la facture.',
+        });
+        refreshAll();
+      } catch (err) {
+        toast({
+          title: t('common.error'),
+          description: err?.error || err?.message || String(err),
+          variant: 'destructive',
+        });
+      } finally {
+        setOutboundActionInvoiceId(null);
+      }
+    },
+    [refreshAll, setOutboundDisputeStatus, t, toast]
+  );
+
+  const handleSetInboundOperationalStatus = useCallback(
+    async (doc, nextStatus) => {
+      if (!doc?.id) return;
+      const actionKey = getInboundActionKey(doc);
+      setInboundActionDocId(actionKey);
+      try {
+        await updateInboundOperationalStatus(doc.id, nextStatus);
+        toast({
+          title: t('common.success', 'Termine'),
+          description: `Statut reception mis a jour (${nextStatus.replace('_', ' ')}).`,
+        });
+        refreshAll();
+      } catch (err) {
+        toast({
+          title: t('common.error'),
+          description: err?.error || err?.message || String(err),
+          variant: 'destructive',
+        });
+      } finally {
+        setInboundActionDocId(null);
+      }
+    },
+    [getInboundActionKey, refreshAll, t, toast, updateInboundOperationalStatus]
+  );
+
+  const handleSetInboundBusinessStatus = useCallback(
+    async (doc, linkedSupplierInvoice, nextStatus) => {
+      if (!doc || !linkedSupplierInvoice?.id) return;
+      const actionKey = getInboundActionKey(doc);
+      setInboundActionDocId(actionKey);
+      try {
+        await updateInboundBusinessStatus(linkedSupplierInvoice.id, nextStatus);
+        toast({
+          title: t('common.success', 'Termine'),
+          description: `Statut metier facture ${linkedSupplierInvoice.invoice_number || ''} mis a jour.`,
+        });
+        refreshAll();
+      } catch (err) {
+        toast({
+          title: t('common.error'),
+          description: err?.error || err?.message || String(err),
+          variant: 'destructive',
+        });
+      } finally {
+        setInboundActionDocId(null);
+      }
+    },
+    [getInboundActionKey, refreshAll, t, toast, updateInboundBusinessStatus]
+  );
+
+  const handleToggleInboundDispute = useCallback(
+    async (doc, linkedSupplierInvoice, open) => {
+      if (!doc || !linkedSupplierInvoice?.id) return;
+      const actionKey = getInboundActionKey(doc);
+      setInboundActionDocId(actionKey);
+      try {
+        await setInboundDisputeStatus(linkedSupplierInvoice.id, { open });
+        toast({
+          title: t('common.success', 'Termine'),
+          description: open ? 'Facture recue marquee en litige.' : 'Statut litige retire pour la facture recue.',
+        });
+        refreshAll();
+      } catch (err) {
+        toast({
+          title: t('common.error'),
+          description: err?.error || err?.message || String(err),
+          variant: 'destructive',
+        });
+      } finally {
+        setInboundActionDocId(null);
+      }
+    },
+    [getInboundActionKey, refreshAll, setInboundDisputeStatus, t, toast]
+  );
+
   const downloadBlob = useCallback((blob, filename) => {
     if (!blob || Number(blob.size || 0) <= 0) {
       throw new Error('Fichier vide, export impossible.');
@@ -360,240 +597,10 @@ const PeppolPage = () => {
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }, []);
 
-  const escapeHtml = useCallback((value) => {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }, []);
-
-  const toNumberSafe = useCallback((value) => {
-    const parsed = Number(String(value ?? '').replace(',', '.'));
-    return Number.isFinite(parsed) ? parsed : null;
-  }, []);
-
-  const extractUblTag = useCallback((xml, tagName) => {
-    const source = String(xml || '');
-    if (!source || !tagName) return '';
-    const escapedTag = String(tagName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`<(?:[\\w-]+:)?${escapedTag}\\b[^>]*>([\\s\\S]*?)<\\/(?:[\\w-]+:)?${escapedTag}>`, 'i');
-    return String(source.match(regex)?.[1] || '').trim();
-  }, []);
-
-  const prettyPrintXml = useCallback((xml) => {
-    const normalized = String(xml || '')
-      .replace(/>\s+</g, '><')
-      .trim();
-    if (!normalized) return '';
-
-    const nodes = normalized.replace(/(>)(<)(\/*)/g, '$1\n$2$3').split('\n');
-    let indent = 0;
-    const lines = [];
-
-    for (const node of nodes) {
-      if (!node) continue;
-      const isClosing = /^<\/.+>/.test(node);
-      const isSelfClosing = /\/>$/.test(node);
-      const isDeclaration = /^<\?xml/.test(node) || /^<!/.test(node);
-      const isOpening = /^<[^/?!][^>]*>$/.test(node);
-
-      if (isClosing) indent = Math.max(indent - 1, 0);
-      lines.push(`${'  '.repeat(indent)}${node}`);
-      if (isOpening && !isSelfClosing && !isDeclaration) indent += 1;
-    }
-
-    return lines.join('\n');
-  }, []);
-
-  const normalizeInboundUblPayload = useCallback(
-    (payload) => {
-      const raw = String(payload || '').trim();
-      if (!raw) {
-        return {
-          kind: 'empty',
-          formatted: '',
-          raw: '',
-          message: 'Aucun contenu UBL reçu depuis Scrada.',
-        };
-      }
-
-      if (raw.startsWith('{') || raw.startsWith('[')) {
-        try {
-          const parsed = JSON.parse(raw);
-          const maybeUbl =
-            parsed?.ubl ||
-            parsed?.xml ||
-            parsed?.content ||
-            parsed?.document ||
-            parsed?.data?.ubl ||
-            parsed?.data?.xml ||
-            parsed?.data?.content ||
-            '';
-          if (typeof maybeUbl === 'string' && maybeUbl.trim().startsWith('<')) {
-            return {
-              kind: 'xml',
-              formatted: prettyPrintXml(maybeUbl),
-              raw: maybeUbl,
-              message: '',
-            };
-          }
-
-          return {
-            kind: 'json',
-            formatted: JSON.stringify(parsed, null, 2),
-            raw,
-            message: "Scrada a renvoyé un JSON au lieu d'un XML UBL.",
-          };
-        } catch {
-          // Keep fallback path below.
-        }
-      }
-
-      if (raw.startsWith('<') || raw.includes('<Invoice') || raw.includes(':Invoice')) {
-        return {
-          kind: 'xml',
-          formatted: prettyPrintXml(raw),
-          raw,
-          message: '',
-        };
-      }
-
-      return {
-        kind: 'raw',
-        formatted: raw,
-        raw,
-        message: "Le contenu renvoyé par Scrada n'est pas un XML UBL lisible.",
-      };
-    },
-    [prettyPrintXml]
-  );
-
-  const resolveInboundAmounts = useCallback(
-    (doc, ublPayload) => {
-      const metadata = doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
-      const normalizedUbl = normalizeInboundUblPayload(ublPayload);
-      const xml = normalizedUbl.kind === 'xml' ? normalizedUbl.raw : '';
-
-      const fromDocExcl = toNumberSafe(doc?.total_excl_vat);
-      const fromDocVat = toNumberSafe(doc?.total_vat);
-      const fromDocIncl = toNumberSafe(doc?.total_incl_vat);
-
-      const fromMetaExcl =
-        toNumberSafe(metadata?.totalExclVat) ??
-        toNumberSafe(metadata?.totalExclVAT) ??
-        toNumberSafe(metadata?.subtotal) ??
-        null;
-      const fromMetaVat = toNumberSafe(metadata?.totalVat) ?? toNumberSafe(metadata?.totalVAT) ?? null;
-      const fromMetaIncl =
-        toNumberSafe(metadata?.totalInclVat) ??
-        toNumberSafe(metadata?.totalInclVAT) ??
-        toNumberSafe(metadata?.total) ??
-        toNumberSafe(metadata?.totalAmount) ??
-        null;
-
-      const fromUblExcl = toNumberSafe(extractUblTag(xml, 'TaxExclusiveAmount'));
-      const fromUblVat = toNumberSafe(extractUblTag(xml, 'TaxAmount'));
-      const fromUblIncl =
-        toNumberSafe(extractUblTag(xml, 'PayableAmount')) ?? toNumberSafe(extractUblTag(xml, 'TaxInclusiveAmount'));
-
-      const pickAmount = (...values) => {
-        for (const value of values) {
-          if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
-        }
-        for (const value of values) {
-          if (typeof value === 'number' && Number.isFinite(value)) return value;
-        }
-        return 0;
-      };
-
-      return {
-        normalizedUbl,
-        totalExcl: pickAmount(fromDocExcl, fromMetaExcl, fromUblExcl),
-        totalVat: pickAmount(fromDocVat, fromMetaVat, fromUblVat),
-        totalIncl: pickAmount(fromDocIncl, fromMetaIncl, fromUblIncl),
-      };
-    },
-    [extractUblTag, normalizeInboundUblPayload, toNumberSafe]
-  );
-
-  const buildInboundHtml = useCallback(
-    (doc, ublXml) => {
-      const formatMoney = (value, currency = 'EUR') => {
-        const amount = Number(value || 0);
-        const formatted = formatNumber(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        return `${formatted} ${currency}`;
-      };
-
-      const metadata = doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
-      const { normalizedUbl, totalExcl, totalVat, totalIncl } = resolveInboundAmounts(doc, ublXml);
-      const xmlBlock = escapeHtml(normalizedUbl.formatted || '');
-      const rawBlock = escapeHtml(String(normalizedUbl.raw || '').slice(0, 250_000));
-      const isNonXmlPayload = normalizedUbl.kind !== 'xml' && normalizedUbl.kind !== 'empty';
-      const senderLabel = doc?.sender_name || metadata?.senderName || doc?.sender_peppol_id || '-';
-      const invoiceLabel = doc?.invoice_number || metadata?.invoiceNumber || metadata?.internalNumber || '-';
-      const receivedLabel = formatDateLocale(doc?.received_at || doc?.created_at, {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-
-      return `<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Peppol Inbound ${escapeHtml(invoiceLabel)}</title>
-  <style>
-    body { font-family: Inter, Arial, sans-serif; margin: 24px; color: #111827; background: #f8fafc; }
-    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-    h1 { margin: 0 0 8px 0; font-size: 24px; }
-    .muted { color: #6b7280; font-size: 14px; }
-    .warning { background: #fff7ed; color: #9a3412; border: 1px solid #fdba74; border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 13px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
-    th { color: #374151; background: #f3f4f6; }
-    pre { white-space: pre-wrap; word-break: break-word; background: #0b1220; color: #d1d5db; border-radius: 12px; padding: 14px; font-size: 12px; max-height: 60vh; overflow: auto; line-height: 1.45; }
-    details { margin-top: 12px; }
-    summary { cursor: pointer; color: #374151; font-weight: 600; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Facture entrante Peppol</h1>
-    <div class="muted">Document Scrada: ${escapeHtml(doc?.scrada_document_id || '-')}</div>
-    <table>
-      <tr><th>Facture</th><td>${escapeHtml(invoiceLabel)}</td></tr>
-      <tr><th>Expéditeur</th><td>${escapeHtml(senderLabel)}</td></tr>
-      <tr><th>Reçue le</th><td>${escapeHtml(receivedLabel)}</td></tr>
-      <tr><th>Montant HT</th><td>${escapeHtml(formatMoney(totalExcl, doc?.currency || 'EUR'))}</td></tr>
-      <tr><th>TVA</th><td>${escapeHtml(formatMoney(totalVat, doc?.currency || 'EUR'))}</td></tr>
-      <tr><th>Montant TTC</th><td>${escapeHtml(formatMoney(totalIncl, doc?.currency || 'EUR'))}</td></tr>
-    </table>
-    ${normalizedUbl.message ? `<div class="warning">${escapeHtml(normalizedUbl.message)}</div>` : ''}
-  </div>
-  <div class="card">
-    <h1>UBL XML</h1>
-    <pre>${xmlBlock || 'Aucun XML UBL disponible.'}</pre>
-    ${
-      isNonXmlPayload
-        ? `<details><summary>Afficher le contenu brut reçu</summary><pre>${rawBlock || 'Contenu brut indisponible.'}</pre></details>`
-        : ''
-    }
-  </div>
-</body>
-</html>`;
-    },
-    [escapeHtml, resolveInboundAmounts]
-  );
-
   const handleViewInboundPdf = useCallback(
     async (doc) => {
       if (!doc?.scrada_document_id) return;
-      setInboundActionDocId(doc.scrada_document_id);
+      setInboundActionDocId(getInboundActionKey(doc));
       const previewTab = window.open('', '_blank');
       try {
         if (previewTab && !previewTab.closed) {
@@ -623,13 +630,13 @@ const PeppolPage = () => {
         setInboundActionDocId(null);
       }
     },
-    [fetchInboundPdf, t, toast]
+    [fetchInboundPdf, getInboundActionKey, t, toast]
   );
 
   const handleDownloadInboundPdf = useCallback(
     async (doc) => {
       if (!doc?.scrada_document_id) return;
-      setInboundActionDocId(doc.scrada_document_id);
+      setInboundActionDocId(getInboundActionKey(doc));
       try {
         let pdfBlob;
         try {
@@ -653,41 +660,7 @@ const PeppolPage = () => {
         setInboundActionDocId(null);
       }
     },
-    [downloadBlob, fetchInboundPdf, t, toast]
-  );
-
-  const handleDownloadInboundHtml = useCallback(
-    async (doc) => {
-      if (!doc?.scrada_document_id) return;
-      setInboundActionDocId(doc.scrada_document_id);
-      try {
-        let ublXml = String(doc?.ubl_xml || '').trim();
-        if (!ublXml) {
-          try {
-            ublXml = (await fetchInboundUbl(doc.scrada_document_id, { timeoutMs: 20_000 })) || '';
-          } catch {
-            ublXml = '';
-          }
-        }
-        const html = buildInboundHtml(doc, ublXml);
-        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-        const safeRef = String(doc.invoice_number || doc.scrada_document_id).replace(/[^a-zA-Z0-9._-]/g, '_');
-        downloadBlob(blob, `Peppol-Inbound-${safeRef}.html`);
-        toast({
-          title: t('peppol.exportHtml', 'Exporter HTML'),
-          description: t('common.success', 'Termine'),
-        });
-      } catch (err) {
-        toast({
-          title: t('common.error'),
-          description: err?.message || 'Echec export HTML',
-          variant: 'destructive',
-        });
-      } finally {
-        setInboundActionDocId(null);
-      }
-    },
-    [buildInboundHtml, downloadBlob, fetchInboundUbl, t, toast]
+    [downloadBlob, fetchInboundPdf, getInboundActionKey, t, toast]
   );
 
   useEffect(() => {
@@ -707,7 +680,7 @@ const PeppolPage = () => {
   const handleSendInboundToGed = useCallback(
     async (doc) => {
       if (!doc?.scrada_document_id) return;
-      setInboundActionDocId(doc.scrada_document_id);
+      setInboundActionDocId(getInboundActionKey(doc));
       try {
         const result = await sendInboundToGed(doc);
         toast({
@@ -727,7 +700,7 @@ const PeppolPage = () => {
         setInboundActionDocId(null);
       }
     },
-    [sendInboundToGed, t, toast]
+    [getInboundActionKey, sendInboundToGed, t, toast]
   );
 
   const openExternalSendDialog = useCallback(async () => {
@@ -876,11 +849,165 @@ const PeppolPage = () => {
     }
   };
 
-  const formatAmount = (amount, currency) => {
+  const formatAmount = useCallback((amount, currency) => {
     const num = Number(amount || 0);
     const formatted = formatNumber(num, { minimumFractionDigits: 2 });
     return `${formatted} ${currency || 'EUR'}`;
-  };
+  }, []);
+
+  const resolveInboundLinkedSupplierInvoice = useCallback(
+    (doc) => {
+      if (!doc) return null;
+      const metadata = doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
+      const supplierInvoiceId = String(metadata?.supplier_invoice_id || '').trim();
+      if (supplierInvoiceId && inboundSupplierInvoiceById.has(supplierInvoiceId)) {
+        return inboundSupplierInvoiceById.get(supplierInvoiceId);
+      }
+      const documentId = String(doc.scrada_document_id || '').trim();
+      if (documentId && inboundSupplierInvoiceByDocumentId.has(documentId)) {
+        return inboundSupplierInvoiceByDocumentId.get(documentId);
+      }
+      return null;
+    },
+    [inboundSupplierInvoiceByDocumentId, inboundSupplierInvoiceById]
+  );
+
+  const isBusinessDisputed = useCallback((record) => {
+    if (!record) return false;
+    const disputeStatus = String(record.dispute_status || '')
+      .trim()
+      .toLowerCase();
+    const paymentStatus = String(record.payment_status || '')
+      .trim()
+      .toLowerCase();
+    const status = String(record.status || '')
+      .trim()
+      .toLowerCase();
+
+    if (['open', 'disputed', 'in_dispute', 'litige', 'in_litige', 'conflict'].includes(disputeStatus)) return true;
+    if (['disputed', 'litige'].includes(paymentStatus)) return true;
+    if (['disputed', 'litige'].includes(status)) return true;
+    return false;
+  }, []);
+
+  const isOverdueBusiness = useCallback((record) => {
+    if (!record) return false;
+    const paymentStatus = String(record.payment_status || '')
+      .trim()
+      .toLowerCase();
+    const status = String(record.status || '')
+      .trim()
+      .toLowerCase();
+    if (paymentStatus === 'overdue' || status === 'overdue') return true;
+
+    const isPaid = paymentStatus === 'paid' || status === 'paid';
+    if (isPaid) return false;
+
+    const dueDateRaw = String(record.due_date || '').trim();
+    if (!dueDateRaw) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dueDate = new Date(dueDateRaw);
+    if (Number.isNaN(dueDate.getTime())) return false;
+    dueDate.setHours(0, 0, 0, 0);
+
+    return dueDate < today;
+  }, []);
+
+  const getBusinessStatusBadge = useCallback(
+    (record, { outbound = false } = {}) => {
+      if (!record) return null;
+      const paymentStatus = String(record.payment_status || '')
+        .trim()
+        .toLowerCase();
+      const status = String(record.status || '')
+        .trim()
+        .toLowerCase();
+      const peppolStatus = String(record.peppol_status || '')
+        .trim()
+        .toLowerCase();
+
+      if (isBusinessDisputed(record)) {
+        return (
+          <Badge className="bg-rose-500/20 text-rose-300 border-0 gap-1">
+            <AlertTriangle className="w-3 h-3" />
+            En litige
+          </Badge>
+        );
+      }
+
+      if (paymentStatus === 'paid' || status === 'paid') {
+        return (
+          <Badge className="bg-emerald-500/20 text-emerald-300 border-0 gap-1">
+            <CheckCircle className="w-3 h-3" />
+            Paye
+          </Badge>
+        );
+      }
+
+      if (isOverdueBusiness(record)) {
+        return (
+          <Badge className="bg-red-500/20 text-red-300 border-0 gap-1">
+            <Clock className="w-3 h-3" />
+            Echue
+          </Badge>
+        );
+      }
+
+      if (outbound && peppolStatus && !['none', 'error', 'rejected'].includes(peppolStatus)) {
+        return (
+          <Badge className="bg-blue-500/20 text-blue-300 border-0 gap-1">
+            <Send className="w-3 h-3" />
+            Envoye
+          </Badge>
+        );
+      }
+
+      return (
+        <Badge className="bg-amber-500/20 text-amber-300 border-0 gap-1">
+          <Clock className="w-3 h-3" />
+          Non paye
+        </Badge>
+      );
+    },
+    [isBusinessDisputed, isOverdueBusiness]
+  );
+
+  const getInboundOperationalBadge = useCallback((doc, linkedSupplierInvoice) => {
+    if (linkedSupplierInvoice?.id) {
+      return (
+        <Badge className="bg-green-500/20 text-green-300 border-0 gap-1">
+          <FileCheck className="w-3 h-3" />
+          Integree compta
+        </Badge>
+      );
+    }
+
+    const operationalStatus = String(doc?.status || 'new').toLowerCase();
+    if (operationalStatus === 'archived') {
+      return (
+        <Badge className="bg-gray-500/20 text-gray-300 border-0 gap-1">
+          <FileCheck className="w-3 h-3" />
+          Archivee
+        </Badge>
+      );
+    }
+    if (operationalStatus === 'processed') {
+      return (
+        <Badge className="bg-cyan-500/20 text-cyan-300 border-0 gap-1">
+          <Activity className="w-3 h-3" />
+          En revue
+        </Badge>
+      );
+    }
+    return (
+      <Badge className="bg-yellow-500/20 text-yellow-300 border-0 gap-1">
+        <Clock className="w-3 h-3" />A traiter
+      </Badge>
+    );
+  }, []);
 
   const getLogStatusBadge = (status) => {
     const config = {
@@ -918,6 +1045,279 @@ const PeppolPage = () => {
       </Badge>
     );
   };
+
+  const outboundBusinessMeta = useMemo(
+    () => ({
+      envoye: { label: 'Envoye', color: 'bg-blue-500/20 text-blue-300', calendar: '#3b82f6', border: '#1d4ed8' },
+      non_paye: { label: 'Non paye', color: 'bg-amber-500/20 text-amber-300', calendar: '#f59e0b', border: '#d97706' },
+      echue: { label: 'Echue', color: 'bg-red-500/20 text-red-300', calendar: '#ef4444', border: '#b91c1c' },
+      litige: { label: 'En litige', color: 'bg-rose-500/20 text-rose-300', calendar: '#f43f5e', border: '#be123c' },
+      paye: { label: 'Paye', color: 'bg-emerald-500/20 text-emerald-300', calendar: '#10b981', border: '#047857' },
+    }),
+    []
+  );
+
+  const inboundMeta = useMemo(
+    () => ({
+      a_traiter: {
+        label: 'A traiter',
+        color: 'bg-yellow-500/20 text-yellow-300',
+        calendar: '#f59e0b',
+        border: '#d97706',
+      },
+      en_revue: { label: 'En revue', color: 'bg-cyan-500/20 text-cyan-300', calendar: '#06b6d4', border: '#0e7490' },
+      archivee: { label: 'Archivee', color: 'bg-gray-500/20 text-gray-300', calendar: '#6b7280', border: '#4b5563' },
+      non_paye: { label: 'Non paye', color: 'bg-amber-500/20 text-amber-300', calendar: '#f59e0b', border: '#d97706' },
+      echue: { label: 'Echue', color: 'bg-red-500/20 text-red-300', calendar: '#ef4444', border: '#b91c1c' },
+      litige: { label: 'En litige', color: 'bg-rose-500/20 text-rose-300', calendar: '#f43f5e', border: '#be123c' },
+      paye: { label: 'Paye', color: 'bg-emerald-500/20 text-emerald-300', calendar: '#10b981', border: '#047857' },
+    }),
+    []
+  );
+
+  const getOutboundBusinessStatusKey = useCallback(
+    (invoice) => {
+      if (!invoice) return 'non_paye';
+
+      if (isBusinessDisputed(invoice)) return 'litige';
+
+      const paymentStatus = String(invoice.payment_status || '').toLowerCase();
+      const status = String(invoice.status || '').toLowerCase();
+      if (paymentStatus === 'paid' || status === 'paid') return 'paye';
+      if (isOverdueBusiness(invoice)) return 'echue';
+
+      const peppolStatus = String(invoice.peppol_status || '').toLowerCase();
+      if (peppolStatus && !['none', 'error', 'rejected', 'cancelled'].includes(peppolStatus)) return 'envoye';
+
+      return 'non_paye';
+    },
+    [isBusinessDisputed, isOverdueBusiness]
+  );
+
+  const getInboundWorkflowStatusKey = useCallback(
+    (doc, linkedSupplierInvoice) => {
+      if (linkedSupplierInvoice?.id) {
+        if (isBusinessDisputed(linkedSupplierInvoice)) return 'litige';
+        const paymentStatus = String(linkedSupplierInvoice.payment_status || '').toLowerCase();
+        const status = String(linkedSupplierInvoice.status || '').toLowerCase();
+        if (paymentStatus === 'paid' || status === 'paid') return 'paye';
+        if (isOverdueBusiness(linkedSupplierInvoice)) return 'echue';
+        return 'non_paye';
+      }
+
+      const operationalStatus = String(doc?.status || 'new').toLowerCase();
+      if (operationalStatus === 'processed') return 'en_revue';
+      if (operationalStatus === 'archived') return 'archivee';
+      return 'a_traiter';
+    },
+    [isBusinessDisputed, isOverdueBusiness]
+  );
+
+  const outboundViewItems = useMemo(
+    () =>
+      (filteredInvoices || []).map((invoice) => {
+        const status = getOutboundBusinessStatusKey(invoice);
+        const meta = outboundBusinessMeta[status] || outboundBusinessMeta.non_paye;
+        const date = invoice.due_date || invoice.issue_date || invoice.peppol_sent_at || invoice.created_at;
+        return {
+          id: invoice.id,
+          title: invoice.invoice_number || 'Facture',
+          subtitle: invoice.client?.company_name || invoice.client?.contact_name || '-',
+          amount: formatAmount(invoice.total_ttc, invoice.currency),
+          date,
+          status,
+          statusLabel: meta.label,
+          statusColor: meta.color,
+          resource: invoice,
+        };
+      }),
+    [filteredInvoices, formatAmount, getOutboundBusinessStatusKey, outboundBusinessMeta]
+  );
+
+  const outboundCalendarEvents = useMemo(
+    () =>
+      outboundViewItems.map((item) => ({
+        id: item.id,
+        title: `${item.title} (${item.amount})`,
+        date: item.date || new Date().toISOString(),
+        status: item.status,
+        resource: item.resource,
+      })),
+    [outboundViewItems]
+  );
+
+  const outboundCalendarStatusColors = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(outboundBusinessMeta).map(([key, value]) => [
+          key,
+          { bg: value.calendar, border: value.border, text: '#fff' },
+        ])
+      ),
+    [outboundBusinessMeta]
+  );
+
+  const outboundCalendarLegend = useMemo(
+    () =>
+      Object.values(outboundBusinessMeta).map((meta) => ({
+        label: meta.label,
+        color: meta.calendar,
+      })),
+    [outboundBusinessMeta]
+  );
+
+  const outboundKanbanColumns = useMemo(
+    () => [
+      { id: 'envoye', title: 'Envoye', color: 'text-blue-200 bg-blue-500/10' },
+      { id: 'non_paye', title: 'Non paye', color: 'text-amber-200 bg-amber-500/10' },
+      { id: 'echue', title: 'Echue', color: 'text-red-200 bg-red-500/10' },
+      { id: 'litige', title: 'En litige', color: 'text-rose-200 bg-rose-500/10' },
+      { id: 'paye', title: 'Paye', color: 'text-emerald-200 bg-emerald-500/10' },
+    ],
+    []
+  );
+
+  const inboundViewItems = useMemo(
+    () =>
+      (inboundDocuments || []).map((doc) => {
+        const linkedSupplierInvoice = resolveInboundLinkedSupplierInvoice(doc);
+        const status = getInboundWorkflowStatusKey(doc, linkedSupplierInvoice);
+        const meta = inboundMeta[status] || inboundMeta.a_traiter;
+        const invoiceNumber = doc.invoice_number || linkedSupplierInvoice?.invoice_number || '#-';
+        return {
+          id: doc.id,
+          title: invoiceNumber,
+          subtitle: doc.sender_name || doc.sender_peppol_id || '-',
+          amount: linkedSupplierInvoice
+            ? formatAmount(
+                linkedSupplierInvoice.total_ttc ||
+                  linkedSupplierInvoice.total_amount ||
+                  linkedSupplierInvoice.amount ||
+                  0,
+                linkedSupplierInvoice.currency
+              )
+            : null,
+          date: linkedSupplierInvoice?.due_date || doc.received_at || doc.created_at,
+          status,
+          statusLabel: meta.label,
+          statusColor: meta.color,
+          resource: doc,
+        };
+      }),
+    [formatAmount, getInboundWorkflowStatusKey, inboundDocuments, inboundMeta, resolveInboundLinkedSupplierInvoice]
+  );
+
+  const inboundCalendarEvents = useMemo(
+    () =>
+      inboundViewItems.map((item) => ({
+        id: item.id,
+        title: item.title,
+        date: item.date || new Date().toISOString(),
+        status: item.status,
+        resource: item.resource,
+      })),
+    [inboundViewItems]
+  );
+
+  const inboundCalendarStatusColors = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(inboundMeta).map(([key, value]) => [
+          key,
+          { bg: value.calendar, border: value.border, text: '#fff' },
+        ])
+      ),
+    [inboundMeta]
+  );
+
+  const inboundCalendarLegend = useMemo(
+    () =>
+      Object.values(inboundMeta).map((meta) => ({
+        label: meta.label,
+        color: meta.calendar,
+      })),
+    [inboundMeta]
+  );
+
+  const inboundKanbanColumns = useMemo(
+    () => [
+      { id: 'a_traiter', title: 'A traiter', color: 'text-yellow-200 bg-yellow-500/10' },
+      { id: 'en_revue', title: 'En revue', color: 'text-cyan-200 bg-cyan-500/10' },
+      { id: 'archivee', title: 'Archivee', color: 'text-gray-200 bg-gray-500/10' },
+      { id: 'non_paye', title: 'Non paye', color: 'text-amber-200 bg-amber-500/10' },
+      { id: 'echue', title: 'Echue', color: 'text-red-200 bg-red-500/10' },
+      { id: 'litige', title: 'En litige', color: 'text-rose-200 bg-rose-500/10' },
+      { id: 'paye', title: 'Paye', color: 'text-emerald-200 bg-emerald-500/10' },
+    ],
+    []
+  );
+
+  const handleOutboundKanbanStatusChange = useCallback(
+    async (invoiceId, nextStatus) => {
+      const invoice =
+        (filteredInvoices || []).find((item) => item.id === invoiceId) ||
+        (invoices || []).find((item) => item.id === invoiceId);
+      if (!invoice) return;
+
+      if (nextStatus === 'litige') {
+        await handleToggleOutboundDispute(invoice, true);
+        return;
+      }
+
+      await handleSetOutboundBusinessStatus(invoice, nextStatus);
+    },
+    [filteredInvoices, handleSetOutboundBusinessStatus, handleToggleOutboundDispute, invoices]
+  );
+
+  const handleInboundKanbanStatusChange = useCallback(
+    async (documentId, nextStatus) => {
+      const doc = (inboundDocuments || []).find((item) => item.id === documentId);
+      if (!doc) return;
+
+      const linkedSupplierInvoice = resolveInboundLinkedSupplierInvoice(doc);
+      if (linkedSupplierInvoice?.id) {
+        if (!['non_paye', 'paye', 'echue', 'litige'].includes(nextStatus)) {
+          toast({
+            title: t('common.error'),
+            description: 'Ce document est deja integre: utilisez uniquement les statuts metier.',
+            variant: 'destructive',
+          });
+          refreshAll();
+          return;
+        }
+
+        if (nextStatus === 'litige') {
+          await handleToggleInboundDispute(doc, linkedSupplierInvoice, true);
+          return;
+        }
+
+        await handleSetInboundBusinessStatus(doc, linkedSupplierInvoice, nextStatus);
+        return;
+      }
+
+      if (!['a_traiter', 'en_revue', 'archivee'].includes(nextStatus)) {
+        toast({
+          title: t('common.error'),
+          description: 'Ce document doit etre integre en comptabilite avant un statut metier.',
+          variant: 'destructive',
+        });
+        refreshAll();
+        return;
+      }
+
+      await handleSetInboundOperationalStatus(doc, nextStatus);
+    },
+    [
+      handleSetInboundBusinessStatus,
+      handleSetInboundOperationalStatus,
+      handleToggleInboundDispute,
+      inboundDocuments,
+      refreshAll,
+      resolveInboundLinkedSupplierInvoice,
+      t,
+      toast,
+    ]
+  );
 
   // --- Loading state ---
   if (companyLoading) {
@@ -1221,342 +1621,677 @@ const PeppolPage = () => {
                 <SelectItem value="cancelled">{t('peppol.status.cancelled', 'Annule')}</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              variant="outline"
+              onClick={handlePurgeAllPeppolFromDb}
+              disabled={purgingPeppol || managingOutbound}
+              className="w-full sm:w-auto border-red-500/40 text-red-300 hover:bg-red-500/10"
+            >
+              {purgingPeppol ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              {t('peppol.purgeAllAction', 'Supprimer toutes les factures Peppol (DB)')}
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button
+              size="sm"
+              variant={outboundViewMode === 'list' ? 'default' : 'outline'}
+              onClick={() => setOutboundViewMode('list')}
+              className={
+                outboundViewMode === 'list'
+                  ? 'bg-orange-500 hover:bg-orange-600'
+                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              }
+            >
+              <List className="w-4 h-4 mr-2" /> {t('common.list', 'Liste')}
+            </Button>
+            <Button
+              size="sm"
+              variant={outboundViewMode === 'calendar' ? 'default' : 'outline'}
+              onClick={() => setOutboundViewMode('calendar')}
+              className={
+                outboundViewMode === 'calendar'
+                  ? 'bg-orange-500 hover:bg-orange-600'
+                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              }
+            >
+              <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar', 'Calendrier')}
+            </Button>
+            <Button
+              size="sm"
+              variant={outboundViewMode === 'agenda' ? 'default' : 'outline'}
+              onClick={() => setOutboundViewMode('agenda')}
+              className={
+                outboundViewMode === 'agenda'
+                  ? 'bg-orange-500 hover:bg-orange-600'
+                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              }
+            >
+              <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda', 'Agenda')}
+            </Button>
+            <Button
+              size="sm"
+              variant={outboundViewMode === 'kanban' ? 'default' : 'outline'}
+              onClick={() => setOutboundViewMode('kanban')}
+              className={
+                outboundViewMode === 'kanban'
+                  ? 'bg-orange-500 hover:bg-orange-600'
+                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              }
+            >
+              <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban', 'Kanban')}
+            </Button>
           </div>
 
           {/* Outbound table */}
-          <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
-            {loadingInvoices ? (
+          {loadingInvoices ? (
+            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
               <div className="flex items-center justify-center py-16">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
               </div>
-            ) : filteredInvoices.length === 0 ? (
+            </div>
+          ) : filteredInvoices.length === 0 ? (
+            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
               <div className="text-center py-16 text-gray-400">
                 <Send className="w-12 h-12 mx-auto mb-4 text-gray-600" />
                 <p className="text-lg mb-1">Aucune facture a envoyer</p>
                 <p className="text-sm text-gray-500">Les factures finalisees avec un client Peppol apparaitront ici.</p>
               </div>
+            </div>
+          ) : outboundViewMode !== 'list' ? (
+            outboundViewMode === 'calendar' ? (
+              <GenericCalendarView
+                events={outboundCalendarEvents}
+                statusColors={outboundCalendarStatusColors}
+                legend={outboundCalendarLegend}
+                onSelectEvent={(invoice) => handleViewInvoice(invoice)}
+              />
+            ) : outboundViewMode === 'agenda' ? (
+              <GenericAgendaView
+                items={outboundViewItems}
+                dateField="date"
+                paidStatuses={['paye']}
+                onView={(item) => {
+                  const invoice = (filteredInvoices || []).find((row) => row.id === item.id);
+                  if (invoice) handleViewInvoice(invoice);
+                }}
+              />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-800 bg-gray-900/50">
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                        Facture
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
-                        Client
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden md:table-cell">
-                        Peppol ID
-                      </th>
-                      <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                        Montant
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                        {t('peppol.peppolStatus')}
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
-                        Envoye le
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden xl:table-cell">
-                        Document ID
-                      </th>
-                      <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800/50">
-                    {filteredInvoices.map((invoice) => {
-                      const client = invoice.client;
-                      const hasEndpoint = !!client?.peppol_endpoint_id;
-                      const rowBusy = managingOutbound && outboundActionInvoiceId === invoice.id;
-                      const canSend =
-                        hasEndpoint &&
-                        (!invoice.peppol_status ||
-                          invoice.peppol_status === 'none' ||
-                          invoice.peppol_status === 'error' ||
-                          invoice.peppol_status === 'cancelled');
+              <GenericKanbanView
+                columns={outboundKanbanColumns}
+                items={outboundViewItems}
+                onStatusChange={handleOutboundKanbanStatusChange}
+                onView={(item) => {
+                  const invoice = (filteredInvoices || []).find((row) => row.id === item.id);
+                  if (invoice) handleViewInvoice(invoice);
+                }}
+              />
+            )
+          ) : (
+            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+              {
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-800 bg-gray-900/50">
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                          Facture
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
+                          Client
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden md:table-cell">
+                          Peppol ID
+                        </th>
+                        <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                          Montant
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                          {t('peppol.peppolStatus')}
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
+                          Statut metier
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
+                          Envoye le
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden xl:table-cell">
+                          Document ID
+                        </th>
+                        <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800/50">
+                      {filteredInvoices.map((invoice) => {
+                        const client = invoice.client;
+                        const hasEndpoint = !!client?.peppol_endpoint_id;
+                        const isPeppolRow = isPeppolInvoiceRow(invoice);
+                        const rowBusy = managingOutbound && outboundActionInvoiceId === invoice.id;
+                        const inDispute = isBusinessDisputed(invoice);
+                        const canSend =
+                          hasEndpoint &&
+                          (!invoice.peppol_status ||
+                            invoice.peppol_status === 'none' ||
+                            invoice.peppol_status === 'error' ||
+                            invoice.peppol_status === 'cancelled');
 
-                      return (
-                        <tr key={invoice.id} className="hover:bg-gray-800/50 transition-colors">
-                          <td className="p-3 font-medium text-white whitespace-nowrap">{invoice.invoice_number}</td>
-                          <td className="p-3 text-gray-300 hidden sm:table-cell whitespace-nowrap">
-                            {client?.company_name || client?.contact_name || '-'}
-                          </td>
-                          <td className="p-3 hidden md:table-cell">
-                            {hasEndpoint ? (
-                              <span className="text-xs font-mono text-gray-400">{client.peppol_endpoint_id}</span>
-                            ) : (
-                              <span className="text-xs text-red-400">{t('peppol.clientNoEndpoint')}</span>
-                            )}
-                          </td>
-                          <td className="p-3 text-right text-gray-300 whitespace-nowrap">
-                            {formatAmount(invoice.total_ttc)}
-                          </td>
-                          <td className="p-3">
-                            {invoice.peppol_status && invoice.peppol_status !== 'none' ? (
-                              <PeppolStatusBadge
-                                status={invoice.peppol_status}
-                                errorMessage={invoice.peppol_error_message}
-                              />
-                            ) : (
-                              <Badge className="bg-gray-500/20 text-gray-400 border-0">{t('peppol.status.none')}</Badge>
-                            )}
-                          </td>
-                          <td className="p-3 text-gray-400 text-xs hidden lg:table-cell whitespace-nowrap">
-                            {formatDate(invoice.peppol_sent_at)}
-                          </td>
-                          <td className="p-3 hidden xl:table-cell">
-                            {invoice.peppol_document_id ? (
-                              <span
-                                className="text-xs font-mono text-gray-500 truncate block max-w-[160px]"
-                                title={invoice.peppol_document_id}
-                              >
-                                {invoice.peppol_document_id}
-                              </span>
-                            ) : (
-                              <span className="text-gray-600">-</span>
-                            )}
-                          </td>
-                          <td className="p-3 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {canSend && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleOpenSendDialog(invoice)}
-                                  disabled={sending || rowBusy}
-                                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs"
-                                >
-                                  <Send className="w-3 h-3 mr-1" />
-                                  {t('peppolPage.creditPolicy.tableSendLabel', {
-                                    credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
-                                    unit: creditUnit,
-                                    defaultValue: `Envoyer (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit})`,
-                                  })}
-                                </Button>
+                        return (
+                          <tr key={invoice.id} className="hover:bg-gray-800/50 transition-colors">
+                            <td className="p-3 font-medium text-white whitespace-nowrap">{invoice.invoice_number}</td>
+                            <td className="p-3 text-gray-300 hidden sm:table-cell whitespace-nowrap">
+                              {client?.company_name || client?.contact_name || '-'}
+                            </td>
+                            <td className="p-3 hidden md:table-cell">
+                              {hasEndpoint ? (
+                                <span className="text-xs font-mono text-gray-400">{client.peppol_endpoint_id}</span>
+                              ) : (
+                                <span className="text-xs text-red-400">{t('peppol.clientNoEndpoint')}</span>
                               )}
-                              {(invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
-                                <Badge className="bg-yellow-500/20 text-yellow-400 border-0 gap-1">
-                                  <RefreshCw className="w-3 h-3 animate-spin" />
-                                  {t('peppol.pollingStatus')}
+                            </td>
+                            <td className="p-3 text-right text-gray-300 whitespace-nowrap">
+                              {formatAmount(invoice.total_ttc)}
+                            </td>
+                            <td className="p-3">
+                              {invoice.peppol_status && invoice.peppol_status !== 'none' ? (
+                                <PeppolStatusBadge
+                                  status={invoice.peppol_status}
+                                  errorMessage={invoice.peppol_error_message}
+                                />
+                              ) : (
+                                <Badge className="bg-gray-500/20 text-gray-400 border-0">
+                                  {t('peppol.status.none')}
                                 </Badge>
                               )}
+                            </td>
+                            <td className="p-3 hidden lg:table-cell">
+                              {getBusinessStatusBadge(invoice, { outbound: true })}
+                            </td>
+                            <td className="p-3 text-gray-400 text-xs hidden lg:table-cell whitespace-nowrap">
+                              {formatDate(invoice.peppol_sent_at)}
+                            </td>
+                            <td className="p-3 hidden xl:table-cell">
+                              {invoice.peppol_document_id ? (
+                                <span
+                                  className="text-xs font-mono text-gray-500 truncate block max-w-[160px]"
+                                  title={invoice.peppol_document_id}
+                                >
+                                  {invoice.peppol_document_id}
+                                </span>
+                              ) : (
+                                <span className="text-gray-600">-</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {canSend && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleOpenSendDialog(invoice)}
+                                    disabled={sending || rowBusy}
+                                    className="bg-orange-500 hover:bg-orange-600 text-white text-xs"
+                                  >
+                                    <Send className="w-3 h-3 mr-1" />
+                                    {t('peppolPage.creditPolicy.tableSendLabel', {
+                                      credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+                                      unit: creditUnit,
+                                      defaultValue: `Envoyer (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit})`,
+                                    })}
+                                  </Button>
+                                )}
+                                {(invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
+                                  <Badge className="bg-yellow-500/20 text-yellow-400 border-0 gap-1">
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                    {t('peppol.pollingStatus')}
+                                  </Badge>
+                                )}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50"
+                                    >
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent
+                                    align="end"
+                                    className="bg-gray-900 border-gray-700 text-gray-200"
+                                  >
+                                    <DropdownMenuItem
+                                      onClick={() => handleViewInvoice(invoice)}
+                                      className="gap-2 cursor-pointer hover:bg-gray-800"
+                                    >
+                                      <Eye className="w-4 h-4 text-blue-400" />
+                                      {t('common.view') || 'Visualiser'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handlePrintInvoice(invoice)}
+                                      className="gap-2 cursor-pointer hover:bg-gray-800"
+                                    >
+                                      <Printer className="w-4 h-4 text-gray-400" />
+                                      {t('common.print') || 'Imprimer'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleExportUBL(invoice)}
+                                      className="gap-2 cursor-pointer hover:bg-gray-800"
+                                    >
+                                      <Download className="w-4 h-4 text-emerald-400" />
+                                      {t('peppol.exportUBL')}
+                                    </DropdownMenuItem>
+                                    {invoice.peppol_document_id && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleCopyDocumentId(invoice.peppol_document_id)}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <Copy className="w-4 h-4 text-gray-400" />
+                                        {t('common.copy') || 'Copier'} Document ID
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator className="bg-gray-700" />
+                                    <DropdownMenuItem
+                                      onClick={() => handleSetOutboundBusinessStatus(invoice, 'envoye')}
+                                      className="gap-2 cursor-pointer hover:bg-gray-800"
+                                    >
+                                      <Send className="w-4 h-4 text-blue-400" />
+                                      Marquer Envoye
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleSetOutboundBusinessStatus(invoice, 'non_paye')}
+                                      className="gap-2 cursor-pointer hover:bg-gray-800"
+                                    >
+                                      <Clock className="w-4 h-4 text-amber-400" />
+                                      Marquer Non paye
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleSetOutboundBusinessStatus(invoice, 'echue')}
+                                      className="gap-2 cursor-pointer hover:bg-gray-800"
+                                    >
+                                      <Clock className="w-4 h-4 text-red-400" />
+                                      Marquer Echue
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleSetOutboundBusinessStatus(invoice, 'paye')}
+                                      className="gap-2 cursor-pointer hover:bg-gray-800"
+                                    >
+                                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                      Marquer Paye
+                                    </DropdownMenuItem>
+                                    {inDispute ? (
+                                      <DropdownMenuItem
+                                        onClick={() => handleToggleOutboundDispute(invoice, false)}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <CheckCircle className="w-4 h-4 text-cyan-400" />
+                                        Lever litige
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        onClick={() => handleToggleOutboundDispute(invoice, true)}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <AlertTriangle className="w-4 h-4 text-rose-400" />
+                                        Marquer en litige
+                                      </DropdownMenuItem>
+                                    )}
+                                    {invoice.peppol_document_id &&
+                                      (invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
+                                        <DropdownMenuItem
+                                          onClick={() => handleCancelOutboundNetwork(invoice)}
+                                          disabled={rowBusy}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800 text-amber-400"
+                                        >
+                                          {rowBusy ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                          ) : (
+                                            <Ban className="w-4 h-4" />
+                                          )}
+                                          {t('peppol.cancelNetworkAction', 'Annuler cote reseau')}
+                                        </DropdownMenuItem>
+                                      )}
+                                    {invoice.peppol_status && invoice.peppol_status !== 'none' && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteOutboundLocal(invoice)}
+                                        disabled={rowBusy}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800 text-red-400"
+                                      >
+                                        {rowBusy ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="w-4 h-4" />
+                                        )}
+                                        {t('peppol.deleteLocalAction', 'Supprimer localement')}
+                                      </DropdownMenuItem>
+                                    )}
+                                    {isPeppolRow && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteOutboundFromDb(invoice)}
+                                        disabled={rowBusy}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800 text-red-300"
+                                      >
+                                        {rowBusy ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="w-4 h-4" />
+                                        )}
+                                        {t('peppol.deleteDbAction', 'Supprimer de la base (DB + compta)')}
+                                      </DropdownMenuItem>
+                                    )}
+                                    {invoice.peppol_status === 'error' && (
+                                      <>
+                                        <DropdownMenuSeparator className="bg-gray-700" />
+                                        <DropdownMenuItem
+                                          onClick={() => handleOpenSendDialog(invoice)}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800 text-orange-400"
+                                        >
+                                          <RotateCcw className="w-4 h-4" />
+                                          {t('peppol.retry') || 'Renvoyer'}
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          )}
+        </TabsContent>
+
+        {/* -------- TAB: INBOUND -------- */}
+        <TabsContent value="inbound" className="mt-4">
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button
+              size="sm"
+              variant={inboundViewMode === 'list' ? 'default' : 'outline'}
+              onClick={() => setInboundViewMode('list')}
+              className={
+                inboundViewMode === 'list'
+                  ? 'bg-orange-500 hover:bg-orange-600'
+                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              }
+            >
+              <List className="w-4 h-4 mr-2" /> {t('common.list', 'Liste')}
+            </Button>
+            <Button
+              size="sm"
+              variant={inboundViewMode === 'calendar' ? 'default' : 'outline'}
+              onClick={() => setInboundViewMode('calendar')}
+              className={
+                inboundViewMode === 'calendar'
+                  ? 'bg-orange-500 hover:bg-orange-600'
+                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              }
+            >
+              <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar', 'Calendrier')}
+            </Button>
+            <Button
+              size="sm"
+              variant={inboundViewMode === 'agenda' ? 'default' : 'outline'}
+              onClick={() => setInboundViewMode('agenda')}
+              className={
+                inboundViewMode === 'agenda'
+                  ? 'bg-orange-500 hover:bg-orange-600'
+                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              }
+            >
+              <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda', 'Agenda')}
+            </Button>
+            <Button
+              size="sm"
+              variant={inboundViewMode === 'kanban' ? 'default' : 'outline'}
+              onClick={() => setInboundViewMode('kanban')}
+              className={
+                inboundViewMode === 'kanban'
+                  ? 'bg-orange-500 hover:bg-orange-600'
+                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              }
+            >
+              <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban', 'Kanban')}
+            </Button>
+          </div>
+
+          {loadingInbound ? (
+            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+              </div>
+            </div>
+          ) : inboundDocuments.length === 0 ? (
+            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+              <div className="text-center py-16 text-gray-400">
+                <ArrowDownLeft className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+                <p className="text-lg mb-1">{t('peppol.inboundDocuments')}</p>
+                <p className="text-sm text-gray-500">Aucune facture recue via Peppol pour le moment.</p>
+              </div>
+            </div>
+          ) : inboundViewMode !== 'list' ? (
+            inboundViewMode === 'calendar' ? (
+              <GenericCalendarView
+                events={inboundCalendarEvents}
+                statusColors={inboundCalendarStatusColors}
+                legend={inboundCalendarLegend}
+                onSelectEvent={(doc) => handleViewInboundPdf(doc)}
+              />
+            ) : inboundViewMode === 'agenda' ? (
+              <GenericAgendaView
+                items={inboundViewItems}
+                dateField="date"
+                paidStatuses={['paye', 'archivee']}
+                onView={(item) => {
+                  const doc = (inboundDocuments || []).find((row) => row.id === item.id);
+                  if (doc) handleViewInboundPdf(doc);
+                }}
+              />
+            ) : (
+              <GenericKanbanView
+                columns={inboundKanbanColumns}
+                items={inboundViewItems}
+                onStatusChange={handleInboundKanbanStatusChange}
+                onView={(item) => {
+                  const doc = (inboundDocuments || []).find((row) => row.id === item.id);
+                  if (doc) handleViewInboundPdf(doc);
+                }}
+              />
+            )
+          ) : (
+            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+              {
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-800 bg-gray-900/50">
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                          Date
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                          Expediteur
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
+                          Document ID
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                          Statuts
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                          Facture
+                        </th>
+                        <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800/50">
+                      {inboundDocuments.map((doc) => {
+                        const linkedSupplierInvoice = resolveInboundLinkedSupplierInvoice(doc);
+                        const actionKey = getInboundActionKey(doc);
+                        const rowBusy = inboundActionDocId === actionKey;
+                        const inDispute = isBusinessDisputed(linkedSupplierInvoice);
+                        return (
+                          <tr key={doc.id} className="hover:bg-gray-800/50 transition-colors">
+                            <td className="p-3 text-gray-300 whitespace-nowrap text-xs">
+                              {formatDateTime(doc.received_at || doc.created_at)}
+                            </td>
+                            <td className="p-3 text-gray-300 whitespace-nowrap">
+                              <span className="font-mono text-xs">
+                                {doc.sender_name || doc.sender_peppol_id || '-'}
+                              </span>
+                            </td>
+                            <td className="p-3 hidden sm:table-cell">
+                              <span
+                                className="text-xs font-mono text-gray-500 truncate block max-w-[200px]"
+                                title={doc.scrada_document_id}
+                              >
+                                {doc.scrada_document_id || '-'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex flex-col gap-1 items-start">
+                                {getInboundOperationalBadge(doc, linkedSupplierInvoice)}
+                                {linkedSupplierInvoice?.id ? getBusinessStatusBadge(linkedSupplierInvoice) : null}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              {doc.invoice_number ? (
+                                <span className="text-orange-400 text-sm font-medium">{doc.invoice_number}</span>
+                              ) : (
+                                <span className="text-gray-600">
+                                  {doc.metadata?.internalNumber ? `#${doc.metadata.internalNumber}` : '-'}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50"
+                                    disabled={rowBusy}
                                   >
-                                    <MoreHorizontal className="w-4 h-4" />
+                                    {rowBusy ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    )}
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="bg-gray-900 border-gray-700 text-gray-200">
                                   <DropdownMenuItem
-                                    onClick={() => handleViewInvoice(invoice)}
+                                    onClick={() => handleViewInboundPdf(doc)}
                                     className="gap-2 cursor-pointer hover:bg-gray-800"
                                   >
                                     <Eye className="w-4 h-4 text-blue-400" />
-                                    {t('common.view') || 'Visualiser'}
+                                    {t('common.view', 'Visualiser')} PDF
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    onClick={() => handlePrintInvoice(invoice)}
-                                    className="gap-2 cursor-pointer hover:bg-gray-800"
-                                  >
-                                    <Printer className="w-4 h-4 text-gray-400" />
-                                    {t('common.print') || 'Imprimer'}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => handleExportUBL(invoice)}
+                                    onClick={() => handleDownloadInboundPdf(doc)}
                                     className="gap-2 cursor-pointer hover:bg-gray-800"
                                   >
                                     <Download className="w-4 h-4 text-emerald-400" />
-                                    {t('peppol.exportUBL')}
+                                    {t('peppol.exportPDF', 'Exporter en PDF')}
                                   </DropdownMenuItem>
-                                  {invoice.peppol_document_id && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleCopyDocumentId(invoice.peppol_document_id)}
-                                      className="gap-2 cursor-pointer hover:bg-gray-800"
-                                    >
-                                      <Copy className="w-4 h-4 text-gray-400" />
-                                      {t('common.copy') || 'Copier'} Document ID
-                                    </DropdownMenuItem>
-                                  )}
-                                  {invoice.peppol_document_id &&
-                                    (invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
-                                      <DropdownMenuItem
-                                        onClick={() => handleCancelOutboundNetwork(invoice)}
-                                        disabled={rowBusy}
-                                        className="gap-2 cursor-pointer hover:bg-gray-800 text-amber-400"
-                                      >
-                                        {rowBusy ? (
-                                          <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                          <Ban className="w-4 h-4" />
-                                        )}
-                                        {t('peppol.cancelNetworkAction', 'Annuler cote reseau')}
-                                      </DropdownMenuItem>
-                                    )}
-                                  {invoice.peppol_status && invoice.peppol_status !== 'none' && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleDeleteOutboundLocal(invoice)}
-                                      disabled={rowBusy}
-                                      className="gap-2 cursor-pointer hover:bg-gray-800 text-red-400"
-                                    >
-                                      {rowBusy ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                      ) : (
-                                        <Trash2 className="w-4 h-4" />
-                                      )}
-                                      {t('peppol.deleteLocalAction', 'Supprimer localement')}
-                                    </DropdownMenuItem>
-                                  )}
-                                  {invoice.peppol_status === 'error' && (
+                                  <DropdownMenuSeparator className="bg-gray-700" />
+                                  <DropdownMenuItem
+                                    onClick={() => handleSendInboundToGed(doc)}
+                                    className="gap-2 cursor-pointer hover:bg-gray-800"
+                                  >
+                                    <FolderOpen className="w-4 h-4 text-orange-400" />
+                                    {t('peppol.sendToGed', 'Envoyer vers GED')}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator className="bg-gray-700" />
+                                  {linkedSupplierInvoice?.id ? (
                                     <>
-                                      <DropdownMenuSeparator className="bg-gray-700" />
                                       <DropdownMenuItem
-                                        onClick={() => handleOpenSendDialog(invoice)}
-                                        className="gap-2 cursor-pointer hover:bg-gray-800 text-orange-400"
+                                        onClick={() =>
+                                          handleSetInboundBusinessStatus(doc, linkedSupplierInvoice, 'non_paye')
+                                        }
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
                                       >
-                                        <RotateCcw className="w-4 h-4" />
-                                        {t('peppol.retry') || 'Renvoyer'}
+                                        <Clock className="w-4 h-4 text-amber-400" />
+                                        Marquer Non paye
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleSetInboundBusinessStatus(doc, linkedSupplierInvoice, 'echue')
+                                        }
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <Clock className="w-4 h-4 text-red-400" />
+                                        Marquer Echue
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleSetInboundBusinessStatus(doc, linkedSupplierInvoice, 'paye')
+                                        }
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                        Marquer Paye
+                                      </DropdownMenuItem>
+                                      {inDispute ? (
+                                        <DropdownMenuItem
+                                          onClick={() => handleToggleInboundDispute(doc, linkedSupplierInvoice, false)}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
+                                        >
+                                          <CheckCircle className="w-4 h-4 text-cyan-400" />
+                                          Lever litige
+                                        </DropdownMenuItem>
+                                      ) : (
+                                        <DropdownMenuItem
+                                          onClick={() => handleToggleInboundDispute(doc, linkedSupplierInvoice, true)}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
+                                        >
+                                          <AlertTriangle className="w-4 h-4 text-rose-400" />
+                                          Marquer en litige
+                                        </DropdownMenuItem>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={() => handleSetInboundOperationalStatus(doc, 'a_traiter')}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <Clock className="w-4 h-4 text-yellow-400" />
+                                        Mettre A traiter
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleSetInboundOperationalStatus(doc, 'en_revue')}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <Activity className="w-4 h-4 text-cyan-400" />
+                                        Mettre En revue
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleSetInboundOperationalStatus(doc, 'archivee')}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <FileCheck className="w-4 h-4 text-gray-400" />
+                                        Mettre Archivee
                                       </DropdownMenuItem>
                                     </>
                                   )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* -------- TAB: INBOUND -------- */}
-        <TabsContent value="inbound" className="mt-4">
-          <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
-            {loadingInbound ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
-              </div>
-            ) : inboundDocuments.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
-                <ArrowDownLeft className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-                <p className="text-lg mb-1">{t('peppol.inboundDocuments')}</p>
-                <p className="text-sm text-gray-500">Aucune facture recue via Peppol pour le moment.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-800 bg-gray-900/50">
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Date</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                        Expediteur
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
-                        Document ID
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                        Statut
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                        Facture
-                      </th>
-                      <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800/50">
-                    {inboundDocuments.map((doc) => (
-                      <tr key={doc.id} className="hover:bg-gray-800/50 transition-colors">
-                        <td className="p-3 text-gray-300 whitespace-nowrap text-xs">
-                          {formatDateTime(doc.received_at || doc.created_at)}
-                        </td>
-                        <td className="p-3 text-gray-300 whitespace-nowrap">
-                          <span className="font-mono text-xs">{doc.sender_name || doc.sender_peppol_id || '-'}</span>
-                        </td>
-                        <td className="p-3 hidden sm:table-cell">
-                          <span
-                            className="text-xs font-mono text-gray-500 truncate block max-w-[200px]"
-                            title={doc.scrada_document_id}
-                          >
-                            {doc.scrada_document_id || '-'}
-                          </span>
-                        </td>
-                        <td className="p-3">{getLogStatusBadge(doc.status === 'new' ? 'received' : doc.status)}</td>
-                        <td className="p-3">
-                          {doc.invoice_number ? (
-                            <span className="text-orange-400 text-sm font-medium">{doc.invoice_number}</span>
-                          ) : (
-                            <span className="text-gray-600">
-                              {doc.metadata?.internalNumber ? `#${doc.metadata.internalNumber}` : '-'}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-3 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50"
-                                disabled={inboundActionDocId === doc.scrada_document_id}
-                              >
-                                {inboundActionDocId === doc.scrada_document_id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <MoreHorizontal className="w-4 h-4" />
-                                )}
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-gray-900 border-gray-700 text-gray-200">
-                              <DropdownMenuItem
-                                onClick={() => handleViewInboundPdf(doc)}
-                                className="gap-2 cursor-pointer hover:bg-gray-800"
-                              >
-                                <Eye className="w-4 h-4 text-blue-400" />
-                                {t('common.view', 'Visualiser')} PDF
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDownloadInboundPdf(doc)}
-                                className="gap-2 cursor-pointer hover:bg-gray-800"
-                              >
-                                <Download className="w-4 h-4 text-emerald-400" />
-                                {t('peppol.exportPDF', 'Exporter en PDF')}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDownloadInboundHtml(doc)}
-                                className="gap-2 cursor-pointer hover:bg-gray-800"
-                              >
-                                <FileText className="w-4 h-4 text-cyan-400" />
-                                {t('peppol.exportHtml', 'Exporter HTML')}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-gray-700" />
-                              <DropdownMenuItem
-                                onClick={() => handleSendInboundToGed(doc)}
-                                className="gap-2 cursor-pointer hover:bg-gray-800"
-                              >
-                                <FolderOpen className="w-4 h-4 text-orange-400" />
-                                {t('peppol.sendToGed', 'Envoyer vers GED')}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          )}
         </TabsContent>
 
         {/* -------- TAB: JOURNAL -------- */}
