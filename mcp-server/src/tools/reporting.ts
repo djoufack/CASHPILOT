@@ -114,16 +114,15 @@ export function registerReportingTools(server: McpServer) {
 
       const round = (n: number) => Math.round(n * 100) / 100;
 
-      // ── Reclassify accounts with contra-normal balances ──
-      // f_trial_balance uses credit-positive convention for liability/equity
-      // (balance = credit - debit) and debit-positive for assets (balance = debit - credit).
-      // Asset accounts (normally debit-positive) with negative balance → reclassify to liabilities.
-      // Liability/equity accounts (normally credit-positive) with negative balance → reclassify to assets.
+      // ── BUG #11 fix: reclassify accounts with contra-normal balances ──
+      // Asset accounts (normally debit) with credit balances → reclassify to liabilities.
+      // Liability/equity accounts (normally credit) with debit balances → reclassify to assets.
+      // This handles e.g. bank account 521 "Banques locales CEMAC" showing a credit (overdraft).
       const rawAssets = result.assets ?? [];
       const rawLiabilities = result.liabilities ?? [];
       const rawEquity = result.equity ?? [];
 
-      // Assets with negative balance (credit > debit) → move to liabilities as reclassified
+      // Assets with negative (credit) balance → move to liabilities as reclassified
       const normalAssets = rawAssets.filter((a) => a.balance >= 0);
       const reclassifiedToLiabilities = rawAssets
         .filter((a) => a.balance < 0)
@@ -133,35 +132,33 @@ export function registerReportingTools(server: McpServer) {
           balance: Math.abs(a.balance),
         }));
 
-      // Liabilities: positive balance = credit > debit = NORMAL (credit-positive convention)
-      // Negative balance = debit > credit = abnormal → reclassify to assets
-      const normalLiabilities = rawLiabilities.filter((a) => a.balance >= 0);
+      // Liabilities with positive (debit) balance → move to assets as reclassified
+      const normalLiabilities = rawLiabilities.filter((a) => a.balance <= 0);
       const reclassifiedToAssets = rawLiabilities
-        .filter((a) => a.balance < 0)
+        .filter((a) => a.balance > 0)
         .map((a) => ({
           account_code: a.account_code,
           account_name: `${a.account_name} (solde débiteur reclassé)`,
-          balance: Math.abs(a.balance),
+          balance: a.balance,
         }));
 
-      // Equity: positive balance = credit > debit = NORMAL (credit-positive convention)
-      // Negative balance = debit > credit = abnormal → reclassify to assets
-      const normalEquity = rawEquity.filter((a) => a.balance >= 0);
+      // Equity with positive (debit) balance → move to assets as reclassified
+      const normalEquity = rawEquity.filter((a) => a.balance <= 0);
       const reclassifiedEquityToAssets = rawEquity
-        .filter((a) => a.balance < 0)
+        .filter((a) => a.balance > 0)
         .map((a) => ({
           account_code: a.account_code,
           account_name: `${a.account_name} (solde débiteur reclassé)`,
-          balance: Math.abs(a.balance),
+          balance: a.balance,
         }));
 
       // Build final lists
       const finalAssets = [...normalAssets, ...reclassifiedToAssets, ...reclassifiedEquityToAssets];
       const finalLiabilities = [
-        ...normalLiabilities.map((a) => ({ ...a, balance: a.balance })),
+        ...normalLiabilities.map((a) => ({ ...a, balance: Math.abs(a.balance) })),
         ...reclassifiedToLiabilities,
       ];
-      const finalEquity = normalEquity.map((a) => ({ ...a, balance: a.balance }));
+      const finalEquity = normalEquity.map((a) => ({ ...a, balance: Math.abs(a.balance) }));
 
       const formatItems = (items: { account_code: string; account_name: string; balance: number }[]) =>
         items

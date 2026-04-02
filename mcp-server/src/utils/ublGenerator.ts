@@ -54,7 +54,7 @@ function generatePartyBlock(party: any, tag: string): string {
           <cbc:CityName>${escapeXml(party.city || '')}</cbc:CityName>
           <cbc:PostalZone>${escapeXml(party.postal_code || '')}</cbc:PostalZone>
           <cac:Country>
-            <cbc:IdentificationCode>${escapeXml(party.country || '')}</cbc:IdentificationCode>
+            <cbc:IdentificationCode>${escapeXml(party.country || 'BE')}</cbc:IdentificationCode>
           </cac:Country>
         </cac:PostalAddress>${party.vat_number ? `
         <cac:PartyTaxScheme>
@@ -137,9 +137,6 @@ function generateLines(items: any[], currency: string, lineTag: string, qtyTag: 
 export function generateUBLInvoice(invoice: any, seller: any, buyer: any, items: any[]): string {
   const currency = invoice.currency || 'EUR';
   const buyerRef = invoice.reference || invoice.invoice_number;
-  // Inject invoice-level tax_rate into items that lack their own
-  const invoiceTaxRate = Number(invoice.tax_rate || 0);
-  items = items.map(it => ({ ...it, tax_rate: it.tax_rate ?? invoiceTaxRate }));
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
@@ -148,7 +145,7 @@ export function generateUBLInvoice(invoice: any, seller: any, buyer: any, items:
   <cbc:CustomizationID>${PEPPOL_CUSTOMIZATION_ID}</cbc:CustomizationID>
   <cbc:ProfileID>${PEPPOL_PROFILE_ID}</cbc:ProfileID>
   <cbc:ID>${escapeXml(invoice.invoice_number)}</cbc:ID>
-  <cbc:IssueDate>${formatDateISO(invoice.date || invoice.invoice_date)}</cbc:IssueDate>${invoice.due_date ? `
+  <cbc:IssueDate>${formatDateISO(invoice.invoice_date)}</cbc:IssueDate>${invoice.due_date ? `
   <cbc:DueDate>${formatDateISO(invoice.due_date)}</cbc:DueDate>` : ''}
   <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
   <cbc:DocumentCurrencyCode>${escapeXml(currency)}</cbc:DocumentCurrencyCode>
@@ -165,8 +162,6 @@ export function generateUBLInvoice(invoice: any, seller: any, buyer: any, items:
 export function generateUBLCreditNote(invoice: any, seller: any, buyer: any, items: any[]): string {
   const currency = invoice.currency || 'EUR';
   const buyerRef = invoice.reference || invoice.invoice_number;
-  const invoiceTaxRate = Number(invoice.tax_rate || 0);
-  items = items.map(it => ({ ...it, tax_rate: it.tax_rate ?? invoiceTaxRate }));
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <CreditNote xmlns="urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2"
@@ -175,7 +170,7 @@ export function generateUBLCreditNote(invoice: any, seller: any, buyer: any, ite
   <cbc:CustomizationID>${PEPPOL_CUSTOMIZATION_ID}</cbc:CustomizationID>
   <cbc:ProfileID>${PEPPOL_PROFILE_ID}</cbc:ProfileID>
   <cbc:ID>${escapeXml(invoice.invoice_number)}</cbc:ID>
-  <cbc:IssueDate>${formatDateISO(invoice.date || invoice.invoice_date)}</cbc:IssueDate>
+  <cbc:IssueDate>${formatDateISO(invoice.invoice_date)}</cbc:IssueDate>
   <cbc:CreditNoteTypeCode>381</cbc:CreditNoteTypeCode>
   <cbc:DocumentCurrencyCode>${escapeXml(currency)}</cbc:DocumentCurrencyCode>
   <cbc:BuyerReference>${escapeXml(buyerRef)}</cbc:BuyerReference>${generatePartyBlock(seller, 'AccountingSupplierParty')}${generatePartyBlock(buyer, 'AccountingCustomerParty')}${generatePaymentMeans(seller)}${generateTaxTotal(invoice, items, currency)}

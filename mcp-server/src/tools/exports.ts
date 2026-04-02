@@ -205,22 +205,20 @@ ${entriesXml}
         EN16931: 'urn:cen.eu:en16931:2017',
       };
 
-      const invoiceRes = await supabase
-        .from('invoices')
-        .select('*, client:clients(*)')
-        .eq('id', invoice_id)
-        .eq('user_id', getUserId())
-        .single();
+      const [invoiceRes, companyRes] = await Promise.all([
+        supabase
+          .from('invoices')
+          .select('*, client:clients(*)')
+          .eq('id', invoice_id)
+          .eq('user_id', getUserId())
+          .single(),
+        supabase.from('company').select('*').eq('user_id', getUserId()).single(),
+      ]);
 
       if (invoiceRes.error)
         return { content: [{ type: 'text' as const, text: safeError(invoiceRes.error, 'export Factur-X') }] };
 
       const inv = invoiceRes.data;
-
-      // Fetch seller company scoped to the invoice's company_id (supports multi-company users)
-      const companyQuery = supabase.from('company').select('*').eq('user_id', getUserId());
-      if (inv.company_id) companyQuery.eq('id', inv.company_id);
-      const companyRes = await companyQuery.limit(1).single();
       const seller = companyRes.data || {};
       const buyer = inv.client || {};
 
@@ -304,22 +302,20 @@ ${entriesXml}
     async ({ invoice_id, type }) => {
       const docType = type ?? 'invoice';
 
-      const invoiceRes = await supabase
-        .from('invoices')
-        .select('*, items:invoice_items(*)')
-        .eq('id', invoice_id)
-        .eq('user_id', getUserId())
-        .single();
+      const [invoiceRes, companyRes] = await Promise.all([
+        supabase
+          .from('invoices')
+          .select('*, items:invoice_items(*)')
+          .eq('id', invoice_id)
+          .eq('user_id', getUserId())
+          .single(),
+        supabase.from('company').select('*').eq('user_id', getUserId()).single(),
+      ]);
 
       if (invoiceRes.error)
         return { content: [{ type: 'text' as const, text: safeError(invoiceRes.error, 'export UBL') }] };
 
       const inv = invoiceRes.data;
-
-      // Fetch seller company scoped to the invoice's company_id (supports multi-company users)
-      const companyQuery = supabase.from('company').select('*').eq('user_id', getUserId());
-      if (inv.company_id) companyQuery.eq('id', inv.company_id);
-      const companyRes = await companyQuery.limit(1).single();
       const seller = companyRes.data || {};
 
       const { data: buyer } = await supabase
