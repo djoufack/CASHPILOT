@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { useAuth } from '@/contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAccountingGuard } from '@/hooks/useAccountingGuard';
+import { useDataEntryGuardEvents } from '@/hooks/useDataEntryGuardEvents';
 import { EntitlementsProvider } from '@/contexts/EntitlementsContext';
 import AppRoutes from './routes';
 import './i18n/config';
@@ -33,6 +34,11 @@ const AccountingGuard = () => {
   return null;
 };
 
+const DataEntryGuardFeedback = () => {
+  useDataEntryGuardEvents();
+  return null;
+};
+
 function App() {
   return (
     <Router>
@@ -42,6 +48,7 @@ function App() {
           <AppRoutes />
           <AuthenticatedChatWidget />
           <AccountingGuard />
+          <DataEntryGuardFeedback />
           <Suspense fallback={null}>
             <UserPreferenceSync />
           </Suspense>

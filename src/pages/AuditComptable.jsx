@@ -608,6 +608,19 @@ const AuditComptable = () => {
                 Points detectes non corriges automatiquement, avec explications sur le pourquoi et le comment.
               </DialogDescription>
             </DialogHeader>
+            {autoFixableIssues.length > 0 && (
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleAutoFix}
+                  disabled={loading || fixing}
+                  className="bg-green-500 hover:bg-green-600 text-white"
+                >
+                  {fixing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
+                  {fixing ? 'Correction en cours...' : `Corriger automatiquement (${autoFixableIssues.length})`}
+                </Button>
+              </div>
+            )}
 
             {manualIssues.length === 0 ? (
               <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-4">

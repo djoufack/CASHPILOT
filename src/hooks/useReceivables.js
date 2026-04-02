@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { useDataEntryGuard } from '@/hooks/useDataEntryGuard';
 
 export const useReceivables = () => {
   const [receivables, setReceivables] = useState([]);
@@ -13,6 +14,7 @@ export const useReceivables = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { guardInput } = useDataEntryGuard();
 
   const fetchReceivables = useCallback(async () => {
     if (!user || !supabase) return;
@@ -49,14 +51,20 @@ export const useReceivables = () => {
     }
     setLoading(true);
     try {
+      const guardedInput = guardInput({
+        entity: 'receivable',
+        operation: 'create',
+        payload: data,
+      });
+
       const { data: created, error } = await supabase
         .from('receivables')
-        .insert([{ ...withCompanyScope(data), user_id: user.id }])
+        .insert([{ ...withCompanyScope(guardedInput.payload), user_id: user.id }])
         .select()
         .single();
 
       if (error) throw error;
-      setReceivables(prev => [created, ...prev]);
+      setReceivables((prev) => [created, ...prev]);
       toast({ title: t('common.success'), description: t('debtManager.receivableCreated') });
       return created;
     } catch (err) {
@@ -71,16 +79,24 @@ export const useReceivables = () => {
     if (!supabase) throw new Error('Not configured');
     setLoading(true);
     try {
+      const existingReceivable = receivables.find((entry) => entry.id === id) || null;
+      const guardedInput = guardInput({
+        entity: 'receivable',
+        operation: 'update',
+        payload: updates,
+        referencePayload: existingReceivable,
+      });
+
       const { data: updated, error } = await supabase
         .from('receivables')
-        .update(withCompanyScope(updates))
+        .update(withCompanyScope(guardedInput.payload))
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) throw error;
-      setReceivables(prev => prev.map(r => r.id === id ? { ...r, ...updated } : r));
+      setReceivables((prev) => prev.map((r) => (r.id === id ? { ...r, ...updated } : r)));
       toast({ title: t('common.success'), description: t('debtManager.updated') });
       return updated;
     } catch (err) {
@@ -95,18 +111,11 @@ export const useReceivables = () => {
     if (!supabase) throw new Error('Not configured');
     setLoading(true);
     try {
-      const { error: paymentsDeleteError } = await supabase
-        .from('debt_payments')
-        .delete()
-        .eq('receivable_id', id);
+      const { error: paymentsDeleteError } = await supabase.from('debt_payments').delete().eq('receivable_id', id);
       if (paymentsDeleteError) throw paymentsDeleteError;
-      const { error } = await supabase
-        .from('receivables')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      const { error } = await supabase.from('receivables').delete().eq('id', id).eq('user_id', user.id);
       if (error) throw error;
-      setReceivables(prev => prev.filter(r => r.id !== id));
+      setReceivables((prev) => prev.filter((r) => r.id !== id));
       toast({ title: t('common.success'), description: t('debtManager.deleted') });
     } catch (err) {
       toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
@@ -120,22 +129,33 @@ export const useReceivables = () => {
     if (!user || !supabase) throw new Error('Not authenticated');
     setLoading(true);
     try {
-      const receivable = receivables.find(r => r.id === receivableId);
+      const receivable = receivables.find((r) => r.id === receivableId);
       if (!receivable) throw new Error('Receivable not found');
+      const currentAmount = Number(receivable.amount || 0);
+      const currentAmountPaid = Number(receivable.amount_paid || 0);
+      const remaining = Math.max(0, currentAmount - currentAmountPaid);
+      const guardedPayment = guardInput({
+        entity: 'debt_payment',
+        operation: 'create',
+        payload: { amount, payment_method: paymentMethod, notes },
+        options: { maxAmount: remaining },
+      });
 
       // Create payment record
-      const { error: payError } = await supabase.from('debt_payments').insert([{
-        user_id: user.id,
-        company_id: receivable.company_id || null,
-        receivable_id: receivableId,
-        amount,
-        payment_method: paymentMethod,
-        notes,
-      }]);
+      const { error: payError } = await supabase.from('debt_payments').insert([
+        {
+          user_id: user.id,
+          company_id: receivable.company_id || null,
+          receivable_id: receivableId,
+          amount: guardedPayment.payload.amount,
+          payment_method: guardedPayment.payload.payment_method,
+          notes: guardedPayment.payload.notes || '',
+        },
+      ]);
       if (payError) throw payError;
 
       // Update receivable amount_paid
-      const newAmountPaid = parseFloat(receivable.amount_paid) + parseFloat(amount);
+      const newAmountPaid = currentAmountPaid + Number(guardedPayment.payload.amount || 0);
 
       const { data: updated, error: upError } = await supabase
         .from('receivables')
@@ -146,7 +166,7 @@ export const useReceivables = () => {
         .single();
 
       if (upError) throw upError;
-      setReceivables(prev => prev.map(r => r.id === receivableId ? { ...r, ...updated } : r));
+      setReceivables((prev) => prev.map((r) => (r.id === receivableId ? { ...r, ...updated } : r)));
       toast({ title: t('common.success'), description: t('debtManager.paymentRecorded') });
       return updated;
     } catch (err) {
@@ -192,9 +212,9 @@ export const useReceivables = () => {
     totalReceivable: receivables.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0),
     totalCollected: receivables.reduce((sum, r) => sum + parseFloat(r.amount_paid || 0), 0),
     totalPending: receivables.reduce((sum, r) => sum + (parseFloat(r.amount || 0) - parseFloat(r.amount_paid || 0)), 0),
-    countOverdue: receivables.filter(r => isOutstanding(r) && isOverdue(r)).length,
+    countOverdue: receivables.filter((r) => isOutstanding(r) && isOverdue(r)).length,
     countPending: receivables.filter(isOutstanding).length,
-    countPaid: receivables.filter(r => !isOutstanding(r)).length,
+    countPaid: receivables.filter((r) => !isOutstanding(r)).length,
   };
 
   useEffect(() => {

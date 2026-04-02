@@ -8,6 +8,7 @@ import { formatDateInput } from '@/utils/dateFormatting';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { triggerWebhook } from '@/utils/webhookTrigger';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import { useDataEntryGuard } from '@/hooks/useDataEntryGuard';
 
 export const useExpenses = () => {
   const { t } = useTranslation();
@@ -15,6 +16,7 @@ export const useExpenses = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
   const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { guardInput } = useDataEntryGuard();
 
   const [totalCount, setTotalCount] = useState(0);
 
@@ -100,9 +102,15 @@ export const useExpenses = () => {
     }
     setLoading(true);
     try {
-      const normalizedExpenseDate = expenseData.expense_date || expenseData.date || formatDateInput();
+      const guardedInput = guardInput({
+        entity: 'expense',
+        operation: 'create',
+        payload: expenseData,
+      });
+      const guardedPayload = guardedInput.payload;
+      const normalizedExpenseDate = guardedPayload.expense_date || guardedPayload.date || formatDateInput();
       const payload = withCompanyScope({
-        ...expenseData,
+        ...guardedPayload,
         user_id: user.id,
         expense_date: normalizedExpenseDate,
       });
@@ -143,7 +151,20 @@ export const useExpenses = () => {
       }
       delete normalizedUpdates.date;
 
-      const { data, error } = await supabase.from('expenses').update(normalizedUpdates).eq('id', id).select().single();
+      const existingExpense = expenses.find((entry) => entry.id === id) || null;
+      const guardedInput = guardInput({
+        entity: 'expense',
+        operation: 'update',
+        payload: normalizedUpdates,
+        referencePayload: existingExpense,
+      });
+
+      const { data, error } = await supabase
+        .from('expenses')
+        .update(withCompanyScope(guardedInput.payload))
+        .eq('id', id)
+        .select()
+        .single();
       if (error) throw error;
       logAction('update', 'expense', null, data);
       setExpenses((prev) => prev.map((e) => (e.id === id ? data : e)));

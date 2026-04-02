@@ -10,6 +10,7 @@ import { validateInvoiceCatalogConsistency } from '@/utils/serviceCatalogQuality
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { triggerWebhook } from '@/utils/webhookTrigger';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import { useDataEntryGuard } from '@/hooks/useDataEntryGuard';
 
 export const useInvoices = () => {
   const { toast } = useToast();
@@ -17,6 +18,7 @@ export const useInvoices = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { guardInput } = useDataEntryGuard();
 
   const [totalCount, setTotalCount] = useState(0);
 
@@ -205,7 +207,16 @@ export const useInvoices = () => {
     if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
-      const catalogConsistency = validateInvoiceCatalogConsistency(items);
+      const guardedInvoiceInput = guardInput({
+        entity: 'invoice',
+        operation: 'create',
+        payload: invoiceData,
+        items,
+      });
+      const guardedInvoiceData = guardedInvoiceInput.payload;
+      const guardedItems = Array.isArray(guardedInvoiceInput.items) ? guardedInvoiceInput.items : [];
+
+      const catalogConsistency = validateInvoiceCatalogConsistency(guardedItems);
       if (!catalogConsistency.valid) {
         const description = catalogConsistency.errors[0] || 'Invoice item validation failed.';
         toast({
@@ -217,10 +228,10 @@ export const useInvoices = () => {
       }
 
       // If invoice_number is not provided, generate one from DB sequence
-      const invoiceNumber = invoiceData.invoice_number || (await generateInvoiceNumber(supabase, user.id));
+      const invoiceNumber = guardedInvoiceData.invoice_number || (await generateInvoiceNumber(supabase, user.id));
 
       // Sanitize user-facing text fields to prevent XSS
-      const sanitizedData = { ...invoiceData };
+      const sanitizedData = { ...guardedInvoiceData };
       if (sanitizedData.notes) sanitizedData.notes = sanitizeText(sanitizedData.notes);
       if (sanitizedData.header_note) sanitizedData.header_note = sanitizeText(sanitizedData.header_note);
       if (sanitizedData.footer_note) sanitizedData.footer_note = sanitizeText(sanitizedData.footer_note);
@@ -254,10 +265,10 @@ export const useInvoices = () => {
       let calculatedTotalTTC = 0;
       // _calculatedTaxAmount is kept for reference but not persisted (invoices table has no tax_amount column)
       let _calculatedTaxAmount = 0;
-      const taxRate = normalizeTaxRate(invoiceData.tax_rate);
+      const taxRate = normalizeTaxRate(guardedInvoiceData.tax_rate);
 
-      if (items.length > 0) {
-        const invoiceItems = items.map((item) => ({
+      if (guardedItems.length > 0) {
+        const invoiceItems = guardedItems.map((item) => ({
           invoice_id: data.id,
           description: sanitizeText(item.description || ''),
           quantity: Number(item.quantity || 0),
@@ -299,8 +310,8 @@ export const useInvoices = () => {
           calculatedTotalTTC = calculatedTotalHT * (1 + taxRate / 100);
         }
       } else {
-        calculatedTotalHT = toFiniteNumber(invoiceData.total_ht);
-        calculatedTotalTTC = toFiniteNumber(invoiceData.total_ttc || invoiceData.total);
+        calculatedTotalHT = toFiniteNumber(guardedInvoiceData.total_ht);
+        calculatedTotalTTC = toFiniteNumber(guardedInvoiceData.total_ttc || guardedInvoiceData.total);
         _calculatedTaxAmount =
           calculatedTotalTTC > 0
             ? Math.max(0, calculatedTotalTTC - calculatedTotalHT)
@@ -359,9 +370,17 @@ export const useInvoices = () => {
     if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
+      const existingInvoice = invoices.find((entry) => entry.id === id) || null;
+      const guardedInvoiceInput = guardInput({
+        entity: 'invoice',
+        operation: 'update',
+        payload: invoiceData,
+        referencePayload: existingInvoice,
+      });
+
       const { data, error } = await supabase
         .from('invoices')
-        .update(withCompanyScope(invoiceData))
+        .update(withCompanyScope(guardedInvoiceInput.payload))
         .eq('id', id)
         .select()
         .single();
@@ -447,13 +466,20 @@ export const useInvoices = () => {
   const createInvoiceItem = async (itemData) => {
     if (!supabase) throw new Error('Supabase not configured');
     try {
-      const catalogConsistency = validateInvoiceCatalogConsistency([itemData]);
+      const guardedItemInput = guardInput({
+        entity: 'invoice_item',
+        operation: 'create',
+        payload: itemData,
+      });
+
+      const guardedItem = guardedItemInput.payload;
+      const catalogConsistency = validateInvoiceCatalogConsistency([guardedItem]);
       if (!catalogConsistency.valid) {
         throw new Error(catalogConsistency.errors[0] || 'Invoice item validation failed.');
       }
 
       // Sanitize user-facing text fields to prevent XSS
-      const sanitizedItem = { ...itemData };
+      const sanitizedItem = { ...guardedItem };
       if (sanitizedItem.description) sanitizedItem.description = sanitizeText(sanitizedItem.description);
 
       const { data, error } = await supabase.from('invoice_items').insert([sanitizedItem]).select().single();
