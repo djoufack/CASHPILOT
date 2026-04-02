@@ -369,6 +369,155 @@ const PeppolPage = () => {
       .replace(/'/g, '&#39;');
   }, []);
 
+  const toNumberSafe = useCallback((value) => {
+    const parsed = Number(String(value ?? '').replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : null;
+  }, []);
+
+  const extractUblTag = useCallback((xml, tagName) => {
+    const source = String(xml || '');
+    if (!source || !tagName) return '';
+    const escapedTag = String(tagName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`<(?:[\\w-]+:)?${escapedTag}\\b[^>]*>([\\s\\S]*?)<\\/(?:[\\w-]+:)?${escapedTag}>`, 'i');
+    return String(source.match(regex)?.[1] || '').trim();
+  }, []);
+
+  const prettyPrintXml = useCallback((xml) => {
+    const normalized = String(xml || '')
+      .replace(/>\s+</g, '><')
+      .trim();
+    if (!normalized) return '';
+
+    const nodes = normalized.replace(/(>)(<)(\/*)/g, '$1\n$2$3').split('\n');
+    let indent = 0;
+    const lines = [];
+
+    for (const node of nodes) {
+      if (!node) continue;
+      const isClosing = /^<\/.+>/.test(node);
+      const isSelfClosing = /\/>$/.test(node);
+      const isDeclaration = /^<\?xml/.test(node) || /^<!/.test(node);
+      const isOpening = /^<[^/?!][^>]*>$/.test(node);
+
+      if (isClosing) indent = Math.max(indent - 1, 0);
+      lines.push(`${'  '.repeat(indent)}${node}`);
+      if (isOpening && !isSelfClosing && !isDeclaration) indent += 1;
+    }
+
+    return lines.join('\n');
+  }, []);
+
+  const normalizeInboundUblPayload = useCallback(
+    (payload) => {
+      const raw = String(payload || '').trim();
+      if (!raw) {
+        return {
+          kind: 'empty',
+          formatted: '',
+          raw: '',
+          message: 'Aucun contenu UBL reçu depuis Scrada.',
+        };
+      }
+
+      if (raw.startsWith('{') || raw.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(raw);
+          const maybeUbl =
+            parsed?.ubl ||
+            parsed?.xml ||
+            parsed?.content ||
+            parsed?.document ||
+            parsed?.data?.ubl ||
+            parsed?.data?.xml ||
+            parsed?.data?.content ||
+            '';
+          if (typeof maybeUbl === 'string' && maybeUbl.trim().startsWith('<')) {
+            return {
+              kind: 'xml',
+              formatted: prettyPrintXml(maybeUbl),
+              raw: maybeUbl,
+              message: '',
+            };
+          }
+
+          return {
+            kind: 'json',
+            formatted: JSON.stringify(parsed, null, 2),
+            raw,
+            message: "Scrada a renvoyé un JSON au lieu d'un XML UBL.",
+          };
+        } catch {
+          // Keep fallback path below.
+        }
+      }
+
+      if (raw.startsWith('<') || raw.includes('<Invoice') || raw.includes(':Invoice')) {
+        return {
+          kind: 'xml',
+          formatted: prettyPrintXml(raw),
+          raw,
+          message: '',
+        };
+      }
+
+      return {
+        kind: 'raw',
+        formatted: raw,
+        raw,
+        message: "Le contenu renvoyé par Scrada n'est pas un XML UBL lisible.",
+      };
+    },
+    [prettyPrintXml]
+  );
+
+  const resolveInboundAmounts = useCallback(
+    (doc, ublPayload) => {
+      const metadata = doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
+      const normalizedUbl = normalizeInboundUblPayload(ublPayload);
+      const xml = normalizedUbl.kind === 'xml' ? normalizedUbl.raw : '';
+
+      const fromDocExcl = toNumberSafe(doc?.total_excl_vat);
+      const fromDocVat = toNumberSafe(doc?.total_vat);
+      const fromDocIncl = toNumberSafe(doc?.total_incl_vat);
+
+      const fromMetaExcl =
+        toNumberSafe(metadata?.totalExclVat) ??
+        toNumberSafe(metadata?.totalExclVAT) ??
+        toNumberSafe(metadata?.subtotal) ??
+        null;
+      const fromMetaVat = toNumberSafe(metadata?.totalVat) ?? toNumberSafe(metadata?.totalVAT) ?? null;
+      const fromMetaIncl =
+        toNumberSafe(metadata?.totalInclVat) ??
+        toNumberSafe(metadata?.totalInclVAT) ??
+        toNumberSafe(metadata?.total) ??
+        toNumberSafe(metadata?.totalAmount) ??
+        null;
+
+      const fromUblExcl = toNumberSafe(extractUblTag(xml, 'TaxExclusiveAmount'));
+      const fromUblVat = toNumberSafe(extractUblTag(xml, 'TaxAmount'));
+      const fromUblIncl =
+        toNumberSafe(extractUblTag(xml, 'PayableAmount')) ?? toNumberSafe(extractUblTag(xml, 'TaxInclusiveAmount'));
+
+      const pickAmount = (...values) => {
+        for (const value of values) {
+          if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
+        }
+        for (const value of values) {
+          if (typeof value === 'number' && Number.isFinite(value)) return value;
+        }
+        return 0;
+      };
+
+      return {
+        normalizedUbl,
+        totalExcl: pickAmount(fromDocExcl, fromMetaExcl, fromUblExcl),
+        totalVat: pickAmount(fromDocVat, fromMetaVat, fromUblVat),
+        totalIncl: pickAmount(fromDocIncl, fromMetaIncl, fromUblIncl),
+      };
+    },
+    [extractUblTag, normalizeInboundUblPayload, toNumberSafe]
+  );
+
   const buildInboundHtml = useCallback(
     (doc, ublXml) => {
       const formatMoney = (value, currency = 'EUR') => {
@@ -377,11 +526,13 @@ const PeppolPage = () => {
         return `${formatted} ${currency}`;
       };
 
-      const invoiceLabel = doc?.invoice_number || doc?.metadata?.internalNumber || '-';
-      const senderLabel = doc?.sender_name || doc?.sender_peppol_id || '-';
-      const totalIncl = formatMoney(doc?.total_incl_vat || 0, doc?.currency || 'EUR');
-      const totalVat = formatMoney(doc?.total_vat || 0, doc?.currency || 'EUR');
-      const totalExcl = formatMoney(doc?.total_excl_vat || 0, doc?.currency || 'EUR');
+      const metadata = doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
+      const { normalizedUbl, totalExcl, totalVat, totalIncl } = resolveInboundAmounts(doc, ublXml);
+      const xmlBlock = escapeHtml(normalizedUbl.formatted || '');
+      const rawBlock = escapeHtml(String(normalizedUbl.raw || '').slice(0, 250_000));
+      const isNonXmlPayload = normalizedUbl.kind !== 'xml' && normalizedUbl.kind !== 'empty';
+      const senderLabel = doc?.sender_name || metadata?.senderName || doc?.sender_peppol_id || '-';
+      const invoiceLabel = doc?.invoice_number || metadata?.invoiceNumber || metadata?.internalNumber || '-';
       const receivedLabel = formatDateLocale(doc?.received_at || doc?.created_at, {
         day: '2-digit',
         month: '2-digit',
@@ -389,7 +540,6 @@ const PeppolPage = () => {
         hour: '2-digit',
         minute: '2-digit',
       });
-      const xmlBlock = escapeHtml(ublXml || '');
 
       return `<!doctype html>
 <html lang="fr">
@@ -402,10 +552,13 @@ const PeppolPage = () => {
     .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
     h1 { margin: 0 0 8px 0; font-size: 24px; }
     .muted { color: #6b7280; font-size: 14px; }
+    .warning { background: #fff7ed; color: #9a3412; border: 1px solid #fdba74; border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 13px; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
     th { color: #374151; background: #f3f4f6; }
-    pre { white-space: pre-wrap; word-break: break-word; background: #0b1220; color: #d1d5db; border-radius: 12px; padding: 14px; font-size: 12px; max-height: 60vh; overflow: auto; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #0b1220; color: #d1d5db; border-radius: 12px; padding: 14px; font-size: 12px; max-height: 60vh; overflow: auto; line-height: 1.45; }
+    details { margin-top: 12px; }
+    summary { cursor: pointer; color: #374151; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -416,19 +569,25 @@ const PeppolPage = () => {
       <tr><th>Facture</th><td>${escapeHtml(invoiceLabel)}</td></tr>
       <tr><th>Expéditeur</th><td>${escapeHtml(senderLabel)}</td></tr>
       <tr><th>Reçue le</th><td>${escapeHtml(receivedLabel)}</td></tr>
-      <tr><th>Montant HT</th><td>${escapeHtml(totalExcl)}</td></tr>
-      <tr><th>TVA</th><td>${escapeHtml(totalVat)}</td></tr>
-      <tr><th>Montant TTC</th><td>${escapeHtml(totalIncl)}</td></tr>
+      <tr><th>Montant HT</th><td>${escapeHtml(formatMoney(totalExcl, doc?.currency || 'EUR'))}</td></tr>
+      <tr><th>TVA</th><td>${escapeHtml(formatMoney(totalVat, doc?.currency || 'EUR'))}</td></tr>
+      <tr><th>Montant TTC</th><td>${escapeHtml(formatMoney(totalIncl, doc?.currency || 'EUR'))}</td></tr>
     </table>
+    ${normalizedUbl.message ? `<div class="warning">${escapeHtml(normalizedUbl.message)}</div>` : ''}
   </div>
   <div class="card">
     <h1>UBL XML</h1>
-    <pre>${xmlBlock}</pre>
+    <pre>${xmlBlock || 'Aucun XML UBL disponible.'}</pre>
+    ${
+      isNonXmlPayload
+        ? `<details><summary>Afficher le contenu brut reçu</summary><pre>${rawBlock || 'Contenu brut indisponible.'}</pre></details>`
+        : ''
+    }
   </div>
 </body>
 </html>`;
     },
-    [escapeHtml]
+    [escapeHtml, resolveInboundAmounts]
   );
 
   const handleViewInboundPdf = useCallback(
