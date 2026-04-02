@@ -62,7 +62,6 @@ i18n
     saveMissingTo: 'all',
     missingKeyHandler: (_lngs, _ns, key) => {
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
         console.warn(`[i18n] Missing translation: ${_lngs.join(',')} > ${_ns} > ${key}`);
       }
     },
