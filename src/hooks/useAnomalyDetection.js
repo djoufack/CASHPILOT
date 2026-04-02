@@ -2,9 +2,12 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
+import { handleMutationError } from '@/utils/mutationError';
 
 export const useAnomalyDetection = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [anomalies, setAnomalies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastScan, setLastScan] = useState(null);
@@ -13,32 +16,31 @@ export const useAnomalyDetection = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/ai-anomaly-detect`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session?.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: user.id }),
-        }
-      );
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const response = await fetch(`${supabaseUrl}/functions/v1/ai-anomaly-detect`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
       const data = await response.json();
       if (data.anomalies) {
         setAnomalies(data.anomalies);
         setLastScan(new Date().toISOString());
       }
     } catch (err) {
-      console.error('detectAnomalies error:', err);
+      handleMutationError(toast, err, 'detectAnomalies');
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, toast]);
 
   const dismissAnomaly = useCallback((index) => {
-    setAnomalies(prev => prev.filter((_, i) => i !== index));
+    setAnomalies((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   return { anomalies, loading, lastScan, detectAnomalies, dismissAnomaly };

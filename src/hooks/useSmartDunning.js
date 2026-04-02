@@ -4,6 +4,8 @@ import { supabaseAnonKey, supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { isMissingRelationError } from '@/lib/supabaseCompatibility';
+import { useToast } from '@/components/ui/use-toast';
+import { handleMutationError } from '@/utils/mutationError';
 
 const SMART_DUNNING_RULE_CATEGORY = 'smart_dunning';
 const DEFAULT_SMART_DUNNING_RULES = [
@@ -72,6 +74,7 @@ export const selectDunningRuleForDays = (rules = [], daysOverdue = 0) => {
 export const useSmartDunning = () => {
   const { user } = useAuth();
   const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { toast } = useToast();
 
   const [campaigns, setCampaigns] = useState([]);
   const [executions, setExecutions] = useState([]);
@@ -435,12 +438,12 @@ export const useSmartDunning = () => {
         await fetchDunningRules();
         return data;
       } catch (err) {
-        console.error('useSmartDunning updateDunningRule error:', err);
+        handleMutationError(toast, err, 'updateDunningRule');
         setError(err.message || 'Failed to update dunning rule');
         return null;
       }
     },
-    [activeCompanyId, fetchDunningRules, user, withCompanyScope]
+    [activeCompanyId, fetchDunningRules, user, withCompanyScope, toast]
   );
 
   const toggleDunningRule = useCallback(
@@ -490,12 +493,12 @@ export const useSmartDunning = () => {
         await fetchCampaigns();
         return campaign;
       } catch (err) {
-        console.error('useSmartDunning createCampaign error:', err);
+        handleMutationError(toast, err, 'createCampaign');
         setError(err.message || 'Failed to create campaign');
         return null;
       }
     },
-    [user, activeCompanyId, withCompanyScope, fetchCampaigns]
+    [user, activeCompanyId, withCompanyScope, fetchCampaigns, toast]
   );
 
   // ------------------------------------------
@@ -520,12 +523,12 @@ export const useSmartDunning = () => {
         await fetchCampaigns();
         return data;
       } catch (err) {
-        console.error('useSmartDunning updateCampaign error:', err);
+        handleMutationError(toast, err, 'updateCampaign');
         setError(err.message || 'Failed to update campaign');
         return null;
       }
     },
-    [user, activeCompanyId, fetchCampaigns]
+    [user, activeCompanyId, fetchCampaigns, toast]
   );
 
   // ------------------------------------------
@@ -558,12 +561,12 @@ export const useSmartDunning = () => {
         await fetchCampaigns();
         return true;
       } catch (err) {
-        console.error('useSmartDunning deleteCampaign error:', err);
+        handleMutationError(toast, err, 'deleteCampaign');
         setError(err.message || 'Failed to delete campaign');
         return false;
       }
     },
-    [user, activeCompanyId, fetchCampaigns]
+    [user, activeCompanyId, fetchCampaigns, toast]
   );
 
   // ------------------------------------------
@@ -615,12 +618,12 @@ export const useSmartDunning = () => {
 
         return result;
       } catch (err) {
-        console.error('useSmartDunning launchDunning error:', err);
+        handleMutationError(toast, err, 'launchDunning');
         setError(err.message || 'Failed to launch dunning');
         return null;
       }
     },
-    [user, activeCompanyId, fetchExecutions]
+    [user, activeCompanyId, fetchExecutions, toast]
   );
 
   // ------------------------------------------

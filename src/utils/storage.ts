@@ -1,10 +1,9 @@
 /**
- * Safe localStorage helpers.
- * Falls back gracefully when localStorage is unavailable
- * (private browsing, storage quota exceeded, corrupted data).
+ * Safe localStorage helpers — gracefully handles unavailable storage
+ * (private browsing, quota exceeded, browser restrictions).
  */
 
-export function safeGetItem(key, defaultValue = null) {
+export function safeGetItem(key: string, defaultValue: string | null = null): string | null {
   try {
     const item = localStorage.getItem(key);
     return item !== null ? item : defaultValue;
@@ -13,7 +12,7 @@ export function safeGetItem(key, defaultValue = null) {
   }
 }
 
-export function safeSetItem(key, value) {
+export function safeSetItem(key: string, value: string): void {
   try {
     localStorage.setItem(key, value);
   } catch {
@@ -21,7 +20,7 @@ export function safeSetItem(key, value) {
   }
 }
 
-export function safeRemoveItem(key) {
+export function safeRemoveItem(key: string): void {
   try {
     localStorage.removeItem(key);
   } catch {

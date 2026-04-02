@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { clearPendingBankConnection, storePendingBankConnection } from '@/utils/bankConnectionRedirect';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { buildCanonicalOperationsSnapshot } from '@/shared/canonicalOperationsSnapshot';
+import { useToast } from '@/components/ui/use-toast';
+import { handleMutationError } from '@/utils/mutationError';
 
 const DEFAULT_BANK_COUNTRY = 'BE';
 const BANK_API_TIMEOUT_MS = 20000;
@@ -36,6 +38,7 @@ function normalizeInstitution(row = {}) {
 export const useBankConnections = () => {
   const { user } = useAuth();
   const { activeCompanyId, applyCompanyScope } = useCompanyScope();
+  const { toast } = useToast();
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [integrationHealth, setIntegrationHealth] = useState({
@@ -188,10 +191,7 @@ export const useBankConnections = () => {
       }
     };
 
-    const [gcHealth, ypHealth] = await Promise.all([
-      checkProvider('gocardless'),
-      checkProvider('yapily'),
-    ]);
+    const [gcHealth, ypHealth] = await Promise.all([checkProvider('gocardless'), checkProvider('yapily')]);
     setIntegrationHealth(gcHealth);
     setYapilyHealth(ypHealth);
     setIntegrationHealthLoading(false);
@@ -210,10 +210,13 @@ export const useBankConnections = () => {
       }
 
       try {
-        const data = await callBankApi({
-          action: 'list-institutions',
-          country: normalizedCountry,
-        }, provider);
+        const data = await callBankApi(
+          {
+            action: 'list-institutions',
+            country: normalizedCountry,
+          },
+          provider
+        );
 
         const institutions = (data?.institutions || [])
           .map(normalizeInstitution)
@@ -231,7 +234,13 @@ export const useBankConnections = () => {
   );
 
   const initiateConnection = useCallback(
-    async ({ institutionId, institutionName, country, returnPath = '/app/bank-connections', provider = 'gocardless' }) => {
+    async ({
+      institutionId,
+      institutionName,
+      country,
+      returnPath = '/app/bank-connections',
+      provider = 'gocardless',
+    }) => {
       if (!user) {
         throw new Error('Authentication required');
       }
@@ -239,15 +248,18 @@ export const useBankConnections = () => {
       try {
         const normalizedCountry = normalizeCountryCode(country);
         const redirectUrl = `${window.location.origin}/app/bank-callback`;
-        const data = await callBankApi({
-          action: 'create-requisition',
-          userId: user.id,
-          companyId: activeCompanyId,
-          institutionId,
-          institutionName,
-          country: normalizedCountry,
-          redirectUrl,
-        }, provider);
+        const data = await callBankApi(
+          {
+            action: 'create-requisition',
+            userId: user.id,
+            companyId: activeCompanyId,
+            institutionId,
+            institutionName,
+            country: normalizedCountry,
+            redirectUrl,
+          },
+          provider
+        );
 
         if (!data?.link || !data?.requisition_id) {
           throw new Error('Unable to start bank authorization');
@@ -268,52 +280,62 @@ export const useBankConnections = () => {
         return data;
       } catch (err) {
         clearPendingBankConnection();
-        console.error('initiateConnection error:', err);
+        handleMutationError(toast, err, 'initiateConnection');
         throw err;
       }
     },
-    [activeCompanyId, callBankApi, user]
+    [activeCompanyId, callBankApi, user, toast]
   );
 
   const completeConnection = useCallback(
-    async (requisitionId, companyId = null, { provider = 'gocardless', consentToken = null, oneTimeToken = null } = {}) => {
+    async (
+      requisitionId,
+      companyId = null,
+      { provider = 'gocardless', consentToken = null, oneTimeToken = null } = {}
+    ) => {
       try {
-        const data = await callBankApi({
-          action: 'complete-requisition',
-          userId: user?.id,
-          requisitionId,
-          consentToken,
-          oneTimeToken,
-          companyId: companyId || activeCompanyId,
-        }, provider);
+        const data = await callBankApi(
+          {
+            action: 'complete-requisition',
+            userId: user?.id,
+            requisitionId,
+            consentToken,
+            oneTimeToken,
+            companyId: companyId || activeCompanyId,
+          },
+          provider
+        );
         await fetchConnections();
         return data;
       } catch (err) {
-        console.error('completeConnection error:', err);
+        handleMutationError(toast, err, 'completeConnection');
         throw err;
       }
     },
-    [activeCompanyId, callBankApi, fetchConnections, user?.id]
+    [activeCompanyId, callBankApi, fetchConnections, user?.id, toast]
   );
 
   const syncConnection = useCallback(
     async (connectionId, companyId = null, provider = null) => {
       try {
         const resolvedProvider = provider || 'gocardless';
-        const data = await callBankApi({
-          action: 'sync-transactions',
-          userId: user?.id,
-          connectionId,
-          companyId: companyId || activeCompanyId,
-        }, resolvedProvider);
+        const data = await callBankApi(
+          {
+            action: 'sync-transactions',
+            userId: user?.id,
+            connectionId,
+            companyId: companyId || activeCompanyId,
+          },
+          resolvedProvider
+        );
         await fetchConnections();
         return data;
       } catch (err) {
-        console.error('syncConnection error:', err);
+        handleMutationError(toast, err, 'syncConnection');
         throw err;
       }
     },
-    [activeCompanyId, callBankApi, fetchConnections, user?.id]
+    [activeCompanyId, callBankApi, fetchConnections, user?.id, toast]
   );
 
   const disconnectBank = async (connectionId) => {
@@ -327,7 +349,7 @@ export const useBankConnections = () => {
       await query;
       await fetchConnections();
     } catch (err) {
-      console.error('disconnectBank error:', err);
+      handleMutationError(toast, err, 'disconnectBank');
       throw err;
     }
   };

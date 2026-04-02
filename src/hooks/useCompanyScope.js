@@ -1,6 +1,13 @@
 import { useCallback } from 'react';
 import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 
+/**
+ * @returns {{
+ *   applyCompanyScope: (query: import('@supabase/supabase-js').PostgrestFilterBuilder<any,any,any>, options?: {column?: string, includeUnassigned?: boolean}) => import('@supabase/supabase-js').PostgrestFilterBuilder<any,any,any>,
+ *   withCompanyScope: <T extends object>(payload: T, options?: {column?: string}) => T & {company_id: string},
+ *   activeCompanyId: string | null,
+ * }}
+ */
 export function useCompanyScope() {
   const activeCompanyId = useActiveCompanyId();
 

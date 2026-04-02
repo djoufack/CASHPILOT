@@ -1785,11 +1785,17 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
+      const cacheKey = `company:${getUserId()}:${limit}:${offset}`;
+      const cached = getCached<any>(cacheKey);
+      if (cached) return cached;
+
       let query = supabase.from('company').select(COLS_COMPANY);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list companies') }] };
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      const result = { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      setCache(cacheKey, result, 120_000); // 2-minute TTL — company info changes rarely
+      return result;
     }
   );
 
@@ -2837,7 +2843,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list accounting tax rates') }] };
       const result = { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
-      setCache(cacheKey, result, 60_000);
+      setCache(cacheKey, result, 300_000); // 5-minute TTL — tax rates rarely change
       return result;
     }
   );

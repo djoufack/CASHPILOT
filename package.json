@@ -79,7 +79,8 @@
     "vercel:deploy:prebuilt:prod": "npx vercel deploy --prebuilt --prod --yes",
     "vercel:prebuilt:prod": "npm run vercel:pull:prod && npm run vercel:build:prod && npm run vercel:deploy:prebuilt:prod",
     "prepare": "husky",
-    "guard:lint-warning-budget": "node scripts/guard-eslint-warning-budget.mjs"
+    "guard:lint-warning-budget": "node scripts/guard-eslint-warning-budget.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -155,6 +156,7 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
+    "typescript": "^5.4.5",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.2.37",
