@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createServiceClient, requireAuthenticatedUser } from '../_shared/billing.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+import { createRequestLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
@@ -220,11 +221,15 @@ serve(async (req) => {
   if (req.method !== 'POST') return errRes('Method not allowed', 405);
 
   // ENF-2 / Security: require a valid authenticated user before any HR AI action.
+  let userId: string | undefined;
   try {
-    await requireAuthenticatedUser(req);
+    const authUser = await requireAuthenticatedUser(req);
+    userId = authUser.id;
   } catch {
     return errRes('Unauthorized', 401);
   }
+
+  const logger = createRequestLogger(req, userId);
 
   try {
     const apiKey = requireEnv('ANTHROPIC_API_KEY');
@@ -232,18 +237,26 @@ serve(async (req) => {
     const payload = await req.json();
     const { action } = payload;
 
+    let response: Response;
     switch (action) {
       case 'parse_cv':
-        return await handleParseCV(supabase, apiKey, payload.file_url, payload.candidate_id);
+        response = await handleParseCV(supabase, apiKey, payload.file_url, payload.candidate_id);
+        break;
       case 'score_candidate':
-        return await handleScoreCandidate(supabase, apiKey, payload.application_id);
+        response = await handleScoreCandidate(supabase, apiKey, payload.application_id);
+        break;
       case 'generate_questions':
-        return await handleGenerateQuestions(supabase, apiKey, payload.application_id, payload.interview_type);
+        response = await handleGenerateQuestions(supabase, apiKey, payload.application_id, payload.interview_type);
+        break;
       default:
-        return errRes(`Unknown action: ${action}. Valid: parse_cv, score_candidate, generate_questions`);
+        response = errRes(`Unknown action: ${action}. Valid: parse_cv, score_candidate, generate_questions`);
     }
+    logger.done(response.status);
+    return response;
   } catch (err) {
     console.error('[hr-ai] error:', err);
-    return errRes(err instanceof Error ? err.message : 'Internal server error', 500);
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    logger.done(500, message);
+    return errRes(message, 500);
   }
 });

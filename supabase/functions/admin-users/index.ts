@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createServiceClient, HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+import { createRequestLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
@@ -388,6 +389,7 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const logger = createRequestLogger(req);
   const supabase = createServiceClient();
 
   try {
@@ -396,6 +398,7 @@ serve(async (req) => {
 
     if (req.method === 'GET') {
       const users = await getUserSummaries(supabase);
+      logger.done(200);
       return new Response(JSON.stringify({ users }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -411,6 +414,7 @@ serve(async (req) => {
 
     if (action === 'list') {
       const users = await getUserSummaries(supabase);
+      logger.done(200);
       return new Response(JSON.stringify({ users }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -466,6 +470,7 @@ serve(async (req) => {
       const users = await getUserSummaries(supabase);
       const createdUser = users.find((user) => user.user_id === createdUserId) || null;
 
+      logger.done(200);
       return new Response(
         JSON.stringify({
           success: true,
@@ -576,6 +581,7 @@ serve(async (req) => {
       const users = await getUserSummaries(supabase);
       const updatedUser = users.find((user) => user.user_id === userId) || null;
 
+      logger.done(200);
       return new Response(
         JSON.stringify({
           success: true,
@@ -606,6 +612,7 @@ serve(async (req) => {
 
       const deletionResult = await deleteUserAndData(supabase, userId);
 
+      logger.done(200);
       return new Response(
         JSON.stringify({
           success: true,
@@ -626,6 +633,7 @@ serve(async (req) => {
     const status = error instanceof HttpError ? error.status : 500;
     const message = error instanceof HttpError ? error.message : 'Admin user management failed';
 
+    logger.done(status, message);
     return new Response(JSON.stringify({ error: message }), {
       status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

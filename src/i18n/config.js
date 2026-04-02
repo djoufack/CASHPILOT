@@ -58,6 +58,18 @@ i18n
     react: {
       useSuspense: false,
     },
+    saveMissing: import.meta.env.DEV,
+    saveMissingTo: 'all',
+    missingKeyHandler: (_lngs, _ns, key) => {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.warn(`[i18n] Missing translation: ${_lngs.join(',')} > ${_ns} > ${key}`);
+      }
+    },
+    parseMissingKeyHandler: (key) => {
+      const parts = key.split('.');
+      return parts[parts.length - 1];
+    },
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
       lookupLocalStorage: LANGUAGE_STORAGE_KEY,

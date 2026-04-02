@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { requireAuthenticatedUser } from '../_shared/billing.ts';
+import { createRequestLogger } from '../_shared/logger.ts';
 
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
@@ -13,6 +14,8 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  const logger = createRequestLogger(req);
+
   try {
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
@@ -24,9 +27,24 @@ serve(async (req) => {
 
     // Fetch recent financial data
     const [invoices, expenses, payments] = await Promise.all([
-      supabase.from('invoices').select('invoice_number, total_ttc, status, date, due_date').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
-      supabase.from('expenses').select('description, amount, category, expense_date').eq('user_id', userId).order('expense_date', { ascending: false }).limit(50),
-      supabase.from('payments').select('amount, payment_date, method').eq('user_id', userId).order('payment_date', { ascending: false }).limit(50),
+      supabase
+        .from('invoices')
+        .select('invoice_number, total_ttc, status, date, due_date')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('expenses')
+        .select('description, amount, category, expense_date')
+        .eq('user_id', userId)
+        .order('expense_date', { ascending: false })
+        .limit(50),
+      supabase
+        .from('payments')
+        .select('amount, payment_date, method')
+        .eq('user_id', userId)
+        .order('payment_date', { ascending: false })
+        .limit(50),
     ]);
     if (invoices.error) throw invoices.error;
     if (expenses.error) throw expenses.error;
@@ -56,10 +74,15 @@ Ne retourne que les anomalies réelles, pas de faux positifs.`;
     const result = await res.json();
     const anomalies = JSON.parse(result.candidates?.[0]?.content?.parts?.[0]?.text || '[]');
 
-    return new Response(JSON.stringify({ success: true, anomalies }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    logger.done(200);
+    return new Response(JSON.stringify({ success: true, anomalies }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    logger.done(500, error.message);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

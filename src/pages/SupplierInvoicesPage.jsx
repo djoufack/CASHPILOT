@@ -666,16 +666,18 @@ const SupplierInvoicesPage = () => {
 
         mappedLineItems = linkLineItemsToProducts(mappedLineItems, supplierProducts || []);
 
-        const lineItems = mappedLineItems.map((item, index) => ({
-          invoice_id: newInvoice.id,
-          description: item.description || '',
-          quantity: item.quantity || 1,
-          unit_price: item.unit_price || 0,
-          total: item.total || 0,
-          vat_rate: item.vat_rate ?? null,
-          user_product_id: item.user_product_id || null,
-          sort_order: index,
-        }));
+        const lineItems = mappedLineItems.map((item, index) =>
+          withCompanyScope({
+            invoice_id: newInvoice.id,
+            description: item.description || '',
+            quantity: item.quantity || 1,
+            unit_price: item.unit_price || 0,
+            total: item.total || 0,
+            vat_rate: item.vat_rate ?? null,
+            user_product_id: item.user_product_id || null,
+            sort_order: index,
+          })
+        );
 
         await supabase.from('supplier_invoice_line_items').insert(lineItems);
       }

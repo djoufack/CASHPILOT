@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 import { getAllowedOrigin } from '../_shared/cors.ts';
+import { createRequestLogger } from '../_shared/logger.ts';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -313,6 +314,7 @@ serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const logger = createRequestLogger(req);
   const startTime = Date.now();
   const url = new URL(req.url);
   const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || null;
@@ -389,6 +391,7 @@ serve(async (req: Request) => {
 
     // Log usage asynchronously
     await logUsage(supabase, apiKeyRecord.id, apiPath, req.method, response.status, elapsed, ipAddress);
+    logger.done(response.status);
 
     // Add rate limit headers to response
     const rateInfo = getRateLimitState(apiKeyRecord.id, apiKeyRecord.rate_limit);
@@ -407,6 +410,7 @@ serve(async (req: Request) => {
       await logUsage(supabase, apiKeyRecord.id, url.pathname, req.method, status, elapsed, ipAddress);
     }
 
+    logger.done(status, message);
     return jsonResponse({ error: message }, corsHeaders, status);
   }
 });

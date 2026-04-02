@@ -29,6 +29,48 @@ const COLS_PAYMENT_TRANSACTION_ALLOCATIONS =
   'id, payment_transaction_id, allocation_type, target_id, allocated_amount, notes, created_at';
 const COLS_PAYMENT_ALERTS =
   'id, user_id, company_id, payment_instrument_id, alert_type, severity, title, message, is_resolved, resolved_at, created_at';
+const COLS_PAYABLES =
+  'id, user_id, company_id, creditor_name, creditor_phone, creditor_email, description, amount, amount_paid, currency, date_borrowed, due_date, status, category, notes, created_at, updated_at';
+const COLS_INVOICE_ITEMS =
+  'id, invoice_id, description, quantity, unit_price, total, product_id, discount_type, discount_value, discount_amount, hsn_code, item_type, service_id, timesheet_id, created_at, updated_at';
+const COLS_SERVICES =
+  'id, user_id, company_id, service_name, description, category_id, pricing_type, hourly_rate, fixed_price, unit_price, unit, is_active, created_at, updated_at';
+const COLS_PAYMENT_REMINDER_RULES =
+  'id, user_id, company_id, name, days_before_due, days_after_due, max_reminders, is_active, created_at, updated_at';
+const COLS_BANK_STATEMENTS =
+  'id, user_id, company_id, bank_name, account_number, statement_date, period_start, period_end, opening_balance, closing_balance, file_name, file_path, file_type, file_size, parse_status, parse_errors, line_count, notes, created_at, updated_at';
+const COLS_SUPPLIER_ORDER_ITEMS =
+  'id, order_id, service_id, product_id, quantity, unit_price, total_price, created_at, updated_at';
+const COLS_SUPPLIER_ORDERS =
+  'id, user_id, company_id, supplier_id, order_number, order_date, expected_delivery_date, actual_delivery_date, order_status, total_amount, notes, created_at, updated_at';
+const COLS_SERVICE_CATEGORIES = 'id, user_id, company_id, name, description, created_at, updated_at';
+const COLS_COMPANY =
+  'id, user_id, company_name, company_type, registration_number, tax_id, address, city, postal_code, country, phone, email, website, logo_url, bank_account, bank_name, iban, swift, currency, created_at, updated_at';
+const COLS_PAYMENT_TERMS = 'id, user_id, company_id, name, days, description, created_at, updated_at';
+const COLS_CREDIT_NOTES =
+  'id, user_id, company_id, credit_note_number, invoice_id, client_id, date, reason, total_ht, tax_rate, tax_amount, total_ttc, status, notes, created_at, updated_at';
+const COLS_BANK_RECONCILIATION_SESSIONS =
+  'id, user_id, company_id, statement_id, session_date, status, total_lines, matched_lines, unmatched_lines, ignored_lines, total_credits, total_debits, matched_credits, matched_debits, difference, completed_at, notes, created_at, updated_at';
+const COLS_RECEIVABLES =
+  'id, user_id, company_id, debtor_name, debtor_phone, debtor_email, description, amount, amount_paid, currency, date_lent, due_date, status, category, notes, created_at, updated_at';
+const COLS_BANK_STATEMENT_LINES =
+  'id, user_id, company_id, statement_id, line_number, transaction_date, value_date, description, reference, amount, balance_after, raw_data, reconciliation_status, matched_source_type, matched_source_id, matched_at, matched_by, match_confidence, notes, created_at, updated_at';
+const COLS_ACCOUNTING_TAX_RATES =
+  'id, user_id, company_id, account_code, is_active, effective_date, name, rate, tax_type, is_default, created_at, updated_at';
+const COLS_RECURRING_INVOICES =
+  'id, user_id, company_id, client_id, frequency, next_date, status, created_at, updated_at';
+const COLS_PURCHASE_ORDERS =
+  'id, user_id, company_id, client_id, po_number, date, due_date, items, total, status, payment_terms_id, notes, created_at, updated_at';
+const COLS_INVOICE_SETTINGS =
+  'id, user_id, company_id, template_id, color_theme, custom_labels, show_logo, show_bank_details, show_payment_terms, footer_text, font_family, created_at, updated_at';
+const COLS_PRODUCTS =
+  'id, user_id, company_id, product_name, sku, category_id, unit_price, purchase_price, unit, stock_quantity, min_stock_level, description, is_active, supplier_id, created_at, updated_at';
+const COLS_TIMESHEETS =
+  'id, user_id, company_id, task_id, project_id, client_id, date, start_time, end_time, duration_minutes, description, status, notes, billable, hourly_rate, invoice_id, billed_at, service_id, created_at, updated_at';
+const COLS_PROJECTS =
+  'id, user_id, company_id, client_id, name, description, budget_hours, hourly_rate, status, start_date, end_date, created_at, updated_at';
+const COLS_DUNNING_STEPS =
+  'id, user_id, company_id, name, days_after_due, email_subject, email_body, is_active, step_order, created_at, updated_at';
 
 export function registerGeneratedCrudTools(server: McpServer) {
   server.tool(
@@ -253,7 +295,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('payables').select('*').eq('id', id);
+      let query = supabase.from('payables').select(COLS_PAYABLES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get payable') }] };
@@ -269,7 +311,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('payables').select('*');
+      let query = supabase.from('payables').select(COLS_PAYABLES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payables') }] };
@@ -500,7 +542,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       if (invErr) return { content: [{ type: 'text' as const, text: safeError(invErr, 'list invoice items') }] };
       const invoiceIds = (userInvoices || []).map((i: any) => i.id);
       if (invoiceIds.length === 0) return { content: [{ type: 'text' as const, text: '[]' }] };
-      let query = supabase.from('invoice_items').select('*').in('invoice_id', invoiceIds);
+      let query = supabase.from('invoice_items').select(COLS_INVOICE_ITEMS).in('invoice_id', invoiceIds);
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list invoice items') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
@@ -604,7 +646,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('services').select('*').eq('id', id);
+      let query = supabase.from('services').select(COLS_SERVICES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get service') }] };
@@ -620,7 +662,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('services').select('*');
+      let query = supabase.from('services').select(COLS_SERVICES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list services') }] };
@@ -855,7 +897,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('payment_reminder_rules').select('*').eq('id', id);
+      let query = supabase.from('payment_reminder_rules').select(COLS_PAYMENT_REMINDER_RULES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get payment reminder rule') }] };
@@ -871,7 +913,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('payment_reminder_rules').select('*');
+      let query = supabase.from('payment_reminder_rules').select(COLS_PAYMENT_REMINDER_RULES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payment reminder rules') }] };
@@ -1117,7 +1159,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('bank_statements').select('*').eq('id', id);
+      let query = supabase.from('bank_statements').select(COLS_BANK_STATEMENTS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get bank statement') }] };
@@ -1133,7 +1175,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('bank_statements').select('*');
+      let query = supabase.from('bank_statements').select(COLS_BANK_STATEMENTS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list bank statements') }] };
@@ -1361,7 +1403,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
         return { content: [{ type: 'text' as const, text: safeError(orderErr, 'list supplier order items') }] };
       const orderIds = (userOrders || []).map((o: any) => o.id);
       if (orderIds.length === 0) return { content: [{ type: 'text' as const, text: '[]' }] };
-      let query = supabase.from('supplier_order_items').select('*').in('order_id', orderIds);
+      let query = supabase.from('supplier_order_items').select(COLS_SUPPLIER_ORDER_ITEMS).in('order_id', orderIds);
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list supplier order items') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
@@ -1467,7 +1509,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('supplier_orders').select('*').eq('id', id);
+      let query = supabase.from('supplier_orders').select(COLS_SUPPLIER_ORDERS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get supplier order') }] };
@@ -1483,7 +1525,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('supplier_orders').select('*');
+      let query = supabase.from('supplier_orders').select(COLS_SUPPLIER_ORDERS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list supplier orders') }] };
@@ -1575,7 +1617,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('service_categories').select('*').eq('id', id);
+      let query = supabase.from('service_categories').select(COLS_SERVICE_CATEGORIES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get service category') }] };
@@ -1595,7 +1637,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const cached = getCached<any>(cacheKey);
       if (cached) return cached;
 
-      let query = supabase.from('service_categories').select('*');
+      let query = supabase.from('service_categories').select(COLS_SERVICE_CATEGORIES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list service categories') }] };
@@ -1727,7 +1769,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('company').select('*').eq('id', id);
+      let query = supabase.from('company').select(COLS_COMPANY).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get company') }] };
@@ -1743,7 +1785,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('company').select('*');
+      let query = supabase.from('company').select(COLS_COMPANY);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list companies') }] };
@@ -1980,7 +2022,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('payment_terms').select('*').eq('id', id);
+      let query = supabase.from('payment_terms').select(COLS_PAYMENT_TERMS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get payment term') }] };
@@ -1996,7 +2038,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('payment_terms').select('*');
+      let query = supabase.from('payment_terms').select(COLS_PAYMENT_TERMS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payment terms') }] };
@@ -2125,7 +2167,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('credit_notes').select('*').eq('id', id);
+      let query = supabase.from('credit_notes').select(COLS_CREDIT_NOTES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get credit note') }] };
@@ -2141,7 +2183,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('credit_notes').select('*');
+      let query = supabase.from('credit_notes').select(COLS_CREDIT_NOTES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list credit notes') }] };
@@ -2264,7 +2306,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('bank_reconciliation_sessions').select('*').eq('id', id);
+      let query = supabase.from('bank_reconciliation_sessions').select(COLS_BANK_RECONCILIATION_SESSIONS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error)
@@ -2281,7 +2323,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('bank_reconciliation_sessions').select('*');
+      let query = supabase.from('bank_reconciliation_sessions').select(COLS_BANK_RECONCILIATION_SESSIONS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error)
@@ -2514,7 +2556,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('receivables').select('*').eq('id', id);
+      let query = supabase.from('receivables').select(COLS_RECEIVABLES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get receivable') }] };
@@ -2530,7 +2572,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('receivables').select('*');
+      let query = supabase.from('receivables').select(COLS_RECEIVABLES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list receivables') }] };
@@ -2652,7 +2694,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('bank_statement_lines').select('*').eq('id', id);
+      let query = supabase.from('bank_statement_lines').select(COLS_BANK_STATEMENT_LINES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get bank statement line') }] };
@@ -2668,7 +2710,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('bank_statement_lines').select('*');
+      let query = supabase.from('bank_statement_lines').select(COLS_BANK_STATEMENT_LINES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list bank statement lines') }] };
@@ -2770,7 +2812,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('accounting_tax_rates').select('*').eq('id', id);
+      let query = supabase.from('accounting_tax_rates').select(COLS_ACCOUNTING_TAX_RATES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get accounting tax rate') }] };
@@ -2790,7 +2832,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const cached = getCached<any>(cacheKey);
       if (cached) return cached;
 
-      let query = supabase.from('accounting_tax_rates').select('*');
+      let query = supabase.from('accounting_tax_rates').select(COLS_ACCOUNTING_TAX_RATES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list accounting tax rates') }] };
@@ -2891,7 +2933,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('recurring_invoices').select('*').eq('id', id);
+      let query = supabase.from('recurring_invoices').select(COLS_RECURRING_INVOICES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get recurring invoice') }] };
@@ -2907,7 +2949,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('recurring_invoices').select('*');
+      let query = supabase.from('recurring_invoices').select(COLS_RECURRING_INVOICES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list recurring invoices') }] };
@@ -3022,7 +3064,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('purchase_orders').select('*').eq('id', id);
+      let query = supabase.from('purchase_orders').select(COLS_PURCHASE_ORDERS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get purchase order') }] };
@@ -3038,7 +3080,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('purchase_orders').select('*');
+      let query = supabase.from('purchase_orders').select(COLS_PURCHASE_ORDERS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list purchase orders') }] };
@@ -3139,7 +3181,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('invoice_settings').select('*').eq('id', id);
+      let query = supabase.from('invoice_settings').select(COLS_INVOICE_SETTINGS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get invoice settings') }] };
@@ -3155,7 +3197,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('invoice_settings').select('*');
+      let query = supabase.from('invoice_settings').select(COLS_INVOICE_SETTINGS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list invoice settings') }] };
@@ -3298,7 +3340,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('products').select('*').eq('id', id);
+      let query = supabase.from('products').select(COLS_PRODUCTS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get product') }] };
@@ -3314,7 +3356,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('products').select('*');
+      let query = supabase.from('products').select(COLS_PRODUCTS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list products') }] };
@@ -3501,7 +3543,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('timesheets').select('*').eq('id', id);
+      let query = supabase.from('timesheets').select(COLS_TIMESHEETS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get timesheet') }] };
@@ -3517,7 +3559,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('timesheets').select('*');
+      let query = supabase.from('timesheets').select(COLS_TIMESHEETS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list timesheets') }] };
@@ -3622,7 +3664,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch'),
     },
     async ({ id }) => {
-      let query = supabase.from('projects').select('*').eq('id', id);
+      let query = supabase.from('projects').select(COLS_PROJECTS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get project') }] };
@@ -3638,7 +3680,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)'),
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('projects').select('*');
+      let query = supabase.from('projects').select(COLS_PROJECTS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list projects') }] };
@@ -3742,7 +3784,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
         id: z.string().describe('Record UUID to fetch'),
       },
       async ({ id }) => {
-        let query = supabase.from('dunning_steps').select('*').eq('id', id);
+        let query = supabase.from('dunning_steps').select(COLS_DUNNING_STEPS).eq('id', id);
         query = query.eq('user_id', getUserId());
         const { data, error } = await query.single();
         if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get dunning step') }] };
@@ -3759,7 +3801,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
         offset: z.number().optional().describe('Number of records to skip (default 0)'),
       },
       async ({ company_id, limit = 50, offset = 0 }) => {
-        let query = supabase.from('dunning_steps').select('*');
+        let query = supabase.from('dunning_steps').select(COLS_DUNNING_STEPS);
         query = query.eq('user_id', getUserId());
         if (company_id) query = query.eq('company_id', company_id);
         query = query.order('step_order', { ascending: true });

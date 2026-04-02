@@ -1,9 +1,11 @@
+import { safeGetItem, safeSetItem, safeRemoveItem } from './storage';
+
 export const ACTIVE_COMPANY_STORAGE_KEY = 'cashpilot.activeCompanyId';
 export const ACTIVE_COMPANY_EVENT = 'cashpilot:active-company-changed';
 
 export function getStoredActiveCompanyId() {
   if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem(ACTIVE_COMPANY_STORAGE_KEY);
+  return safeGetItem(ACTIVE_COMPANY_STORAGE_KEY);
 }
 
 export function setStoredActiveCompanyId(companyId) {
@@ -16,12 +18,14 @@ export function setStoredActiveCompanyId(companyId) {
   }
 
   if (normalizedCompanyId) {
-    window.localStorage.setItem(ACTIVE_COMPANY_STORAGE_KEY, normalizedCompanyId);
+    safeSetItem(ACTIVE_COMPANY_STORAGE_KEY, normalizedCompanyId);
   } else {
-    window.localStorage.removeItem(ACTIVE_COMPANY_STORAGE_KEY);
+    safeRemoveItem(ACTIVE_COMPANY_STORAGE_KEY);
   }
 
-  window.dispatchEvent(new CustomEvent(ACTIVE_COMPANY_EVENT, {
-    detail: normalizedCompanyId,
-  }));
+  window.dispatchEvent(
+    new CustomEvent(ACTIVE_COMPANY_EVENT, {
+      detail: normalizedCompanyId,
+    })
+  );
 }

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
+import { safeGetItem } from '@/utils/storage';
 import Sidebar from './Sidebar';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -24,9 +25,13 @@ const MainLayout = () => {
   const { unreadCount } = useNotifications();
 
   useEffect(() => {
-    const saved = localStorage.getItem('sidebarCollapsed');
+    const saved = safeGetItem('sidebarCollapsed');
     if (saved !== null) {
-      setIsCollapsed(JSON.parse(saved));
+      try {
+        setIsCollapsed(JSON.parse(saved));
+      } catch {
+        /* ignore corrupted value */
+      }
     } else {
       if (window.innerWidth >= 768 && window.innerWidth < 1280) {
         setIsCollapsed(true);

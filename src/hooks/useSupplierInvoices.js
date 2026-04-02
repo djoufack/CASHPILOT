@@ -214,16 +214,18 @@ export const useSupplierInvoices = (supplierId) => {
         enrichedItems = linkLineItemsToProducts(items, supplierProducts || []);
       }
 
-      const lineItems = enrichedItems.map((item, index) => ({
-        invoice_id: invoiceId,
-        description: item.description || '',
-        quantity: item.quantity || 1,
-        unit_price: item.unit_price || 0,
-        total: item.total || 0,
-        vat_rate: item.vat_rate ?? null,
-        user_product_id: item.user_product_id || null,
-        sort_order: index,
-      }));
+      const lineItems = enrichedItems.map((item, index) =>
+        withCompanyScope({
+          invoice_id: invoiceId,
+          description: item.description || '',
+          quantity: item.quantity || 1,
+          unit_price: item.unit_price || 0,
+          total: item.total || 0,
+          vat_rate: item.vat_rate ?? null,
+          user_product_id: item.user_product_id || null,
+          sort_order: index,
+        })
+      );
 
       const { error } = await supabase.from('supplier_invoice_line_items').insert(lineItems);
 

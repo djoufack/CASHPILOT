@@ -1,9 +1,7 @@
 import { createServiceClient, requireAuthenticatedUser, HttpError } from '../_shared/billing.ts';
-import {
-  normalizeProvider,
-  refreshAccessToken,
-} from '../_shared/accountingConnectors.ts';
+import { normalizeProvider, refreshAccessToken } from '../_shared/accountingConnectors.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+import { createRequestLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
@@ -11,10 +9,11 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
-  status,
-  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-});
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 
 const parseJsonSafe = async (response: Response) => {
   try {
@@ -27,7 +26,7 @@ const parseJsonSafe = async (response: Response) => {
 const isTokenStale = (expiresAt: string | null | undefined) => {
   if (!expiresAt) return false;
   const expiry = new Date(expiresAt).getTime();
-  return Number.isFinite(expiry) && expiry <= (Date.now() + 60_000);
+  return Number.isFinite(expiry) && expiry <= Date.now() + 60_000;
 };
 
 Deno.serve(async (req) => {
@@ -39,6 +38,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
+  const logger = createRequestLogger(req);
   const supabase = createServiceClient();
   let logId: string | null = null;
 
@@ -192,6 +192,7 @@ Deno.serve(async (req) => {
         .eq('id', logId),
     ]);
 
+    logger.done(200);
     return jsonResponse({
       success: true,
       provider,
@@ -214,6 +215,7 @@ Deno.serve(async (req) => {
     }
 
     const status = error instanceof HttpError ? error.status : 500;
+    logger.done(status, (error as Error).message);
     return jsonResponse({ error: (error as Error).message }, status);
   }
 });
