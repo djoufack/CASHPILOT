@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -81,6 +81,7 @@ const PeppolPage = () => {
     syncInbound,
     fetchInboundUbl,
     fetchInboundPdf,
+    warmInboundDocuments,
     sendInboundToGed,
     listGedXmlDocuments,
     downloadGedXmlDocument,
@@ -113,6 +114,7 @@ const PeppolPage = () => {
   const [selectedGedVersionId, setSelectedGedVersionId] = useState('');
   const [loadingGedXmlDocs, setLoadingGedXmlDocs] = useState(false);
   const [sendingExternal, setSendingExternal] = useState(false);
+  const warmedInboundIdsRef = useRef(new Set());
 
   const isPeppolConfigured = !!company?.peppol_endpoint_id;
   const creditUnit = t('credits.creditsLabel');
@@ -343,14 +345,19 @@ const PeppolPage = () => {
   };
 
   const downloadBlob = useCallback((blob, filename) => {
+    if (!blob || Number(blob.size || 0) <= 0) {
+      throw new Error('Fichier vide, export impossible.');
+    }
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
+    link.rel = 'noopener';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    // Keep blob URL alive long enough for slower browsers/filesystems.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }, []);
 
   const escapeHtml = useCallback((value) => {
@@ -428,12 +435,26 @@ const PeppolPage = () => {
     async (doc) => {
       if (!doc?.scrada_document_id) return;
       setInboundActionDocId(doc.scrada_document_id);
+      const previewTab = window.open('', '_blank');
       try {
+        if (previewTab && !previewTab.closed) {
+          previewTab.document.write(
+            '<html><body style="font-family: Arial, sans-serif; padding: 16px;">Chargement du PDF...</body></html>'
+          );
+          previewTab.document.close();
+        }
         const pdfBlob = await fetchInboundPdf(doc.scrada_document_id);
         const url = URL.createObjectURL(pdfBlob);
-        window.open(url, '_blank', 'noopener,noreferrer');
+        if (previewTab && !previewTab.closed) {
+          previewTab.location.href = url;
+        } else {
+          window.open(url, '_blank');
+        }
         setTimeout(() => URL.revokeObjectURL(url), 20_000);
       } catch (err) {
+        if (previewTab && !previewTab.closed) {
+          previewTab.close();
+        }
         toast({
           title: t('common.error'),
           description: err?.message || 'Impossible de visualiser le PDF.',
@@ -451,7 +472,12 @@ const PeppolPage = () => {
       if (!doc?.scrada_document_id) return;
       setInboundActionDocId(doc.scrada_document_id);
       try {
-        const pdfBlob = await fetchInboundPdf(doc.scrada_document_id);
+        let pdfBlob;
+        try {
+          pdfBlob = await fetchInboundPdf(doc.scrada_document_id);
+        } catch {
+          pdfBlob = await fetchInboundPdf(doc.scrada_document_id, { forceRefresh: true, timeoutMs: 60_000 });
+        }
         const safeRef = String(doc.invoice_number || doc.scrada_document_id).replace(/[^a-zA-Z0-9._-]/g, '_');
         downloadBlob(pdfBlob, `Peppol-Inbound-${safeRef}.pdf`);
         toast({
@@ -476,7 +502,14 @@ const PeppolPage = () => {
       if (!doc?.scrada_document_id) return;
       setInboundActionDocId(doc.scrada_document_id);
       try {
-        const ublXml = await fetchInboundUbl(doc.scrada_document_id);
+        let ublXml = String(doc?.ubl_xml || '').trim();
+        if (!ublXml) {
+          try {
+            ublXml = (await fetchInboundUbl(doc.scrada_document_id, { timeoutMs: 20_000 })) || '';
+          } catch {
+            ublXml = '';
+          }
+        }
         const html = buildInboundHtml(doc, ublXml);
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const safeRef = String(doc.invoice_number || doc.scrada_document_id).replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -497,6 +530,20 @@ const PeppolPage = () => {
     },
     [buildInboundHtml, downloadBlob, fetchInboundUbl, t, toast]
   );
+
+  useEffect(() => {
+    if (activeTab !== 'inbound') return;
+    if (!Array.isArray(inboundDocuments) || inboundDocuments.length === 0) return;
+
+    const docsToWarm = inboundDocuments
+      .filter((doc) => doc?.scrada_document_id && !warmedInboundIdsRef.current.has(doc.scrada_document_id))
+      .slice(0, 2);
+
+    if (docsToWarm.length === 0) return;
+
+    docsToWarm.forEach((doc) => warmedInboundIdsRef.current.add(doc.scrada_document_id));
+    void warmInboundDocuments(docsToWarm, { includePdf: true, limit: 2 });
+  }, [activeTab, inboundDocuments, warmInboundDocuments]);
 
   const handleSendInboundToGed = useCallback(
     async (doc) => {

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
@@ -51,6 +51,15 @@ export function usePeppol() {
   const { user } = useAuth();
   const { company } = useCompany();
   const { applyCompanyScope } = useCompanyScope();
+  const inboundPdfCacheRef = useRef(new Map());
+  const inboundUblCacheRef = useRef(new Map());
+  const inboundFetchInFlightRef = useRef(new Map());
+
+  useEffect(() => {
+    inboundPdfCacheRef.current.clear();
+    inboundUblCacheRef.current.clear();
+    inboundFetchInFlightRef.current.clear();
+  }, [company?.id, user?.id]);
 
   // ─── Outbound invoices ───
   const {
@@ -186,32 +195,156 @@ export function usePeppol() {
     }
   }, [invokeInboundAction, user]);
 
-  const fetchInboundUbl = useCallback(
-    async (documentId) => {
+  const fetchInboundAction = useCallback(
+    async (action, documentId, { asBlob = false, timeoutMs = 20000 } = {}) => {
       if (!documentId) return null;
-      const data = await invokeInboundAction('get_ubl', { document_id: documentId });
-      return data?.ubl || null;
+      const inFlightKey = `${action}:${String(documentId)}:${asBlob ? 'blob' : 'json'}`;
+
+      if (inboundFetchInFlightRef.current.has(inFlightKey)) {
+        return inboundFetchInFlightRef.current.get(inFlightKey);
+      }
+
+      const requestPromise = (async () => {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        const accessToken = sessionData?.session?.access_token;
+        if (!accessToken) {
+          throw new Error('Session expirée. Veuillez vous reconnecter.');
+        }
+
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !anonKey) {
+          throw new Error('Configuration Supabase manquante.');
+        }
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const response = await fetch(`${supabaseUrl}/functions/v1/peppol-inbound`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              apikey: anonKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action,
+              company_id: company?.id || null,
+              document_id: documentId,
+            }),
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            const text = await response.text();
+            let reason = text || `Erreur ${response.status}`;
+            try {
+              const parsed = JSON.parse(text);
+              reason = parsed?.error || parsed?.message || reason;
+            } catch {
+              // Keep raw text reason.
+            }
+            throw new Error(reason);
+          }
+
+          if (asBlob) {
+            const blob = await response.blob();
+            if (!blob || blob.size === 0) {
+              throw new Error('PDF vide retourné par Scrada.');
+            }
+            return blob;
+          }
+
+          const text = await response.text();
+          try {
+            return JSON.parse(text);
+          } catch {
+            return { raw: text };
+          }
+        } catch (error) {
+          if (error?.name === 'AbortError') {
+            throw new Error('Délai dépassé lors de la récupération du document.');
+          }
+          throw error;
+        } finally {
+          clearTimeout(timer);
+        }
+      })();
+
+      inboundFetchInFlightRef.current.set(inFlightKey, requestPromise);
+      try {
+        return await requestPromise;
+      } finally {
+        inboundFetchInFlightRef.current.delete(inFlightKey);
+      }
     },
-    [invokeInboundAction]
+    [company?.id]
+  );
+
+  const fetchInboundUbl = useCallback(
+    async (documentId, options = {}) => {
+      if (!documentId) return null;
+      const localUbl = toText(options?.cachedUbl || '');
+      if (localUbl) {
+        inboundUblCacheRef.current.set(documentId, localUbl);
+        return localUbl;
+      }
+      if (inboundUblCacheRef.current.has(documentId)) {
+        return inboundUblCacheRef.current.get(documentId);
+      }
+      const timeoutMs = Number(options?.timeoutMs || 20_000);
+      const data = await fetchInboundAction('get_ubl', documentId, { asBlob: false, timeoutMs });
+      const ubl = data?.ubl || null;
+      if (ubl) inboundUblCacheRef.current.set(documentId, ubl);
+      return ubl;
+    },
+    [fetchInboundAction]
   );
 
   const fetchInboundPdf = useCallback(
-    async (documentId) => {
+    async (documentId, options = {}) => {
       if (!documentId) return null;
-      const { data, error } = await supabase.functions.invoke('peppol-inbound', {
-        body: {
-          action: 'get_pdf',
-          company_id: company?.id || null,
-          document_id: documentId,
-        },
-      });
-      if (error) throw error;
-
-      if (data instanceof Blob) return data;
-      if (data instanceof ArrayBuffer) return new Blob([data], { type: 'application/pdf' });
-      return new Blob([data], { type: 'application/pdf' });
+      const forceRefresh = options?.forceRefresh === true;
+      const timeoutMs = Number(options?.timeoutMs || 45_000);
+      if (!forceRefresh && inboundPdfCacheRef.current.has(documentId)) {
+        return inboundPdfCacheRef.current.get(documentId);
+      }
+      const pdfBlob = await fetchInboundAction('get_pdf', documentId, { asBlob: true, timeoutMs });
+      inboundPdfCacheRef.current.set(documentId, pdfBlob);
+      return pdfBlob;
     },
-    [company?.id]
+    [fetchInboundAction]
+  );
+
+  const warmInboundDocuments = useCallback(
+    async (documents, { includePdf = true, limit = 2 } = {}) => {
+      const docs = Array.isArray(documents) ? documents : [];
+      if (docs.length === 0) return;
+
+      const selectedDocs = docs
+        .filter((doc) => toText(doc?.scrada_document_id))
+        .slice(0, Math.max(1, Number(limit || 1)));
+
+      await Promise.allSettled(
+        selectedDocs.map(async (doc) => {
+          const documentId = toText(doc?.scrada_document_id);
+          if (!documentId) return;
+
+          const cachedUbl = toText(doc?.ubl_xml || '');
+          if (cachedUbl) {
+            inboundUblCacheRef.current.set(documentId, cachedUbl);
+          } else {
+            await fetchInboundUbl(documentId, { timeoutMs: 20_000 });
+          }
+
+          if (includePdf) {
+            await fetchInboundPdf(documentId, { timeoutMs: 45_000 });
+          }
+        })
+      );
+    },
+    [fetchInboundPdf, fetchInboundUbl]
   );
 
   const upsertSupplierForInbound = useCallback(
@@ -268,7 +401,7 @@ export function usePeppol() {
         (Number(doc?.total_incl_vat || 0) <= 0 && Number(doc?.total_excl_vat || 0) <= 0);
       if (needsUblFallback) {
         try {
-          const ublXml = await fetchInboundUbl(doc.scrada_document_id);
+          const ublXml = await fetchInboundUbl(doc.scrada_document_id, { cachedUbl: doc?.ubl_xml || null });
           parsedUbl = parseInboundUblSummary(ublXml);
         } catch {
           parsedUbl = null;
@@ -482,6 +615,7 @@ export function usePeppol() {
     syncInbound,
     fetchInboundUbl,
     fetchInboundPdf,
+    warmInboundDocuments,
     sendInboundToGed,
     listGedXmlDocuments,
     downloadGedXmlDocument,
