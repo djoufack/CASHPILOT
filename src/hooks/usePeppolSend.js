@@ -28,48 +28,56 @@ export const usePeppolSend = () => {
     setPolling(false);
   }, []);
 
-  const pollStatus = useCallback((invoiceId, documentId) => {
-    let attempts = 0;
-    setPolling(true);
-    setPeppolStatus('pending');
+  const pollStatus = useCallback(
+    (invoiceId, documentId) => {
+      let attempts = 0;
+      setPolling(true);
+      setPeppolStatus('pending');
 
-    pollRef.current = setInterval(async () => {
-      attempts++;
+      pollRef.current = setInterval(async () => {
+        attempts++;
 
-      try {
-        const { data, error } = await supabase.functions.invoke('peppol-poll-status', {
-          body: { invoice_id: invoiceId, document_id: documentId },
-        });
+        try {
+          const { data, error } = await supabase.functions.invoke('peppol-poll-status', {
+            body: { invoice_id: invoiceId, document_id: documentId },
+          });
 
-        if (error) throw error;
+          if (error) throw error;
 
-        setPeppolStatus(data.status);
+          setPeppolStatus(data.status);
 
-        if (data.final) {
-          stopPolling();
-          if (data.status === 'delivered' || data.status === 'accepted') {
-            toast({
-              title: t('peppol.status.delivered'),
-              description: `Document ${documentId}`,
-              className: 'bg-green-600 border-none text-white',
-            });
-          } else if (data.status === 'error') {
-            toast({
-              title: t('peppol.status.error'),
-              description: data.errorMessage || 'Scrada error',
-              variant: 'destructive',
-            });
+          if (data.final) {
+            stopPolling();
+            if (data.status === 'delivered' || data.status === 'accepted') {
+              toast({
+                title: t('peppol.status.delivered'),
+                description: `Document ${documentId}`,
+                className: 'bg-green-600 border-none text-white',
+              });
+            } else if (data.status === 'cancelled') {
+              toast({
+                title: t('peppol.status.cancelled', 'Envoi annule'),
+                description: `Document ${documentId}`,
+              });
+            } else if (data.status === 'error') {
+              toast({
+                title: t('peppol.status.error'),
+                description: data.errorMessage || 'Scrada error',
+                variant: 'destructive',
+              });
+            }
           }
+        } catch {
+          // Silent retry — polling is best-effort
         }
-      } catch {
-        // Silent retry — polling is best-effort
-      }
 
-      if (attempts >= POLL_MAX_ATTEMPTS) {
-        stopPolling();
-      }
-    }, POLL_INTERVAL_MS);
-  }, [stopPolling, toast, t]);
+        if (attempts >= POLL_MAX_ATTEMPTS) {
+          stopPolling();
+        }
+      }, POLL_INTERVAL_MS);
+    },
+    [stopPolling, toast, t]
+  );
 
   const sendViaPeppol = async (invoice, client, items) => {
     if (!supabase) throw new Error('Supabase not configured');
@@ -77,7 +85,7 @@ export const usePeppolSend = () => {
     // Pre-validate
     const validation = validateForPeppolBE(invoice, company, client, items);
     if (!validation.isValid) {
-      const messages = validation.errors.map(e => `[${e.rule}] ${e.message}`).join('\n');
+      const messages = validation.errors.map((e) => `[${e.rule}] ${e.message}`).join('\n');
       toast({
         title: t('peppol.validationFailed'),
         description: messages,
@@ -86,10 +94,7 @@ export const usePeppolSend = () => {
       return { success: false, errors: validation.errors };
     }
 
-    const hasCredits = await ensureCredits(
-      CREDIT_COSTS.PEPPOL_SEND_INVOICE,
-      t(CREDIT_COST_LABELS.PEPPOL_SEND_INVOICE),
-    );
+    const hasCredits = await ensureCredits(CREDIT_COSTS.PEPPOL_SEND_INVOICE, t(CREDIT_COST_LABELS.PEPPOL_SEND_INVOICE));
     if (!hasCredits) {
       return { success: false, error: 'insufficient_credits' };
     }
@@ -116,10 +121,7 @@ export const usePeppolSend = () => {
     } catch (err) {
       const details = await readFunctionErrorData(err);
       if (details?.error === 'insufficient_credits') {
-        openCreditsModal(
-          CREDIT_COSTS.PEPPOL_SEND_INVOICE,
-          t(CREDIT_COST_LABELS.PEPPOL_SEND_INVOICE),
-        );
+        openCreditsModal(CREDIT_COSTS.PEPPOL_SEND_INVOICE, t(CREDIT_COST_LABELS.PEPPOL_SEND_INVOICE));
         return { success: false, error: 'insufficient_credits' };
       }
 

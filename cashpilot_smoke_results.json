@@ -1,0 +1,640 @@
+[
+  {
+    "module": "Tableau de bord",
+    "route": "/app",
+    "url": "https://cashpilot.tech/app",
+    "title": "Tableau de bord - CashPilot",
+    "h1": ["Tableau de bord"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Tableau de bord Plateforme de Gestion Financière DG - SYNTHÈSE DE DIRECTION, ALERTES PRIORITAIRES ET VISION GLOBALE. VUE PAR ROLE DG RAF Comptable Partager PDF (3) HTML (2) CHIFFRE D'AFFAIRES 131,1K € +89.8% Voir MARGE B"
+  },
+  {
+    "module": "Pilotage",
+    "route": "/app/pilotage",
+    "url": "https://cashpilot.tech/app/pilotage",
+    "title": "Pilotage | CashPilot",
+    "h1": ["Pilotage d'Entreprise"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Pilotage d'Entreprise Analyse comptable, financière et fiscale en temps réel Partager Vue d'Ensemble Analyse Comptable Analyse Financière Fiscalité & Valorisation Simulateur Audit IA Disponibilité Zone géographique Franc"
+  },
+  {
+    "module": "CFO (Directeur Financier)",
+    "route": "/app/cfo-agent",
+    "url": "https://cashpilot.tech/app/cfo-agent",
+    "title": "Agent IA CFO (Directeur Financier) - CashPilot",
+    "h1": ["Agent IA CFO (Directeur Financier)"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Agent IA CFO (Directeur Financier) Votre directeur financier virtuel propulsé par l'IA CFO = Chief Financial Officer (Directeur Financier) Briefing hebdomadaire CFO Résumé automatique de la semaine courante pour la socié"
+  },
+  {
+    "module": "Cockpit Conformité & Groupe",
+    "route": "/app/company-compliance-cockpit",
+    "url": "https://cashpilot.tech/app/company-compliance-cockpit",
+    "title": "Cockpit Conformité & Groupe - CashPilot",
+    "h1": ["Cockpit Conformité & Groupe"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Mon Entreprise Cockpit Conformité & Groupe Vue unifiée des modules Portfolio, Peppol, PDP, Inter-sociétés, Consolidation et Veille réglementaire. Actualiser Sociétés suivies 7 7 / 7 prêtes Peppol Portefeuilles 1 7 sociét"
+  },
+  {
+    "module": "Portefeuille sociétés",
+    "route": "/app/portfolio",
+    "url": "https://cashpilot.tech/app/portfolio",
+    "title": "Portefeuille sociétés - CashPilot",
+    "h1": ["Portefeuille sociétés"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Workflow cabinet Portefeuille sociétés Vue transverse des dossiers, encours clients, pipeline devis et activité projet sans changer de société à l’aveugle. Actualiser +Nouvelle Société Sociétés suivies 7 7 avec retard cl"
+  },
+  {
+    "module": "Peppol",
+    "route": "/app/peppol",
+    "url": "https://cashpilot.tech/app/peppol",
+    "title": "Peppol | CashPilot",
+    "h1": ["Peppol e-Invoicing"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Peppol e-Invoicing Identifiant Peppol de l'entreprise: 0208:cashpilot-be-demo Synchroniser (3 crédits/facture) Paramètres Peppol Peppol Access Point Connected Endpoint: 0208:cashpilot-be-demo Schéma d'identification: 020"
+  },
+  {
+    "module": "PDP / Certification",
+    "route": "/app/pdp-compliance",
+    "url": "https://cashpilot.tech/app/pdp-compliance",
+    "title": "PDP / Certification Fiscale — CashPilot",
+    "h1": ["Conformité Certification Fiscale"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Conformité Certification Fiscale Tableau de bord NF525, PDP, Factur-X et Chorus Pro Actualiser Lancer l'audit Certifiées 0/4 En cours 0 Expirées 0 Progr. moy. 0% CERTIFICATIONS NF525 Certification de conformité fiscale p"
+  },
+  {
+    "module": "Inter-Sociétés",
+    "route": "/app/inter-company",
+    "url": "https://cashpilot.tech/app/inter-company",
+    "title": "Inter-Sociétés - CashPilot",
+    "h1": ["Inter-Sociétés"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Inter-Sociétés Factures inter-sociétés, prix de transfert et éliminations Actualiser Calculer les éliminations Auto-appliquer les éliminations Sociétés liées 0 Synchros en attente 0 Total éliminé 0,00 € Règles actives 0 "
+  },
+  {
+    "module": "Consolidation",
+    "route": "/app/consolidation",
+    "url": "https://cashpilot.tech/app/consolidation",
+    "title": "Consolidation Groupe - CashPilot",
+    "h1": ["Consolidation Groupe"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Consolidation Groupe Vue consolidee P&L, bilan et tresorerie de toutes les societes du portfolio Portfolio principal(7) Depuis debut d'annee Actualiser CA CONSOLIDE 13 130 803,86 € CHARGES CONSOLIDEES 5 671 369,06 € RESU"
+  },
+  {
+    "module": "Veille réglementaire",
+    "route": "/app/regulatory-intel",
+    "url": "https://cashpilot.tech/app/regulatory-intel",
+    "title": "Veille Réglementaire - CashPilot",
+    "h1": ["Veille Réglementaire"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Veille Réglementaire Surveillance automatisée des évolutions réglementaires par pays Scanner maintenant Actualiser Nouvelles mises à jour 0 Alertes critiques 0 Actions en attente 0 Pays surveillés 0 Mises à jour Conformi"
+  },
+  {
+    "module": "GED HUB",
+    "route": "/app/ged-hub",
+    "url": "https://cashpilot.tech/app/ged-hub",
+    "title": "CashPilot",
+    "h1": ["GED HUB"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "GED HUB Point central des documents entreprise, federes depuis tous les modules CashPilot. Nouveau / Televerser Actualiser DOCUMENTS 57 AVEC FICHIER 0 FAVORIS 0 POLITIQUES 6 WORKFLOWS 0 Politiques de retention automatiqu"
+  },
+  {
+    "module": "Clients",
+    "route": "/app/clients",
+    "url": "https://cashpilot.tech/app/clients",
+    "title": "Gestion des clients - CashPilot",
+    "h1": ["Gestion des clients"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Gestion des clients Manage your client relationships and contacts Archivés Exporter Ajouter un client Liste Galerie NOM DE L'ENTREPRISE NOM DU CONTACT E-MAIL DEVISE PRÉFÉRÉE ACTIONS Brussels Growth Studio Julie Vermeulen"
+  },
+  {
+    "module": "Devis",
+    "route": "/app/quotes",
+    "url": "https://cashpilot.tech/app/quotes",
+    "title": "Devis - CashPilot",
+    "h1": ["Devis"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Devis Gérez vos propositions et estimations CSV Excel Nouveau devis Tous Brouillon Envoyé Accepté Rejeté Liste Galerie Calendrier Agenda Kanban DOCUMENTS TYPE DE DOCUMENT NUMÉRO DE DEVIS CLIENT DATE TOTAL STATUT SIGNATUR"
+  },
+  {
+    "module": "Factures",
+    "route": "/app/invoices",
+    "url": "https://cashpilot.tech/app/invoices",
+    "title": "Factures - CashPilot",
+    "h1": ["Factures"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Factures Créez et gérez des factures professionnelles Exporter Générer la facture Paiement forfaitaire Liste Galerie Calendrier Agenda Kanban DOCUMENTS NUMÉRO DE FACTURE NOM DE L'ENTREPRISE DATE D'ÉMISSION TOTAL SOLDE DÛ"
+  },
+  {
+    "module": "Notes de Crédit",
+    "route": "/app/credit-notes",
+    "url": "https://cashpilot.tech/app/credit-notes",
+    "title": "Credit Notes | CashPilot",
+    "h1": ["Notes de Crédit"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Notes de Crédit Gérez les notes de crédit liées à vos factures Nouvelle note de crédit Liste Calendrier Agenda Kanban NUMÉRO CLIENT FACTURE LIÉE DATE TOTAL TTC STATUT ACTIONS CN-BE-2026-006 Brussels Growth Studio 2026 7 "
+  },
+  {
+    "module": "Factures Récurrentes",
+    "route": "/app/recurring-invoices",
+    "url": "https://cashpilot.tech/app/recurring-invoices",
+    "title": "Factures Récurrentes - CashPilot",
+    "h1": ["Factures Récurrentes"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Factures Récurrentes Automatisez la génération de vos factures avec des modèles récurrents Nouvelle Facture Récurrente Factures Récurrentes Rappels de Paiement Liste Calendrier Agenda Kanban TITRE CLIENT FRÉQUENCE PROCHA"
+  },
+  {
+    "module": "Bons de livraison",
+    "route": "/app/delivery-notes",
+    "url": "https://cashpilot.tech/app/delivery-notes",
+    "title": "Bons de livraison | CashPilot",
+    "h1": ["Bons de livraison"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Bons de livraison Gérez les bons de livraison de vos commandes Nouveau bon de livraison Liste Calendrier Agenda Kanban NUMÉRO CLIENT FACTURE LIÉE DATE TRANSPORTEUR NUMÉRO DE SUIVI STATUT ACTIONS DN-BE-2026-007 Brussels G"
+  },
+  {
+    "module": "Relances IA",
+    "route": "/app/smart-dunning",
+    "url": "https://cashpilot.tech/app/smart-dunning",
+    "title": "Relances Intelligentes - CashPilot",
+    "h1": ["Relances Intelligentes"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Relances Intelligentes Relances personnalisées par canal avec timing optimisé par IA Nouvelle campagne Actualiser Montant en retard 24 480,00 EUR Montant recouvré 0,00 EUR Taux recouvrement 0% Campagnes actives 0 Règles "
+  },
+  {
+    "module": "Fournisseurs",
+    "route": "/app/suppliers",
+    "url": "https://cashpilot.tech/app/suppliers",
+    "title": "Fournisseurs | CashPilot",
+    "h1": ["Supplier Management"],
+    "status": "Partiel",
+    "problems": [
+      "console: Failed to load resource: the server responded with a status of 400 ()",
+      "console: Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "snippet": "Supplier Management Manage your vendor relationships, products, and orders. Exporter Add Supplier Fournisseurs 10 Mes Produits 10 Stock bas 4 Nécessite attention Commandes en cours 0 Factures en retard 0 Company Contact "
+  },
+  {
+    "module": "Bons de commande",
+    "route": "/app/purchase-orders",
+    "url": "https://cashpilot.tech/app/purchase-orders",
+    "title": "Bons de commande - CashPilot",
+    "h1": ["Bons de commande"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Bons de commande Gérez vos bons de commande fournisseurs et clients Nouveau bon de commande Tous Brouillon Envoyé Confirmé Terminé Liste Calendrier Agenda Kanban PO-BE-2026-006 Gent Digital Operations 2026 6 Confirmé En "
+  },
+  {
+    "module": "Factures fournisseurs",
+    "route": "/app/supplier-invoices",
+    "url": "https://cashpilot.tech/app/supplier-invoices",
+    "title": "Factures Fournisseurs - CashPilot",
+    "h1": ["Factures Fournisseurs"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Factures Fournisseurs Gestion centralisée de toutes les factures fournisseurs Téléverser une facture 10 Total factures 61 240,00 € 3 Payees 0 Approuvée 4 En attente 21 000,00 € 3 En retard 20 120,00 € 10 Approvals en att"
+  },
+  {
+    "module": "Achats Fournisseurs",
+    "route": "/app/purchases",
+    "url": "https://cashpilot.tech/app/purchases",
+    "title": "Achats Fournisseurs - CashPilot",
+    "h1": ["Achats Fournisseurs"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Achats Fournisseurs 2 Alertes stock actives Nouvelle commande Statut — All Fournisseur — All N° Commande Fournisseur Date commande Livraison prévue Statut Montant total Actions SO-BE-2026-006 VAT & Compliance Studio 06 6"
+  },
+  {
+    "module": "Dépenses",
+    "route": "/app/expenses",
+    "url": "https://cashpilot.tech/app/expenses",
+    "title": "Dépenses - CashPilot",
+    "h1": ["Dépenses"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Dépenses Gérez et suivez vos dépenses professionnelles. Exporter PDF (3) HTML (2) Nouvelle dépense TOTAL DES DÉPENSES 19 268,04 € NOMBRE DE DÉPENSES 7 MOYENNE PAR DÉPENSE 2 752,58 € Liste Calendrier Agenda Date Descripti"
+  },
+  {
+    "module": "Cartographie",
+    "route": "/app/suppliers/map",
+    "url": "https://cashpilot.tech/app/suppliers/map",
+    "title": "CashPilot",
+    "h1": [],
+    "status": "Partiel",
+    "problems": [
+      "console: Loading the image 'https://a.tile.openstreetmap.org/4/8/4.png' violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://flagcdn.com\". The action has been blocked.",
+      "console: Loading the image 'https://b.tile.openstreetmap.org/4/8/5.png' violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://flagcdn.com\". The action has been blocked.",
+      "console: Loading the image 'https://c.tile.openstreetmap.org/4/7/4.png' violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://flagcdn.com\". The action has been blocked.",
+      "no h1 detected"
+    ],
+    "snippet": "Supplier Locations + − Leaflet | © OpenStreetMap contributors"
+  },
+  {
+    "module": "Trésorerie",
+    "route": "/app/cash-flow",
+    "url": "https://cashpilot.tech/app/cash-flow",
+    "title": "Cash Flow - CashPilot",
+    "h1": ["Cash Flow"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Cash Flow Track your income, expenses, and net cash flow over time 3M 6M 12M Refresh Total Income 77 750,00 € Last 6 months Total Expenses 38 993,00 € Last 6 months Net Cash Flow 38 757,00 € Last 6 months Monthly Cash Fl"
+  },
+  {
+    "module": "Prévisions IA",
+    "route": "/app/cash-flow-forecast",
+    "url": "https://cashpilot.tech/app/cash-flow-forecast",
+    "title": "Previsions de Tresorerie IA - CashPilot",
+    "h1": ["Previsions de Tresorerie IA"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Previsions de Tresorerie IA Prediction intelligente de votre tresorerie avec scenarios et alertes 30j 60j 90j Mode CFO 180j Actualiser Solde Actuel 90 757,00 € Base comptable Prevision 30j 107 084,20 € +18% vs actuel Pre"
+  },
+  {
+    "module": "Recouvrement",
+    "route": "/app/debt-manager",
+    "url": "https://cashpilot.tech/app/debt-manager",
+    "title": "Debt Manager | CashPilot",
+    "h1": ["Créances & Dettes"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Créances & Dettes Gérez vos créances et dettes personnelles et professionnelles Tableau de bord Créances (10) Dettes (10) Calendrier Agenda Kanban Solde net -4 121,00 € Créances restantes - Dettes restantes Total créance"
+  },
+  {
+    "module": "Connexions Bancaires",
+    "route": "/app/bank-connections",
+    "url": "https://cashpilot.tech/app/bank-connections",
+    "title": "Connexions Bancaires | CashPilot",
+    "h1": ["Connexions Bancaires"],
+    "status": "Partiel",
+    "problems": [
+      "console: Failed to load resource: the server responded with a status of 401 ()",
+      "console: Failed to load resource: the server responded with a status of 401 ()"
+    ],
+    "snippet": "Connexions Bancaires Connectez vos banques, synchronisez les soldes et suivez l'état des consentements. Actualiser Tout synchroniser Connecter une banque Intégration bancaire non prête Les secrets ou la connectivité GoCa"
+  },
+  {
+    "module": "Banking intégré",
+    "route": "/app/embedded-banking",
+    "url": "https://cashpilot.tech/app/embedded-banking",
+    "title": "Banking | CashPilot",
+    "h1": ["Banking"],
+    "status": "Partiel",
+    "problems": [
+      "console: Failed to load resource: the server responded with a status of 401 ()",
+      "console: Failed to load resource: the server responded with a status of 401 ()",
+      "console: Failed to load resource: the server responded with a status of 401 ()"
+    ],
+    "snippet": "Banking Banque embarquée - Connectez vos comptes bancaires, synchronisez les transactions et initiez des virements SEPA directement depuis CashPilot. Actualiser Tout synchroniser Nouveau virement Connecter un compte Conn"
+  },
+  {
+    "module": "Rapprochement IA",
+    "route": "/app/recon-ia",
+    "url": "https://cashpilot.tech/app/recon-ia",
+    "title": "Rapprochement Bancaire IA - CashPilot",
+    "h1": ["Rapprochement Bancaire IA"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Rapprochement Bancaire IA Auto-matching intelligent avec apprentissage continu Actualiser Lancer le rapprochement auto Total rapproches 0 Precision (%) 0% En attente 0 Regles actives 0 Aucune suggestion en attente Lancez"
+  },
+  {
+    "module": "Instruments financiers",
+    "route": "/app/financial-instruments",
+    "url": "https://cashpilot.tech/app/financial-instruments",
+    "title": "Instruments financiers - CashPilot",
+    "h1": ["Instruments financiers"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Instruments financiers Gerez vos comptes bancaires, cartes et caisses Transfert Ajouter Comptes bancaires Cartes Caisses Statistiques Aucun instrument financier configuré Cliquez sur \"Ajouter\" pour creer votre premier in"
+  },
+  {
+    "module": "Comptabilité",
+    "route": "/app/suppliers/accounting",
+    "url": "https://cashpilot.tech/app/suppliers/accounting",
+    "title": "Accounting Integration | CashPilot",
+    "h1": ["Comptabilité"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Comptabilité Plan comptable, rapports financiers, TVA et estimation d'impôt. Journalisation automatique Générer automatiquement les écritures comptables lors de la création de factures, paiements et dépenses (Belgique) P"
+  },
+  {
+    "module": "Télédéclaration",
+    "route": "/app/tax-filing",
+    "url": "https://cashpilot.tech/app/tax-filing",
+    "title": "Télédéclaration Fiscale - CashPilot",
+    "h1": ["Télédéclaration Fiscale"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Télédéclaration Fiscale TVA, Impôt sur les sociétés pour la France, Belgique, OHADA Nouvelle Déclaration Total Déclarations 0 En attente 0 Soumises 0 Montant Total 0,00 € TVA Impôt Sociétés Historique PÉRIODE ET PAYS Pay"
+  },
+  {
+    "module": "Audit Comptable",
+    "route": "/app/audit-comptable",
+    "url": "https://cashpilot.tech/app/audit-comptable",
+    "title": "Audit Comptable - CashPilot",
+    "h1": ["Audit Comptable"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Audit Comptable Verification et validation automatisee de votre comptabilite Annee en cours Annee precedente Trimestre en cours Mois en cours - Lancer l'audit Aucun audit lance Selectionnez une periode et lancez l'audit "
+  },
+  {
+    "module": "Produits & Stock",
+    "route": "/app/stock",
+    "url": "https://cashpilot.tech/app/stock",
+    "title": "Gestion du Stock | CashPilot",
+    "h1": ["Gestion du Stock"],
+    "status": "Partiel",
+    "problems": [
+      "console: WebSocket connection to 'wss://rfzvrezrcigzmldgvntz.supabase.co/realtime/v1/websocket?apikey=[SUPABASE_ANON_KEY_REDACTED]&vsn=2.0.0' failed: Establishing a tunnel via proxy server failed.",
+      "console: WebSocket connection to 'wss://rfzvrezrcigzmldgvntz.supabase.co/realtime/v1/websocket?apikey=[SUPABASE_ANON_KEY_REDACTED]&vsn=2.0.0' failed: Establishing a tunnel via proxy server failed."
+    ],
+    "snippet": "Gestion du Stock Gérez votre inventaire, alertes et mouvements de stock. Toutes catégories Nouveau produit Exporter PDF (3) HTML (2) Cockpit stock Entrepôts Inventaire Historique Gestion stock Total Produits 10 10 produi"
+  },
+  {
+    "module": "Prestations clients",
+    "route": "/app/services",
+    "url": "https://cashpilot.tech/app/services",
+    "title": "Prestations clients | CashPilot",
+    "h1": ["Prestations clients"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Prestations clients Catalogue des prestations vendues aux clients. Les services fournisseurs se gèrent dans chaque fiche fournisseur. Total services: 10 CSV Excel Ajouter un service Total services 10 Services actifs 10 P"
+  },
+  {
+    "module": "Catégories",
+    "route": "/app/categories",
+    "url": "https://cashpilot.tech/app/categories",
+    "title": "Categories | CashPilot",
+    "h1": ["Gestion des catégories"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Gestion des catégories Catégories de produits & Catégories de services Catégories de produits 10 Catégories de services 10 Catégories de produits Catégories de services Catégories de produits NOM DE LA CATÉGORIE * DESCRI"
+  },
+  {
+    "module": "Scanner",
+    "route": "/app/products/barcode",
+    "url": "https://cashpilot.tech/app/products/barcode",
+    "title": "CashPilot",
+    "h1": [],
+    "status": "Partiel",
+    "problems": ["no h1 detected"],
+    "snippet": "Scanner Caméra inactive Démarrer la caméra OU SAISIR MANUELLEMENT Valider"
+  },
+  {
+    "module": "Projets",
+    "route": "/app/projects",
+    "url": "https://cashpilot.tech/app/projects",
+    "title": "Projets - CashPilot",
+    "h1": ["Projets"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Projets Gérez et suivez vos projets en cours. CSV Excel PDF (3) HTML (2) Nouveau projet Tous Actif En Cours En Attente Terminé Annulé Liste Galerie Calendrier Agenda Kanban PROJETS NOM DE L'ENTREPRISE DATE D'ÉMISSION STA"
+  },
+  {
+    "module": "CRM",
+    "route": "/app/crm",
+    "url": "https://cashpilot.tech/app/crm",
+    "title": "CashPilot",
+    "h1": ["CRM Pro"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "CRM Pro CRM scoppé par société active avec priorité à l'intégrité référentielle et à la journalisation comptable temps réel. Société active CashPilot Demo Belgium SRL Scope company_id strict Audit & journalisation actifs"
+  },
+  {
+    "module": "Feuilles de temps",
+    "route": "/app/timesheets",
+    "url": "https://cashpilot.tech/app/timesheets",
+    "title": "Feuilles de temps - CashPilot",
+    "h1": ["Feuilles de temps"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Feuilles de temps Manage your time entries and track billable hours Calendrier Liste Kanban Agenda PDF (3) Imprimer HTML (2) Facturer filtre New Entry PÉRIODE - DÉBUT PÉRIODE - FIN PROJET Tous les projets CLIENT Tous les"
+  },
+  {
+    "module": "Ressources",
+    "route": "/app/hr-material",
+    "url": "https://cashpilot.tech/app/hr-material",
+    "title": "RH & Matériel - CashPilot",
+    "h1": ["Ressources Projets"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Gestion RH complète (DRH) : paie, congés, recrutement, formation... Ressources Projets Distinction claire des ressources internes, des fournisseurs externes, des coûts projet et de la journalisation comptable. Ressources"
+  },
+  {
+    "module": "Rapports",
+    "route": "/app/reports/generator",
+    "url": "https://cashpilot.tech/app/reports/generator",
+    "title": "CashPilot",
+    "h1": [],
+    "status": "Partiel",
+    "problems": ["no h1 detected"],
+    "snippet": "Générateur de rapports Préset Direction Période début Période fin Sections du rapport Vue d’ensemble Cashflow Factures clients Factures fournisseurs TVA & conformité Templates Enregistrer Charger template Prévisualiser l"
+  },
+  {
+    "module": "Employés",
+    "route": "/app/rh/employes",
+    "url": "https://cashpilot.tech/app/rh/employes",
+    "title": "Employes | CashPilot",
+    "h1": ["Employes"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Allocation des ressources aux projets (Ressources Projets) Employes 10 employe(s) enregistre(s) Nouvel employe Liste Fiche employe Organigramme Formulaire Tous les statuts Tous les departements N Nom complet Poste Depart"
+  },
+  {
+    "module": "Paie",
+    "route": "/app/rh/paie",
+    "url": "https://cashpilot.tech/app/rh/paie",
+    "title": "Paie | CashPilot",
+    "h1": ["Paie"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Paie Gestion de la paie, calcul des bulletins et suivi historique Actualiser Periodes Calcul Bulletins Historique Connecteurs pays Periodes de paie 2 periodes Nouvelle periode Periode mars 2026 01 mars 2026 - 31 mars 202"
+  },
+  {
+    "module": "Absences & Congés",
+    "route": "/app/rh/absences",
+    "url": "https://cashpilot.tech/app/rh/absences",
+    "title": "Absences & Congés | CashPilot",
+    "h1": ["Absences & Congés"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Absences & Congés Gérez les demandes de congé, consultez le calendrier et les soldes En attente 1 Approuvées 1 Jours pris (année) 2 Demandes Calendrier Soldes Nouvelle demande Tous les statuts Tous les employés Employé T"
+  },
+  {
+    "module": "Recrutement",
+    "route": "/app/rh/recrutement",
+    "url": "https://cashpilot.tech/app/rh/recrutement",
+    "title": "Recrutement | CashPilot",
+    "h1": ["Recrutement"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Recrutement Gerez vos postes ouverts, candidats et entretiens Postes ouverts 1 Candidats 4 En pipeline 4 Embauches 0 Postes Pipeline Candidats Entretiens Candidater Nouveau poste Senior Financial Controller Ouvert Bruxel"
+  },
+  {
+    "module": "Onboarding",
+    "route": "/app/rh/onboarding",
+    "url": "https://cashpilot.tech/app/rh/onboarding",
+    "title": "Onboarding | CashPilot",
+    "h1": ["Onboarding"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Onboarding Suivez l'intégration de vos nouveaux collaborateurs. Plans actifs 1 Terminés 0 Progression moy. 40% Total plans 1 Nouveau plan Plan d'onboarding Actif Lucas Rousseau 0/3 tâches 40% Début : 04/03/2026"
+  },
+  {
+    "module": "Formation",
+    "route": "/app/rh/formation",
+    "url": "https://cashpilot.tech/app/rh/formation",
+    "title": "Formation | CashPilot",
+    "h1": [" Formation"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Formation Catalogue, inscriptions et suivi des formations Nouvelle formation Catalogue Inscriptions Tous les tags seed hr CPF Payroll Compliance Fundamentals 8h 420,00 € 3 Prestataire : CashPilot Academy seed hr CPF Adva"
+  },
+  {
+    "module": "Compétences",
+    "route": "/app/rh/competences",
+    "url": "https://cashpilot.tech/app/rh/competences",
+    "title": "Competences | CashPilot",
+    "h1": [" Competences"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Competences Matrice de competences, radar et analyse des ecarts Nouvelle evaluation Matrice Radar Gap Analysis EMPLOYE DATA REPORTING FINANCIAL ANALYSIS PAYROLL OPERATIONS RECRUITMENT PROCESS Camille Rousseau 3 Elise Ver"
+  },
+  {
+    "module": "Entretiens",
+    "route": "/app/rh/entretiens",
+    "url": "https://cashpilot.tech/app/rh/entretiens",
+    "title": "Entretiens | CashPilot",
+    "h1": ["Entretiens de performance"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Entretiens de performance Campagnes, entretiens et evaluations des collaborateurs Nouvel entretien Campagnes Entretiens Workflow managers 2026 Annuel Progression 3/7 Manager 1 Termine 3"
+  },
+  {
+    "module": "People Review",
+    "route": "/app/rh/people-review",
+    "url": "https://cashpilot.tech/app/rh/people-review",
+    "title": "People Review | CashPilot",
+    "h1": ["People Review"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "People Review Matrice 9-Box, hauts potentiels, succession et budget ETP 9-Box Hauts Potentiels Succession Budget ETP 0 Dans la matrice 0 Hauts potentiels 3 Entretiens signes 4 En cours Matrice Performance / Potentiel Ins"
+  },
+  {
+    "module": "QVT & Risques",
+    "route": "/app/rh/qvt",
+    "url": "https://cashpilot.tech/app/rh/qvt",
+    "title": "QVT & Risques | CashPilot",
+    "h1": ["QVT & Risques Professionnels"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "QVT & Risques Professionnels Qualite de vie au travail, DUERP et plans de prevention Enquetes DUERP Plan de prevention Resultats Enquetes QVT Nouvelle enquete Monthly Pulse Survey 27 mars 2026 Du 01 mars 2026 au 31 mars "
+  },
+  {
+    "module": "Bilan Social",
+    "route": "/app/rh/bilan-social",
+    "url": "https://cashpilot.tech/app/rh/bilan-social",
+    "title": "Bilan Social | CashPilot",
+    "h1": ["Bilan Social"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Bilan Social Tableau de bord des indicateurs sociaux- Derniere mise a jour : 02 avr. 2026 Actualiser Exporter PDF 10 Effectif total 0.0% Turnover 0.0% Absenteisme 0.2ans Tenure moyenne 50/50 Ratio H/F 0ans Age moyen 0h H"
+  },
+  {
+    "module": "Analytics RH",
+    "route": "/app/rh/analytics",
+    "url": "https://cashpilot.tech/app/rh/analytics",
+    "title": "People Analytics | CashPilot",
+    "h1": ["People Analytics"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "People Analytics Analyse prédictive RH et benchmarks Rafraîchir Turnover Risk Absentéisme Prévision effectifs Benchmark salaires Turnover Risk Heatmap Nom Département Score Risque Facteurs Tom Jacobs 8 Non assigne 55 Ris"
+  },
+  {
+    "module": "Portail employé",
+    "route": "/app/employee-portal",
+    "url": "https://cashpilot.tech/app/employee-portal",
+    "title": "Mon Espace - CashPilot",
+    "h1": ["Mon Espace"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Mon Espace Gérez vos congés, fiches de paie et notes de frais Accès non configuré Votre compte n'est pas encore lié à un dossier employé. Contactez votre administrateur pour obtenir l'accès au portail."
+  },
+  {
+    "module": "Intégrations",
+    "route": "/app/integrations",
+    "url": "https://cashpilot.tech/app/integrations",
+    "title": "Hub intégrations - CashPilot",
+    "h1": ["Connecter CashPilot à votre écosystème"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Hub intégrations Connecter CashPilot à votre écosystème API, MCP, webhooks et recettes d’automatisation au même endroit pour rendre l’ouverture produit visible et exploitable. Disponible REST API Clés API, endpoints HTTP"
+  },
+  {
+    "module": "Open API & Marketplace",
+    "route": "/app/open-api",
+    "url": "https://cashpilot.tech/app/open-api",
+    "title": "Open API & Marketplace - CashPilot",
+    "h1": ["Open API & Marketplace"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Open API & Marketplace Gérez vos clés API et explorez les extensions Actualiser Nouvelle clé Clés API 0 Appels (7j) 0 Temps moyen 0ms Apps installées 0 Clés Marketplace Appels API 0 Temps moyen 0ms Taux de succès 0% Taux"
+  },
+  {
+    "module": "Mobile Money",
+    "route": "/app/mobile-money",
+    "url": "https://cashpilot.tech/app/mobile-money",
+    "title": "CashPilot",
+    "h1": ["Mobile Money"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Mobile Money Configurez vos fournisseurs de paiement Mobile Money Ajouter un fournisseur Aucun fournisseur configuré Ajoutez un fournisseur Mobile Money pour commencer à accepter des paiements (Orange Money, MTN MoMo, Wa"
+  },
+  {
+    "module": "Portail comptable",
+    "route": "/app/accountant-portal",
+    "url": "https://cashpilot.tech/app/accountant-portal",
+    "title": "CashPilot",
+    "h1": ["Portail Comptable"],
+    "status": "Partiel",
+    "problems": ["console: Failed to load resource: the server responded with a status of 403 ()"],
+    "snippet": "Portail Comptable Gérez l'accès de votre expert-comptable aux données de votre société 0 Accès actifs 0 Invitations en attente 0 Total invitations Inviter un comptable Actualiser Accès et invitations 0 Aucun accès compta"
+  },
+  {
+    "module": "Sécurité",
+    "route": "/app/security",
+    "url": "https://cashpilot.tech/app/security",
+    "title": "Security Settings | CashPilot",
+    "h1": ["Parametres de securite"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Parametres de securite Gerez la securite de votre compte et l'authentification a deux facteurs. Authentification a deux facteurs (TOTP) Ajoutez une couche de securite supplementaire a votre compte. Desactive Activer le M"
+  },
+  {
+    "module": "Paramètres généraux",
+    "route": "/app/settings",
+    "url": "https://cashpilot.tech/app/settings",
+    "title": "Paramètres | CashPilot",
+    "h1": ["Paramètres"],
+    "status": "OK",
+    "problems": [],
+    "snippet": "Paramètres Gérez votre profil, votre société et vos préférences. Profil Société Facturation Notifications Sécurité Factures Crédits Sauvegarde Synchronisation Connexions API & MCP Peppol Mes données GDPR Personal Informa"
+  }
+]

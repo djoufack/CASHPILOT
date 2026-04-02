@@ -3345,7 +3345,8 @@
       "delivered": "Afgeleverd",
       "accepted": "Geaccepteerd",
       "rejected": "Geweigerd",
-      "error": "Fout"
+      "error": "Fout",
+      "cancelled": "Geannuleerd"
     }
   },
   "pricing": {

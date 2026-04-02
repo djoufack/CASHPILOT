@@ -93,6 +93,10 @@ serve(async (req) => {
         Created: 'pending',
         Processed: 'delivered',
         Error: 'error',
+        Rejected: 'rejected',
+        Accepted: 'accepted',
+        Cancelled: 'cancelled',
+        Canceled: 'cancelled',
       };
       const mappedStatus = statusMap[body.status] || body.status?.toLowerCase() || 'pending';
 

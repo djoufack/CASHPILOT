@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
 import { usePeppol } from '@/hooks/usePeppol';
 import { usePeppolSend } from '@/hooks/usePeppolSend';
-import { formatNumber } from '@/utils/dateLocale';
+import { formatDate as formatDateLocale, formatNumber } from '@/utils/dateLocale';
 import { usePeppolCheck } from '@/hooks/usePeppolCheck';
 import PeppolStatusBadge from '@/components/peppol/PeppolStatusBadge';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +45,12 @@ import {
   Download,
   RotateCcw,
   Copy,
+  Ban,
+  Trash2,
+  Upload,
+  FolderOpen,
+  HardDrive,
+  FileText,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreview from '@/components/InvoicePreview';
@@ -62,7 +68,7 @@ const PeppolPage = () => {
     invoices,
     loadingInvoices,
     fetchOutboundInvoices,
-    inboundLogs,
+    inboundDocuments,
     loadingInbound,
     allLogs,
     loadingLogs,
@@ -73,6 +79,15 @@ const PeppolPage = () => {
     fetchInvoiceItems,
     syncingInbound,
     syncInbound,
+    fetchInboundUbl,
+    fetchInboundPdf,
+    sendInboundToGed,
+    listGedXmlDocuments,
+    downloadGedXmlDocument,
+    importAndSendExternalUbl,
+    managingOutbound,
+    cancelOutboundNetwork,
+    deleteOutboundLocal,
     refreshAll,
   } = usePeppol();
   const { sendViaPeppol, sending, polling: _polling, peppolStatus: _peppolStatus, creditsModalProps } = usePeppolSend();
@@ -89,6 +104,15 @@ const PeppolPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingInvoice, setViewingInvoice] = useState(null);
+  const [outboundActionInvoiceId, setOutboundActionInvoiceId] = useState(null);
+  const [inboundActionDocId, setInboundActionDocId] = useState(null);
+  const [externalSendDialogOpen, setExternalSendDialogOpen] = useState(false);
+  const [externalSource, setExternalSource] = useState('disk');
+  const [externalFile, setExternalFile] = useState(null);
+  const [gedXmlDocuments, setGedXmlDocuments] = useState([]);
+  const [selectedGedVersionId, setSelectedGedVersionId] = useState('');
+  const [loadingGedXmlDocs, setLoadingGedXmlDocs] = useState(false);
+  const [sendingExternal, setSendingExternal] = useState(false);
 
   const isPeppolConfigured = !!company?.peppol_endpoint_id;
   const creditUnit = t('credits.creditsLabel');
@@ -258,6 +282,326 @@ const PeppolPage = () => {
     toast({ title: t('common.copied') || 'Copié', description: docId });
   };
 
+  const handleCancelOutboundNetwork = async (invoice) => {
+    if (!invoice?.id) return;
+
+    const confirmed = window.confirm(
+      t(
+        'peppol.cancelNetworkConfirm',
+        "Annuler l'envoi sur Scrada pour cette facture ? Cette action dépend du statut réseau actuel."
+      )
+    );
+    if (!confirmed) return;
+
+    setOutboundActionInvoiceId(invoice.id);
+    try {
+      await cancelOutboundNetwork(invoice.id);
+      toast({
+        title: t('peppol.status.cancelled', 'Envoi annule'),
+        description: t('peppol.cancelNetworkSuccess', 'Annulation réseau demandée avec succès.'),
+      });
+      refreshAll();
+    } catch (err) {
+      toast({
+        title: t('common.error'),
+        description: err?.error || err?.message || String(err),
+        variant: 'destructive',
+      });
+    } finally {
+      setOutboundActionInvoiceId(null);
+    }
+  };
+
+  const handleDeleteOutboundLocal = async (invoice) => {
+    if (!invoice?.id) return;
+
+    const confirmed = window.confirm(
+      t(
+        'peppol.deleteLocalConfirm',
+        "Supprimer la trace locale de cet envoi et remettre la facture à l'état non envoyé ?"
+      )
+    );
+    if (!confirmed) return;
+
+    setOutboundActionInvoiceId(invoice.id);
+    try {
+      await deleteOutboundLocal(invoice.id);
+      toast({
+        title: t('peppol.deleteLocalSuccess', 'Trace locale supprimée'),
+        description: t('peppol.deleteLocalSuccessDesc', 'La facture peut être renvoyée si nécessaire.'),
+      });
+      refreshAll();
+    } catch (err) {
+      toast({
+        title: t('common.error'),
+        description: err?.error || err?.message || String(err),
+        variant: 'destructive',
+      });
+    } finally {
+      setOutboundActionInvoiceId(null);
+    }
+  };
+
+  const downloadBlob = useCallback((blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }, []);
+
+  const escapeHtml = useCallback((value) => {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }, []);
+
+  const buildInboundHtml = useCallback(
+    (doc, ublXml) => {
+      const formatMoney = (value, currency = 'EUR') => {
+        const amount = Number(value || 0);
+        const formatted = formatNumber(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return `${formatted} ${currency}`;
+      };
+
+      const invoiceLabel = doc?.invoice_number || doc?.metadata?.internalNumber || '-';
+      const senderLabel = doc?.sender_name || doc?.sender_peppol_id || '-';
+      const totalIncl = formatMoney(doc?.total_incl_vat || 0, doc?.currency || 'EUR');
+      const totalVat = formatMoney(doc?.total_vat || 0, doc?.currency || 'EUR');
+      const totalExcl = formatMoney(doc?.total_excl_vat || 0, doc?.currency || 'EUR');
+      const receivedLabel = formatDateLocale(doc?.received_at || doc?.created_at, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const xmlBlock = escapeHtml(ublXml || '');
+
+      return `<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Peppol Inbound ${escapeHtml(invoiceLabel)}</title>
+  <style>
+    body { font-family: Inter, Arial, sans-serif; margin: 24px; color: #111827; background: #f8fafc; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    h1 { margin: 0 0 8px 0; font-size: 24px; }
+    .muted { color: #6b7280; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    th { color: #374151; background: #f3f4f6; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #0b1220; color: #d1d5db; border-radius: 12px; padding: 14px; font-size: 12px; max-height: 60vh; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Facture entrante Peppol</h1>
+    <div class="muted">Document Scrada: ${escapeHtml(doc?.scrada_document_id || '-')}</div>
+    <table>
+      <tr><th>Facture</th><td>${escapeHtml(invoiceLabel)}</td></tr>
+      <tr><th>Expéditeur</th><td>${escapeHtml(senderLabel)}</td></tr>
+      <tr><th>Reçue le</th><td>${escapeHtml(receivedLabel)}</td></tr>
+      <tr><th>Montant HT</th><td>${escapeHtml(totalExcl)}</td></tr>
+      <tr><th>TVA</th><td>${escapeHtml(totalVat)}</td></tr>
+      <tr><th>Montant TTC</th><td>${escapeHtml(totalIncl)}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h1>UBL XML</h1>
+    <pre>${xmlBlock}</pre>
+  </div>
+</body>
+</html>`;
+    },
+    [escapeHtml]
+  );
+
+  const handleViewInboundPdf = useCallback(
+    async (doc) => {
+      if (!doc?.scrada_document_id) return;
+      setInboundActionDocId(doc.scrada_document_id);
+      try {
+        const pdfBlob = await fetchInboundPdf(doc.scrada_document_id);
+        const url = URL.createObjectURL(pdfBlob);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        setTimeout(() => URL.revokeObjectURL(url), 20_000);
+      } catch (err) {
+        toast({
+          title: t('common.error'),
+          description: err?.message || 'Impossible de visualiser le PDF.',
+          variant: 'destructive',
+        });
+      } finally {
+        setInboundActionDocId(null);
+      }
+    },
+    [fetchInboundPdf, t, toast]
+  );
+
+  const handleDownloadInboundPdf = useCallback(
+    async (doc) => {
+      if (!doc?.scrada_document_id) return;
+      setInboundActionDocId(doc.scrada_document_id);
+      try {
+        const pdfBlob = await fetchInboundPdf(doc.scrada_document_id);
+        const safeRef = String(doc.invoice_number || doc.scrada_document_id).replace(/[^a-zA-Z0-9._-]/g, '_');
+        downloadBlob(pdfBlob, `Peppol-Inbound-${safeRef}.pdf`);
+        toast({
+          title: t('peppol.exportPDF', 'Exporter en PDF'),
+          description: t('common.success', 'Termine'),
+        });
+      } catch (err) {
+        toast({
+          title: t('common.error'),
+          description: err?.message || 'Echec export PDF',
+          variant: 'destructive',
+        });
+      } finally {
+        setInboundActionDocId(null);
+      }
+    },
+    [downloadBlob, fetchInboundPdf, t, toast]
+  );
+
+  const handleDownloadInboundHtml = useCallback(
+    async (doc) => {
+      if (!doc?.scrada_document_id) return;
+      setInboundActionDocId(doc.scrada_document_id);
+      try {
+        const ublXml = await fetchInboundUbl(doc.scrada_document_id);
+        const html = buildInboundHtml(doc, ublXml);
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const safeRef = String(doc.invoice_number || doc.scrada_document_id).replace(/[^a-zA-Z0-9._-]/g, '_');
+        downloadBlob(blob, `Peppol-Inbound-${safeRef}.html`);
+        toast({
+          title: t('peppol.exportHtml', 'Exporter HTML'),
+          description: t('common.success', 'Termine'),
+        });
+      } catch (err) {
+        toast({
+          title: t('common.error'),
+          description: err?.message || 'Echec export HTML',
+          variant: 'destructive',
+        });
+      } finally {
+        setInboundActionDocId(null);
+      }
+    },
+    [buildInboundHtml, downloadBlob, fetchInboundUbl, t, toast]
+  );
+
+  const handleSendInboundToGed = useCallback(
+    async (doc) => {
+      if (!doc?.scrada_document_id) return;
+      setInboundActionDocId(doc.scrada_document_id);
+      try {
+        const result = await sendInboundToGed(doc);
+        toast({
+          title: t('nav.gedHub', 'GED HUB'),
+          description: t(
+            'peppol.inboundToGedSuccess',
+            `Document envoye vers GED (facture fournisseur ${result?.invoiceNumber || ''}).`
+          ),
+        });
+      } catch (err) {
+        toast({
+          title: t('common.error'),
+          description: err?.message || 'Echec envoi vers GED',
+          variant: 'destructive',
+        });
+      } finally {
+        setInboundActionDocId(null);
+      }
+    },
+    [sendInboundToGed, t, toast]
+  );
+
+  const openExternalSendDialog = useCallback(async () => {
+    setExternalSendDialogOpen(true);
+    setExternalSource('disk');
+    setExternalFile(null);
+    setSelectedGedVersionId('');
+
+    setLoadingGedXmlDocs(true);
+    try {
+      const versions = await listGedXmlDocuments();
+      setGedXmlDocuments(versions);
+    } catch {
+      setGedXmlDocuments([]);
+    } finally {
+      setLoadingGedXmlDocs(false);
+    }
+  }, [listGedXmlDocuments]);
+
+  const handleExternalUblSend = useCallback(async () => {
+    setSendingExternal(true);
+    try {
+      let ublXml = '';
+      let sourceLabel = 'external-ubl.xml';
+
+      if (externalSource === 'disk') {
+        if (!externalFile) {
+          throw new Error('Selectionnez un fichier XML.');
+        }
+        sourceLabel = externalFile.name || sourceLabel;
+        ublXml = await externalFile.text();
+      } else {
+        const version = gedXmlDocuments.find((item) => item.id === selectedGedVersionId);
+        if (!version) {
+          throw new Error('Selectionnez un document GED XML.');
+        }
+        sourceLabel = version.file_name || sourceLabel;
+        ublXml = await downloadGedXmlDocument(version);
+      }
+
+      const result = await importAndSendExternalUbl({
+        ublXml,
+        sourceOrigin: externalSource,
+        sourceLabel,
+      });
+
+      toast({
+        title: t('peppol.sentSuccess'),
+        description:
+          result?.invoice_number && result?.documentId
+            ? `${result.invoice_number} -> ${result.documentId}`
+            : t('common.success', 'Termine'),
+      });
+
+      setExternalSendDialogOpen(false);
+      setExternalFile(null);
+      setSelectedGedVersionId('');
+      refreshAll();
+      setActiveTab('outbound');
+    } catch (err) {
+      toast({
+        title: t('peppol.sendError'),
+        description: err?.error || err?.message || String(err),
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingExternal(false);
+    }
+  }, [
+    downloadGedXmlDocument,
+    externalFile,
+    externalSource,
+    gedXmlDocuments,
+    importAndSendExternalUbl,
+    refreshAll,
+    selectedGedVersionId,
+    t,
+    toast,
+  ]);
+
   // --- Peppol ID check ---
   const handleCheckPeppolId = async () => {
     if (!peppolIdInput.trim()) return;
@@ -305,7 +649,7 @@ const PeppolPage = () => {
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     try {
-      return formatDate(dateStr);
+      return formatDateLocale(dateStr);
     } catch {
       return dateStr;
     }
@@ -314,7 +658,7 @@ const PeppolPage = () => {
   const formatDateTime = (dateStr) => {
     if (!dateStr) return '-';
     try {
-      return formatDate(dateStr, {
+      return formatDateLocale(dateStr, {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -335,19 +679,36 @@ const PeppolPage = () => {
   const getLogStatusBadge = (status) => {
     const config = {
       received: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', icon: ArrowDownLeft },
+      new: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', icon: ArrowDownLeft },
+      processed: { bg: 'bg-green-500/20', text: 'text-green-400', icon: CheckCircle },
+      archived: { bg: 'bg-gray-500/20', text: 'text-gray-400', icon: FileCheck },
       pending: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', icon: Clock },
       sent: { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: Send },
       delivered: { bg: 'bg-green-500/20', text: 'text-green-400', icon: CheckCircle },
       accepted: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', icon: CheckCircle },
       rejected: { bg: 'bg-red-500/20', text: 'text-red-400', icon: XCircle },
       error: { bg: 'bg-red-500/20', text: 'text-red-400', icon: AlertTriangle },
+      cancelled: { bg: 'bg-gray-500/20', text: 'text-gray-300', icon: Ban },
     };
     const c = config[status] || config.pending;
     const Icon = c.icon;
+    const statusLabelMap = {
+      new: 'Recu',
+      processed: 'Traite',
+      archived: 'Archive',
+      received: 'Recu',
+      pending: 'En attente',
+      sent: 'Envoye',
+      delivered: 'Livre',
+      accepted: 'Accepte',
+      rejected: 'Rejete',
+      error: 'Erreur',
+      cancelled: 'Annule',
+    };
     return (
       <Badge className={`${c.bg} ${c.text} border-0 gap-1`}>
         <Icon className="w-3 h-3" />
-        {t(`peppol.status.${status}`)}
+        {t(`peppol.status.${status}`, statusLabelMap[status] || status)}
       </Badge>
     );
   };
@@ -383,6 +744,15 @@ const PeppolPage = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openExternalSendDialog}
+            className="border-gray-700 text-gray-300 hover:bg-gray-800"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            {t('peppol.externalImportSend', 'Importer UBL (GED / Disque)')}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -642,6 +1012,7 @@ const PeppolPage = () => {
                 <SelectItem value="accepted">{t('peppol.status.accepted')}</SelectItem>
                 <SelectItem value="error">{t('peppol.status.error')}</SelectItem>
                 <SelectItem value="rejected">{t('peppol.status.rejected')}</SelectItem>
+                <SelectItem value="cancelled">{t('peppol.status.cancelled', 'Annule')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -693,11 +1064,13 @@ const PeppolPage = () => {
                     {filteredInvoices.map((invoice) => {
                       const client = invoice.client;
                       const hasEndpoint = !!client?.peppol_endpoint_id;
+                      const rowBusy = managingOutbound && outboundActionInvoiceId === invoice.id;
                       const canSend =
                         hasEndpoint &&
                         (!invoice.peppol_status ||
                           invoice.peppol_status === 'none' ||
-                          invoice.peppol_status === 'error');
+                          invoice.peppol_status === 'error' ||
+                          invoice.peppol_status === 'cancelled');
 
                       return (
                         <tr key={invoice.id} className="hover:bg-gray-800/50 transition-colors">
@@ -746,7 +1119,7 @@ const PeppolPage = () => {
                                 <Button
                                   size="sm"
                                   onClick={() => handleOpenSendDialog(invoice)}
-                                  disabled={sending}
+                                  disabled={sending || rowBusy}
                                   className="bg-orange-500 hover:bg-orange-600 text-white text-xs"
                                 >
                                   <Send className="w-3 h-3 mr-1" />
@@ -804,6 +1177,35 @@ const PeppolPage = () => {
                                       {t('common.copy') || 'Copier'} Document ID
                                     </DropdownMenuItem>
                                   )}
+                                  {invoice.peppol_document_id &&
+                                    (invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleCancelOutboundNetwork(invoice)}
+                                        disabled={rowBusy}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800 text-amber-400"
+                                      >
+                                        {rowBusy ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Ban className="w-4 h-4" />
+                                        )}
+                                        {t('peppol.cancelNetworkAction', 'Annuler cote reseau')}
+                                      </DropdownMenuItem>
+                                    )}
+                                  {invoice.peppol_status && invoice.peppol_status !== 'none' && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleDeleteOutboundLocal(invoice)}
+                                      disabled={rowBusy}
+                                      className="gap-2 cursor-pointer hover:bg-gray-800 text-red-400"
+                                    >
+                                      {rowBusy ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="w-4 h-4" />
+                                      )}
+                                      {t('peppol.deleteLocalAction', 'Supprimer localement')}
+                                    </DropdownMenuItem>
+                                  )}
                                   {invoice.peppol_status === 'error' && (
                                     <>
                                       <DropdownMenuSeparator className="bg-gray-700" />
@@ -837,7 +1239,7 @@ const PeppolPage = () => {
               <div className="flex items-center justify-center py-16">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
               </div>
-            ) : inboundLogs.length === 0 ? (
+            ) : inboundDocuments.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
                 <ArrowDownLeft className="w-12 h-12 mx-auto mb-4 text-gray-600" />
                 <p className="text-lg mb-1">{t('peppol.inboundDocuments')}</p>
@@ -861,32 +1263,86 @@ const PeppolPage = () => {
                       <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
                         Facture
                       </th>
+                      <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800/50">
-                    {inboundLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-800/50 transition-colors">
+                    {inboundDocuments.map((doc) => (
+                      <tr key={doc.id} className="hover:bg-gray-800/50 transition-colors">
                         <td className="p-3 text-gray-300 whitespace-nowrap text-xs">
-                          {formatDateTime(log.created_at)}
+                          {formatDateTime(doc.received_at || doc.created_at)}
                         </td>
                         <td className="p-3 text-gray-300 whitespace-nowrap">
-                          <span className="font-mono text-xs">{log.sender_endpoint || '-'}</span>
+                          <span className="font-mono text-xs">{doc.sender_name || doc.sender_peppol_id || '-'}</span>
                         </td>
                         <td className="p-3 hidden sm:table-cell">
                           <span
                             className="text-xs font-mono text-gray-500 truncate block max-w-[200px]"
-                            title={log.ap_document_id}
+                            title={doc.scrada_document_id}
                           >
-                            {log.ap_document_id || '-'}
+                            {doc.scrada_document_id || '-'}
                           </span>
                         </td>
-                        <td className="p-3">{getLogStatusBadge(log.status)}</td>
+                        <td className="p-3">{getLogStatusBadge(doc.status === 'new' ? 'received' : doc.status)}</td>
                         <td className="p-3">
-                          {log.invoice?.invoice_number ? (
-                            <span className="text-orange-400 text-sm font-medium">{log.invoice.invoice_number}</span>
+                          {doc.invoice_number ? (
+                            <span className="text-orange-400 text-sm font-medium">{doc.invoice_number}</span>
                           ) : (
-                            <span className="text-gray-600">-</span>
+                            <span className="text-gray-600">
+                              {doc.metadata?.internalNumber ? `#${doc.metadata.internalNumber}` : '-'}
+                            </span>
                           )}
+                        </td>
+                        <td className="p-3 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50"
+                                disabled={inboundActionDocId === doc.scrada_document_id}
+                              >
+                                {inboundActionDocId === doc.scrada_document_id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <MoreHorizontal className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-gray-900 border-gray-700 text-gray-200">
+                              <DropdownMenuItem
+                                onClick={() => handleViewInboundPdf(doc)}
+                                className="gap-2 cursor-pointer hover:bg-gray-800"
+                              >
+                                <Eye className="w-4 h-4 text-blue-400" />
+                                {t('common.view', 'Visualiser')} PDF
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDownloadInboundPdf(doc)}
+                                className="gap-2 cursor-pointer hover:bg-gray-800"
+                              >
+                                <Download className="w-4 h-4 text-emerald-400" />
+                                {t('peppol.exportPDF', 'Exporter en PDF')}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDownloadInboundHtml(doc)}
+                                className="gap-2 cursor-pointer hover:bg-gray-800"
+                              >
+                                <FileText className="w-4 h-4 text-cyan-400" />
+                                {t('peppol.exportHtml', 'Exporter HTML')}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-gray-700" />
+                              <DropdownMenuItem
+                                onClick={() => handleSendInboundToGed(doc)}
+                                className="gap-2 cursor-pointer hover:bg-gray-800"
+                              >
+                                <FolderOpen className="w-4 h-4 text-orange-400" />
+                                {t('peppol.sendToGed', 'Envoyer vers GED')}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))}
@@ -1212,6 +1668,151 @@ const PeppolPage = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* ======== EXTERNAL UBL IMPORT + SEND ======== */}
+      <Dialog
+        open={externalSendDialogOpen}
+        onOpenChange={(open) => {
+          setExternalSendDialogOpen(open);
+          if (!open) {
+            setExternalFile(null);
+            setSelectedGedVersionId('');
+          }
+        }}
+      >
+        <DialogContent className="w-full sm:max-w-2xl bg-[#0f1528] border-white/10 text-white p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent flex items-center gap-2">
+              <Upload className="w-5 h-5 text-orange-400" />
+              {t('peppol.externalImportSend', 'Importer UBL externe et envoyer via Peppol')}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm text-gray-400">
+                {t(
+                  'peppol.externalImportHint',
+                  'Le document UBL XML sera automatiquement enregistre en facture locale, journalise en comptabilite, puis envoye sur Peppol.'
+                )}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant={externalSource === 'disk' ? 'default' : 'outline'}
+                onClick={() => setExternalSource('disk')}
+                className={
+                  externalSource === 'disk'
+                    ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                    : 'border-gray-700 text-gray-300'
+                }
+              >
+                <HardDrive className="w-4 h-4 mr-2" />
+                {t('peppol.sourceDisk', 'Disque')}
+              </Button>
+              <Button
+                type="button"
+                variant={externalSource === 'ged' ? 'default' : 'outline'}
+                onClick={() => setExternalSource('ged')}
+                className={
+                  externalSource === 'ged'
+                    ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                    : 'border-gray-700 text-gray-300'
+                }
+              >
+                <FolderOpen className="w-4 h-4 mr-2" />
+                {t('nav.gedHub', 'GED HUB')}
+              </Button>
+            </div>
+
+            {externalSource === 'disk' ? (
+              <div className="rounded-lg border border-gray-700 bg-gray-900/40 p-4 space-y-3">
+                <p className="text-sm text-gray-300">{t('peppol.pickUblFile', 'Selectionnez un fichier UBL XML')}</p>
+                <Input
+                  type="file"
+                  accept=".xml,text/xml,application/xml"
+                  onChange={(e) => setExternalFile(e.target.files?.[0] || null)}
+                  className="bg-gray-900/50 border-gray-700 text-gray-200"
+                />
+                {externalFile && (
+                  <p className="text-xs text-gray-400">
+                    {t('common.selected', 'Selectionne')} : <span className="font-mono">{externalFile.name}</span>
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-gray-700 bg-gray-900/40 p-4 space-y-3">
+                <p className="text-sm text-gray-300">{t('peppol.pickGedXml', 'Selectionnez un XML depuis GED')}</p>
+                {loadingGedXmlDocs ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {t('common.loading', 'Chargement...')}
+                  </div>
+                ) : gedXmlDocuments.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    {t('peppol.noGedXmlFound', 'Aucun document XML trouve dans GED.')}
+                  </p>
+                ) : (
+                  <Select value={selectedGedVersionId} onValueChange={setSelectedGedVersionId}>
+                    <SelectTrigger className="w-full bg-gray-900/50 border-gray-700 text-white">
+                      <SelectValue placeholder={t('peppol.selectGedXml', 'Choisir un document XML')} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-80">
+                      {gedXmlDocuments.map((doc) => (
+                        <SelectItem key={doc.id} value={doc.id}>
+                          {doc.file_name || `${doc.source_table} v${doc.version}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
+            <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 p-3 text-sm text-orange-100">
+              {t('peppol.externalSendCreditNotice', {
+                credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+                unit: creditUnit,
+                defaultValue: `L'envoi consomme ${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit}.`,
+              })}
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setExternalSendDialogOpen(false)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full sm:w-auto"
+              disabled={sendingExternal}
+            >
+              {t('common.cancel', 'Annuler')}
+            </Button>
+            <Button
+              onClick={handleExternalUblSend}
+              disabled={
+                sendingExternal ||
+                (externalSource === 'disk' && !externalFile) ||
+                (externalSource === 'ged' && !selectedGedVersionId)
+              }
+              className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
+            >
+              {sendingExternal ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t('peppol.sending')}
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  {t('peppol.sendViaPeppol')}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ======== SEND CONFIRMATION DIALOG ======== */}
       <Dialog open={sendDialogOpen} onOpenChange={handleCloseSendDialog}>

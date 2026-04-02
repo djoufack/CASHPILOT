@@ -2448,7 +2448,8 @@
       "delivered": "Delivered",
       "accepted": "Accepted",
       "rejected": "Rejected",
-      "error": "Error"
+      "error": "Error",
+      "cancelled": "Cancelled"
     }
   },
   "pricing": {

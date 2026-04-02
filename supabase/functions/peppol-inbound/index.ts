@@ -18,6 +18,21 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
+const normalizeInboundDocuments = (payload: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(payload)) {
+    return payload as Record<string, unknown>[];
+  }
+
+  if (payload && typeof payload === 'object') {
+    const maybeResults = (payload as { results?: unknown }).results;
+    if (Array.isArray(maybeResults)) {
+      return maybeResults as Record<string, unknown>[];
+    }
+  }
+
+  return [];
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -70,7 +85,7 @@ serve(async (req) => {
     }
 
     if (action === 'sync') {
-      const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolInbound`;
+      const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/unconfirmed`;
       const scradaResponse = await fetch(scradaUrl, {
         method: 'GET',
         headers: { ...scradaHeaders, 'Content-Type': 'application/json' },
@@ -78,15 +93,15 @@ serve(async (req) => {
 
       if (!scradaResponse.ok) {
         const errText = await scradaResponse.text();
-        throw new HttpError(502, `Scrada API error: ${errText}`);
+        throw new HttpError(502, `Scrada API error (${scradaResponse.status}): ${errText}`);
       }
 
-      const scradaDocs = await scradaResponse.json();
-      const documents = Array.isArray(scradaDocs) ? scradaDocs : [];
-      const newDocuments = [];
+      const scradaPayload = await scradaResponse.json().catch(() => null);
+      const documents = normalizeInboundDocuments(scradaPayload);
+      const newDocuments: Array<{ docId: string; doc: Record<string, unknown> }> = [];
 
       for (const doc of documents) {
-        const docId = doc.id || doc.documentId;
+        const docId = String(doc.id || doc.documentId || '').trim();
         if (!docId) continue;
 
         const { data: existing } = await supabase
@@ -151,22 +166,60 @@ serve(async (req) => {
           user_id: user.id,
           company_id: companyId,
           scrada_document_id: docId,
-          sender_peppol_id: doc.peppolSenderID || doc.senderID || null,
-          sender_name: doc.senderName || null,
-          document_type: doc.documentType || 'invoice',
-          invoice_number: doc.invoiceNumber || null,
-          invoice_date: doc.invoiceDate || null,
-          total_excl_vat: doc.totalExclVat || null,
-          total_vat: doc.totalVat || null,
-          total_incl_vat: doc.totalInclVat || null,
-          currency: doc.currency || 'EUR',
+          sender_peppol_id: String(doc.peppolSenderID || doc.senderID || '').trim() || null,
+          sender_name: String(doc.senderName || doc.supplierPartyName || '').trim() || null,
+          document_type: String(doc.documentType || 'invoice'),
+          invoice_number: String(doc.invoiceNumber || doc.number || doc.internalNumber || '').trim() || null,
+          invoice_date: String(doc.invoiceDate || '').trim() || null,
+          total_excl_vat: Number(doc.totalExclVat || doc.totalExclVAT || 0) || null,
+          total_vat: Number(doc.totalVat || doc.totalVAT || 0) || null,
+          total_incl_vat: Number(doc.totalInclVat || doc.totalInclVAT || 0) || null,
+          currency: String(doc.currency || 'EUR'),
           status: 'new',
           metadata: doc,
-          received_at: doc.receivedAt || doc.createdOn || new Date().toISOString(),
+          received_at: String(
+            doc.peppolC3Timestamp ||
+              doc.peppolC2Timestamp ||
+              doc.receivedAt ||
+              doc.createdOn ||
+              new Date().toISOString()
+          ),
         }));
 
         const { error: insertDocsError } = await supabase.from('peppol_inbound_documents').insert(inboundRows);
         if (insertDocsError) throw insertDocsError;
+
+        const confirmationResults: Array<{ documentId: string; confirmed: boolean; status: number }> = [];
+        for (const { docId } of newDocuments) {
+          const confirmUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/${docId}/confirm`;
+          const confirmResponse = await fetch(confirmUrl, {
+            method: 'PUT',
+            headers: { ...scradaHeaders, 'Content-Type': 'application/json' },
+          });
+          confirmationResults.push({
+            documentId: docId,
+            confirmed: confirmResponse.ok,
+            status: confirmResponse.status,
+          });
+        }
+
+        const confirmedDocuments = confirmationResults.filter((item) => item.confirmed).length;
+        const confirmationFailures = confirmationResults.filter((item) => !item.confirmed);
+
+        return new Response(
+          JSON.stringify({
+            synced: true,
+            totalFromScrada: documents.length,
+            newDocuments: newDocuments.length,
+            requiredCredits,
+            confirmedDocuments,
+            confirmationFailures,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       } catch (error) {
         await refundCredits(
           supabase,
@@ -176,26 +229,13 @@ serve(async (req) => {
         );
         throw error;
       }
-
-      return new Response(
-        JSON.stringify({
-          synced: true,
-          totalFromScrada: documents.length,
-          newDocuments: newDocuments.length,
-          requiredCredits,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
     }
 
     if (action === 'get_ubl' && body.document_id) {
-      const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolInbound/${body.document_id}`;
+      const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/${body.document_id}`;
       const scradaResponse = await fetch(scradaUrl, {
         method: 'GET',
-        headers: { ...scradaHeaders, 'Content-Type': 'application/xml' },
+        headers: { ...scradaHeaders, Accept: 'application/xml' },
       });
 
       if (!scradaResponse.ok) {
@@ -210,13 +250,10 @@ serve(async (req) => {
     }
 
     if (action === 'get_pdf' && body.document_id) {
-      const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolInbound/${body.document_id}/pdf`;
+      const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/${body.document_id}/pdf`;
       const scradaResponse = await fetch(scradaUrl, {
         method: 'GET',
-        headers: {
-          'X-API-KEY': apiKey,
-          'X-PASSWORD': password,
-        },
+        headers: { ...scradaHeaders, Accept: 'application/pdf' },
       });
 
       if (!scradaResponse.ok) {

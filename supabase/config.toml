@@ -169,7 +169,13 @@ verify_jwt = false
 [functions.peppol-poll-status]
 verify_jwt = false
 
+[functions.peppol-outbound-manage]
+verify_jwt = false
+
 [functions.peppol-send]
+verify_jwt = false
+
+[functions.peppol-import-and-send]
 verify_jwt = false
 
 [functions.peppol-webhook]

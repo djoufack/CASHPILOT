@@ -37,7 +37,7 @@ serve(async (req) => {
     if (!invoice?.peppol_document_id) throw new HttpError(400, 'No Peppol document ID for this invoice');
 
     // Already final? No need to poll
-    if (['delivered', 'accepted', 'error', 'rejected'].includes(invoice.peppol_status)) {
+    if (['delivered', 'accepted', 'error', 'rejected', 'cancelled'].includes(invoice.peppol_status)) {
       return new Response(JSON.stringify({ status: invoice.peppol_status, final: true }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -57,34 +57,53 @@ serve(async (req) => {
 
     // Poll Scrada
     const scradaBaseUrl = Deno.env.get('SCRADA_API_URL') || 'https://api.scrada.be/v1';
-    const statusUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolOutbound/${invoice.peppol_document_id}/status`;
+    const statusEndpoints = [
+      `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/outbound/document/${invoice.peppol_document_id}/info`,
+      `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolOutbound/${invoice.peppol_document_id}/status`,
+    ];
 
-    const scradaResponse = await fetch(statusUrl, {
-      method: 'GET',
-      headers: {
-        'X-API-KEY': apiKey,
-        'X-PASSWORD': password || '',
-        Language: 'FR',
-      },
-    });
+    let scradaData: Record<string, unknown> | null = null;
+    let scradaError: string | null = null;
 
-    if (!scradaResponse.ok) {
-      const errText = await scradaResponse.text();
-      return new Response(JSON.stringify({ error: `Scrada API error: ${errText}` }), {
+    for (const statusUrl of statusEndpoints) {
+      const scradaResponse = await fetch(statusUrl, {
+        method: 'GET',
+        headers: {
+          'X-API-KEY': apiKey,
+          'X-PASSWORD': password || '',
+          Language: 'FR',
+        },
+      });
+
+      if (!scradaResponse.ok) {
+        const errText = await scradaResponse.text();
+        scradaError = `Scrada API error (${scradaResponse.status}) on ${statusUrl}: ${errText}`;
+        continue;
+      }
+
+      scradaData = await scradaResponse.json();
+      break;
+    }
+
+    if (!scradaData) {
+      return new Response(JSON.stringify({ error: scradaError || 'Unable to poll Scrada status' }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const scradaData = await scradaResponse.json();
-
     const statusMap: Record<string, string> = {
       Created: 'pending',
       Processed: 'delivered',
       Error: 'error',
+      Rejected: 'rejected',
+      Accepted: 'accepted',
+      Cancelled: 'cancelled',
+      Canceled: 'cancelled',
     };
-    const mappedStatus = statusMap[scradaData.status] || scradaData.status?.toLowerCase() || 'pending';
-    const isFinal = ['delivered', 'error', 'rejected'].includes(mappedStatus);
+    const rawStatus = String(scradaData.status || '');
+    const mappedStatus = statusMap[rawStatus] || rawStatus.toLowerCase() || 'pending';
+    const isFinal = ['delivered', 'accepted', 'error', 'rejected', 'cancelled'].includes(mappedStatus);
 
     // Update invoice if status changed
     if (mappedStatus !== invoice.peppol_status) {
