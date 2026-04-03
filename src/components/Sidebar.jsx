@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
 import {
   ChevronLeft,
   ChevronRight,
@@ -55,6 +57,7 @@ import {
   FileCheck,
   Bell,
   Zap,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -89,9 +92,24 @@ const STORAGE_KEY = 'sidebarExpandedCategories';
 const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const { toast } = useToast();
   const { hasEntitlement } = useEntitlements();
   const { activeCompany } = useCompany();
   const isOhadaZone = OHADA_COUNTRIES.has((activeCompany?.country || '').toUpperCase());
+
+  const handleLogout = () => {
+    logout()
+      .then(() => {
+        navigate('/');
+        toast({
+          title: t('common.logout'),
+          description: t('auth.logoutSuccess') || 'Déconnexion réussie.',
+        });
+      })
+      .catch((error) => console.error('Logout failed:', error));
+  };
 
   const toggleSidebar = () => {
     const newState = !isCollapsed;
@@ -390,6 +408,23 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           aria-expanded={!isCollapsed}
         >
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </Button>
+      </div>
+
+      {/* Logout visible just below CashPilot label */}
+      <div className={cn('shrink-0 border-b border-gray-800/30', isCollapsed ? 'px-2 py-2' : 'px-3 py-2')}>
+        <Button
+          variant="ghost"
+          onClick={handleLogout}
+          className={cn(
+            'w-full text-gray-400 hover:text-red-400 hover:bg-red-950/30',
+            isCollapsed ? 'h-11 w-11 mx-auto p-0' : 'justify-start gap-2 px-3 py-2'
+          )}
+          aria-label={t('common.logout')}
+          title={t('common.logout')}
+        >
+          <LogOut size={18} />
+          {!isCollapsed && <span className="text-sm font-medium">{t('common.logout')}</span>}
         </Button>
       </div>
 
