@@ -29,10 +29,10 @@ function computeTaxBreakdown(items: any[]): TaxGroup[] {
     if (!groups[rate]) groups[rate] = { rate, taxableAmount: 0 };
     groups[rate].taxableAmount += Number(item.total || 0);
   }
-  return Object.values(groups).map(g => ({
+  return Object.values(groups).map((g) => ({
     rate: g.rate,
     taxableAmount: Number(g.taxableAmount.toFixed(2)),
-    taxAmount: Number((g.taxableAmount * g.rate / 100).toFixed(2)),
+    taxAmount: Number(((g.taxableAmount * g.rate) / 100).toFixed(2)),
     categoryId: g.rate === 0 ? 'Z' : 'S',
   }));
 }
@@ -54,18 +54,26 @@ function generatePartyBlock(party: any, tag: string): string {
           <cbc:CityName>${escapeXml(party.city || '')}</cbc:CityName>
           <cbc:PostalZone>${escapeXml(party.postal_code || '')}</cbc:PostalZone>
           <cac:Country>
-            <cbc:IdentificationCode>${escapeXml(party.country || 'BE')}</cbc:IdentificationCode>
+            <cbc:IdentificationCode>${escapeXml(party.country || '')}</cbc:IdentificationCode>
           </cac:Country>
-        </cac:PostalAddress>${party.vat_number ? `
+        </cac:PostalAddress>${
+          party.vat_number
+            ? `
         <cac:PartyTaxScheme>
           <cbc:CompanyID>${escapeXml(party.vat_number)}</cbc:CompanyID>
           <cac:TaxScheme>
             <cbc:ID>VAT</cbc:ID>
           </cac:TaxScheme>
-        </cac:PartyTaxScheme>` : ''}
+        </cac:PartyTaxScheme>`
+            : ''
+        }
         <cac:PartyLegalEntity>
-          <cbc:RegistrationName>${escapeXml(name)}</cbc:RegistrationName>${endpointId ? `
-          <cbc:CompanyID schemeID="${escapeXml(schemeId)}">${escapeXml(endpointId)}</cbc:CompanyID>` : ''}
+          <cbc:RegistrationName>${escapeXml(name)}</cbc:RegistrationName>${
+            endpointId
+              ? `
+          <cbc:CompanyID schemeID="${escapeXml(schemeId)}">${escapeXml(endpointId)}</cbc:CompanyID>`
+              : ''
+          }
         </cac:PartyLegalEntity>
       </cac:Party>
     </cac:${tag}>`;
@@ -77,10 +85,14 @@ function generatePaymentMeans(seller: any): string {
     <cac:PaymentMeans>
       <cbc:PaymentMeansCode>30</cbc:PaymentMeansCode>
       <cac:PayeeFinancialAccount>
-        <cbc:ID>${escapeXml(seller.iban)}</cbc:ID>${seller.bic || seller.swift ? `
+        <cbc:ID>${escapeXml(seller.iban)}</cbc:ID>${
+          seller.bic || seller.swift
+            ? `
         <cac:FinancialInstitutionBranch>
           <cbc:ID>${escapeXml(seller.bic || seller.swift)}</cbc:ID>
-        </cac:FinancialInstitutionBranch>` : ''}
+        </cac:FinancialInstitutionBranch>`
+            : ''
+        }
       </cac:PayeeFinancialAccount>
     </cac:PaymentMeans>`;
 }
@@ -89,7 +101,9 @@ function generateTaxTotal(invoice: any, items: any[], currency: string): string 
   const breakdown = computeTaxBreakdown(items);
   const totalVat = formatAmount(invoice.total_vat || 0);
 
-  const subtotals = breakdown.map(b => `
+  const subtotals = breakdown
+    .map(
+      (b) => `
       <cac:TaxSubtotal>
         <cbc:TaxableAmount currencyID="${currency}">${formatAmount(b.taxableAmount)}</cbc:TaxableAmount>
         <cbc:TaxAmount currencyID="${currency}">${formatAmount(b.taxAmount)}</cbc:TaxAmount>
@@ -100,7 +114,9 @@ function generateTaxTotal(invoice: any, items: any[], currency: string): string 
             <cbc:ID>VAT</cbc:ID>
           </cac:TaxScheme>
         </cac:TaxCategory>
-      </cac:TaxSubtotal>`).join('');
+      </cac:TaxSubtotal>`
+    )
+    .join('');
 
   return `
     <cac:TaxTotal>
@@ -109,10 +125,11 @@ function generateTaxTotal(invoice: any, items: any[], currency: string): string 
 }
 
 function generateLines(items: any[], currency: string, lineTag: string, qtyTag: string): string {
-  return items.map((item, index) => {
-    const rate = Number(item.tax_rate || 0);
-    const categoryId = rate === 0 ? 'Z' : 'S';
-    return `
+  return items
+    .map((item, index) => {
+      const rate = Number(item.tax_rate || 0);
+      const categoryId = rate === 0 ? 'Z' : 'S';
+      return `
     <cac:${lineTag}>
       <cbc:ID>${index + 1}</cbc:ID>
       <cbc:${qtyTag} unitCode="C62">${Number(item.quantity || 0)}</cbc:${qtyTag}>
@@ -131,12 +148,16 @@ function generateLines(items: any[], currency: string, lineTag: string, qtyTag: 
         <cbc:PriceAmount currencyID="${currency}">${formatAmount(item.unit_price)}</cbc:PriceAmount>
       </cac:Price>
     </cac:${lineTag}>`;
-  }).join('');
+    })
+    .join('');
 }
 
 export function generateUBLInvoice(invoice: any, seller: any, buyer: any, items: any[]): string {
   const currency = invoice.currency || 'EUR';
   const buyerRef = invoice.reference || invoice.invoice_number;
+  // Inject invoice-level tax_rate into items that lack their own
+  const invoiceTaxRate = Number(invoice.tax_rate || 0);
+  items = items.map((it) => ({ ...it, tax_rate: it.tax_rate ?? invoiceTaxRate }));
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
@@ -145,8 +166,12 @@ export function generateUBLInvoice(invoice: any, seller: any, buyer: any, items:
   <cbc:CustomizationID>${PEPPOL_CUSTOMIZATION_ID}</cbc:CustomizationID>
   <cbc:ProfileID>${PEPPOL_PROFILE_ID}</cbc:ProfileID>
   <cbc:ID>${escapeXml(invoice.invoice_number)}</cbc:ID>
-  <cbc:IssueDate>${formatDateISO(invoice.invoice_date)}</cbc:IssueDate>${invoice.due_date ? `
-  <cbc:DueDate>${formatDateISO(invoice.due_date)}</cbc:DueDate>` : ''}
+  <cbc:IssueDate>${formatDateISO(invoice.date || invoice.invoice_date)}</cbc:IssueDate>${
+    invoice.due_date
+      ? `
+  <cbc:DueDate>${formatDateISO(invoice.due_date)}</cbc:DueDate>`
+      : ''
+  }
   <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
   <cbc:DocumentCurrencyCode>${escapeXml(currency)}</cbc:DocumentCurrencyCode>
   <cbc:BuyerReference>${escapeXml(buyerRef)}</cbc:BuyerReference>${generatePartyBlock(seller, 'AccountingSupplierParty')}${generatePartyBlock(buyer, 'AccountingCustomerParty')}${generatePaymentMeans(seller)}${generateTaxTotal(invoice, items, currency)}
@@ -162,6 +187,8 @@ export function generateUBLInvoice(invoice: any, seller: any, buyer: any, items:
 export function generateUBLCreditNote(invoice: any, seller: any, buyer: any, items: any[]): string {
   const currency = invoice.currency || 'EUR';
   const buyerRef = invoice.reference || invoice.invoice_number;
+  const invoiceTaxRate = Number(invoice.tax_rate || 0);
+  items = items.map((it) => ({ ...it, tax_rate: it.tax_rate ?? invoiceTaxRate }));
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <CreditNote xmlns="urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2"
@@ -170,7 +197,7 @@ export function generateUBLCreditNote(invoice: any, seller: any, buyer: any, ite
   <cbc:CustomizationID>${PEPPOL_CUSTOMIZATION_ID}</cbc:CustomizationID>
   <cbc:ProfileID>${PEPPOL_PROFILE_ID}</cbc:ProfileID>
   <cbc:ID>${escapeXml(invoice.invoice_number)}</cbc:ID>
-  <cbc:IssueDate>${formatDateISO(invoice.invoice_date)}</cbc:IssueDate>
+  <cbc:IssueDate>${formatDateISO(invoice.date || invoice.invoice_date)}</cbc:IssueDate>
   <cbc:CreditNoteTypeCode>381</cbc:CreditNoteTypeCode>
   <cbc:DocumentCurrencyCode>${escapeXml(currency)}</cbc:DocumentCurrencyCode>
   <cbc:BuyerReference>${escapeXml(buyerRef)}</cbc:BuyerReference>${generatePartyBlock(seller, 'AccountingSupplierParty')}${generatePartyBlock(buyer, 'AccountingCustomerParty')}${generatePaymentMeans(seller)}${generateTaxTotal(invoice, items, currency)}

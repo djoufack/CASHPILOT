@@ -20,15 +20,12 @@ export default defineConfig({
       reporter: ['text', 'html', 'lcov'],
       exclude: ['node_modules/', 'src/test/'],
       thresholds: {
-        // Progressive coverage gates — updated baseline 2026-03-30
-        // Actual (2026-03-30): branches 44.4%, functions 56.3%, lines 60.4%, statements 57.9%
-        // Phase 1 (now):    gates pinned just below measured values
-        // Phase 2 (2026-06): +8pts each
-        // Phase 3 (2026-09): target 70% lines/functions/statements, 60% branches
-        branches: 42,    // measured: 44.4% — real gain from new tests (+4.8pp)
-        functions: 54,   // measured: 56.3%
-        lines: 58,       // measured: 60.4%
-        statements: 56,  // measured: 57.9%
+        // Coverage gates — updated 2026-04-03
+        // Actual: branches 51.2%, functions 63.1%, lines 69.4%, statements 66.5%
+        branches: 49,
+        functions: 61,
+        lines: 67,
+        statements: 64,
       },
     },
   },

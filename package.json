@@ -15,7 +15,7 @@
     "guard:migrations": "node scripts/guard-migrations.mjs",
     "guard:edge-function-config": "node scripts/guard-edge-function-config.mjs",
     "guard:expense-date-field": "node scripts/guard-expense-date-field.mjs",
-    "guard": "npm run guard:invoice-schema && npm run guard:migrations && npm run guard:edge-function-config && npm run guard:expense-date-field && npm run guard:lint-warning-budget",
+    "guard": "npm run guard:invoice-schema && npm run guard:migrations && npm run guard:edge-function-config && npm run guard:expense-date-field && npm run guard:lint-warning-budget && npm run guard:i18n-keys",
     "verify:local": "npm run guard && npm run build && npm test",
     "verify:reliability": "node scripts/verify-cashpilot-reliability.mjs",
     "verify:financial-audit": "node scripts/verify-recurring-financial-audit.mjs",
@@ -80,6 +80,7 @@
     "vercel:prebuilt:prod": "npm run vercel:pull:prod && npm run vercel:build:prod && npm run vercel:deploy:prebuilt:prod",
     "prepare": "husky",
     "guard:lint-warning-budget": "node scripts/guard-eslint-warning-budget.mjs",
+    "guard:i18n-keys": "node scripts/guard-i18n-keys.mjs",
     "typecheck": "tsc --noEmit"
   },
   "lint-staged": {
