@@ -5,20 +5,47 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useCredits } from '@/hooks/useCredits';
 import { useCompany } from '@/hooks/useCompany';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, User, Building2, Bell, Coins, X } from 'lucide-react';
+import {
+  LogOut,
+  User,
+  Building2,
+  Bell,
+  Coins,
+  X,
+  MoreHorizontal,
+  Cable,
+  Code2,
+  Smartphone,
+  BookOpen,
+  Shield,
+  Settings,
+  Database,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import NotificationCenterComponent from '@/components/NotificationCenter';
 import CompanySwitcher from '@/components/CompanySwitcher';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ENTITLEMENT_KEYS } from '@/utils/subscriptionEntitlements';
 
 const TopNavBar = ({ isCollapsed, mobileMenuOpen: externalMobileOpen, onMobileMenuClose }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { toast } = useToast();
+  const { isAdmin } = useUserRole();
+  const { hasEntitlement } = useEntitlements();
   const { availableCredits, loading: creditsLoading, unlimitedAccess, unlimitedAccessLabel } = useCredits();
   const { companies, activeCompany, switchCompany } = useCompany();
   const [internalMobileOpen, setInternalMobileOpen] = useState(false);
@@ -79,6 +106,27 @@ const TopNavBar = ({ isCollapsed, mobileMenuOpen: externalMobileOpen, onMobileMe
     { to: '/app/notifications', icon: Bell, label: t('topNav.notifications') },
   ];
 
+  const accountItems = [
+    { to: '/app/integrations', icon: Cable, label: t('nav.integrations', 'Intégrations') },
+    {
+      to: '/app/api-mcp',
+      icon: Cable,
+      label: 'API-Webhook-MCP',
+      featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS,
+    },
+    { to: '/app/open-api', icon: Code2, label: t('nav.openApi', 'Open API & Marketplace') },
+    { to: '/app/mobile-money', icon: Smartphone, label: t('nav.mobileMoney', 'Mobile Money') },
+    { to: '/app/accountant-portal', icon: BookOpen, label: t('nav.accountantPortal', 'Portail comptable') },
+    { to: '/app/security', icon: Shield, label: t('nav.security', 'Sécurité') },
+    { to: '/app/settings', icon: Settings, label: t('nav.generalSettings', 'Paramètres généraux') },
+    ...(isAdmin
+      ? [
+          { to: '/admin', icon: Shield, label: t('common.admin') },
+          { to: '/admin/seed-data', icon: Database, label: t('nav.seedData') },
+        ]
+      : []),
+  ].filter((item) => !item.featureKey || hasEntitlement(item.featureKey));
+
   const NavItem = ({ to, icon: Icon, label, highlight }) => (
     <Link to={to} aria-label={label}>
       <motion.div
@@ -138,6 +186,38 @@ const TopNavBar = ({ isCollapsed, mobileMenuOpen: externalMobileOpen, onMobileMe
             {navItems.map((item, index) => (
               <NavItem key={index} {...item} />
             ))}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  aria-label={t('common.settings', 'Paramètres')}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800/60 hover:text-white transition-all duration-200"
+                >
+                  <MoreHorizontal size={18} />
+                  <span className="text-sm font-medium whitespace-nowrap">{t('common.settings', 'Paramètres')}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72 bg-gray-900 border-gray-700 text-white">
+                {accountItems.map((item) => {
+                  const ItemIcon = item.icon;
+                  return (
+                    <DropdownMenuItem key={item.to} asChild className="focus:bg-gray-800 focus:text-white">
+                      <Link to={item.to} className="flex items-center gap-2 cursor-pointer">
+                        <ItemIcon size={16} />
+                        <span>{item.label}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+                <DropdownMenuSeparator className="bg-gray-700" />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-red-400 focus:bg-red-950/30 focus:text-red-300 cursor-pointer"
+                >
+                  <LogOut size={16} />
+                  <span>{t('common.logout')}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
 
           {/* Divider */}
@@ -202,6 +282,25 @@ const TopNavBar = ({ isCollapsed, mobileMenuOpen: externalMobileOpen, onMobileMe
                     <NavItem {...item} />
                   </div>
                 ))}
+
+                <div className="h-px bg-gray-800 my-4" />
+
+                <div className="space-y-1">
+                  {accountItems.map((item) => {
+                    const ItemIcon = item.icon;
+                    return (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800/60 hover:text-white transition-all duration-200"
+                      >
+                        <ItemIcon size={18} />
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
 
                 <div className="h-px bg-gray-800 my-4" />
 

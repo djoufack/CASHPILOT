@@ -1,14 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useUserRole } from '@/hooks/useUserRole';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/components/ui/use-toast';
 import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Shield,
   Home,
   Users,
   Briefcase,
@@ -18,11 +14,9 @@ import {
   Truck,
   BarChart3,
   Calculator,
-  Settings,
   Map,
   QrCode,
   FileBarChart,
-  Database,
   Menu,
   Package,
   Receipt,
@@ -39,7 +33,6 @@ import {
   ShoppingCart,
   FileInput,
   Globe,
-  Cable,
   CreditCard,
   Target,
   UserCheck,
@@ -55,16 +48,13 @@ import {
   Bot,
   Sparkles,
   Landmark,
-  Smartphone,
   LineChart,
   BookOpen,
   ArrowLeftRight,
   Gavel,
-  Code2,
   FileCheck,
   Bell,
   Zap,
-  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -99,25 +89,9 @@ const STORAGE_KEY = 'sidebarExpandedCategories';
 const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
   const { t } = useTranslation();
   const location = useLocation();
-  const navigate = useNavigate();
-  const { logout } = useAuth();
-  const { toast } = useToast();
-  const { isAdmin } = useUserRole();
   const { hasEntitlement } = useEntitlements();
   const { activeCompany } = useCompany();
   const isOhadaZone = OHADA_COUNTRIES.has((activeCompany?.country || '').toUpperCase());
-
-  const handleLogout = () => {
-    logout()
-      .then(() => {
-        navigate('/');
-        toast({
-          title: t('common.logout'),
-          description: t('auth.logoutSuccess') || 'Déconnexion réussie.',
-        });
-      })
-      .catch((error) => console.error('Logout failed:', error));
-  };
 
   const toggleSidebar = () => {
     const newState = !isCollapsed;
@@ -125,7 +99,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
 
-  // Build categorized navigation (main + bottom sections)
+  // Build categorized navigation
   const allCategories = useMemo(() => {
     // === MAIN NAVIGATION ===
     const cats = [
@@ -312,61 +286,17 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
       },
     ];
 
-    // === BOTTOM CATEGORIES (pinned to bottom of sidebar) ===
-    const bottomCats = [
-      {
-        id: 'settings',
-        label: t('common.settings', 'Paramètres'),
-        icon: Settings,
-        type: 'category',
-        position: 'bottom',
-        items: [
-          { path: '/app/integrations', label: t('nav.integrations', 'Intégrations'), icon: Cable },
-          {
-            path: '/app/api-mcp',
-            label: 'API-Webhook-MCP',
-            icon: Cable,
-            featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS,
-          },
-          { path: '/app/open-api', label: t('nav.openApi', 'Open API & Marketplace'), icon: Code2 },
-          { path: '/app/mobile-money', label: t('nav.mobileMoney', 'Mobile Money'), icon: Smartphone },
-          { path: '/app/accountant-portal', label: t('nav.accountantPortal', 'Portail comptable'), icon: BookOpen },
-          { path: '/app/security', label: t('nav.security', 'Sécurité'), icon: Shield },
-          { path: '/app/settings', label: t('nav.generalSettings', 'Paramètres généraux'), icon: Settings },
-        ],
-      },
-    ];
-
-    // Admin section
-    if (isAdmin) {
-      bottomCats.push({
-        id: 'admin',
-        label: t('common.admin'),
-        icon: Shield,
-        type: 'category',
-        position: 'bottom',
-        items: [
-          { path: '/admin', label: t('common.admin'), icon: Shield },
-          { path: '/admin/seed-data', label: t('nav.seedData'), icon: Database },
-        ],
-      });
-    }
-
-    return { main: cats, bottom: bottomCats };
-  }, [isAdmin, isOhadaZone, t]);
+    return cats;
+  }, [isOhadaZone, t]);
 
   const visibleMain = useMemo(
-    () => filterCategorizedNavigation(allCategories.main, hasEntitlement),
-    [allCategories.main, hasEntitlement]
-  );
-  const visibleBottom = useMemo(
-    () => filterCategorizedNavigation(allCategories.bottom, hasEntitlement),
-    [allCategories.bottom, hasEntitlement]
+    () => filterCategorizedNavigation(allCategories, hasEntitlement),
+    [allCategories, hasEntitlement]
   );
 
   // Determine which category contains the current path
   const activeCategoryId = useMemo(() => {
-    for (const cat of [...visibleMain, ...visibleBottom]) {
+    for (const cat of visibleMain) {
       if (cat.type === 'direct' && cat.path === location.pathname) return cat.id;
       if (
         cat.type === 'category' &&
@@ -376,7 +306,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
       }
     }
     return null;
-  }, [visibleMain, visibleBottom, location.pathname]);
+  }, [visibleMain, location.pathname]);
 
   // Expanded state: load from localStorage, auto-expand active category
   const [expandedCategories, setExpandedCategories] = useState(() => {
@@ -463,23 +393,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         </Button>
       </div>
 
-      {/* Logout under CashPilot label (top-left zone) */}
-      <div className={cn('shrink-0 border-b border-gray-800/30', isCollapsed ? 'px-2 py-2' : 'px-3 py-2')}>
-        <Button
-          variant="ghost"
-          onClick={handleLogout}
-          className={cn(
-            'w-full text-gray-400 hover:text-red-400 hover:bg-red-950/30',
-            isCollapsed ? 'h-11 w-11 mx-auto p-0' : 'justify-start gap-2 px-3 py-2'
-          )}
-          aria-label={t('common.logout')}
-          title={t('common.logout')}
-        >
-          <LogOut size={18} />
-          {!isCollapsed && <span className="text-sm font-medium">{t('common.logout')}</span>}
-        </Button>
-      </div>
-
       {/* Main scrollable navigation */}
       <nav
         className="flex-1 px-2 overflow-y-auto overflow-x-hidden mt-2 custom-scrollbar"
@@ -519,31 +432,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           })}
         </TooltipProvider>
       </nav>
-
-      {/* Bottom pinned navigation */}
-      {visibleBottom.length > 0 && (
-        <div className="shrink-0 px-2 pb-2 pt-2 border-t border-gray-800/30">
-          <TooltipProvider delayDuration={0}>
-            {visibleBottom.map((category) => (
-              <CategoryGroup
-                key={category.id}
-                category={category}
-                isCollapsed={isCollapsed}
-                isExpanded={!!expandedCategories[category.id]}
-                onToggle={() => toggleCategory(category.id)}
-                currentPath={location.pathname}
-                activeCategoryId={activeCategoryId}
-                onExpandSidebar={() => {
-                  if (isCollapsed) {
-                    setIsCollapsed(false);
-                    localStorage.setItem('sidebarCollapsed', JSON.stringify(false));
-                  }
-                }}
-              />
-            ))}
-          </TooltipProvider>
-        </div>
-      )}
     </aside>
   );
 };

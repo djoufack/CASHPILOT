@@ -45,11 +45,6 @@ import {
   PieChart,
   Bot,
   Globe,
-  Cable,
-  Code2,
-  Shield,
-  Settings,
-  LogOut,
   User,
   Sparkles,
   Landmark,
@@ -60,13 +55,9 @@ import {
   LineChart,
   BookOpen,
   Gavel,
-  Smartphone,
-  Database,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
-import { useUserRole } from '@/hooks/useUserRole';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import CompanySwitcher from '@/components/CompanySwitcher';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -95,8 +86,6 @@ const OHADA_COUNTRIES = new Set([
 
 const MobileMenu = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
-  const { logout } = useAuth();
-  const { isAdmin } = useUserRole();
   const { hasEntitlement } = useEntitlements();
   const location = useLocation();
   const navigate = useNavigate();
@@ -284,43 +273,10 @@ const MobileMenu = ({ isOpen, onClose }) => {
           { path: '/app/employee-portal', label: t('nav.employeePortal', 'Portail employé'), icon: UserCheck },
         ],
       },
-      {
-        id: 'settings',
-        label: t('common.settings', 'Paramètres'),
-        icon: Settings,
-        type: 'category',
-        items: [
-          { path: '/app/integrations', label: t('nav.integrations', 'Intégrations'), icon: Cable },
-          {
-            path: '/app/api-mcp',
-            label: 'API-Webhook-MCP',
-            icon: Cable,
-            featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS,
-          },
-          { path: '/app/open-api', label: t('nav.openApi', 'Open API & Marketplace'), icon: Code2 },
-          { path: '/app/mobile-money', label: t('nav.mobileMoney', 'Mobile Money'), icon: Smartphone },
-          { path: '/app/accountant-portal', label: t('nav.accountantPortal', 'Portail comptable'), icon: BookOpen },
-          { path: '/app/security', label: t('nav.security', 'Sécurité'), icon: Shield },
-          { path: '/app/settings', label: t('nav.generalSettings', 'Paramètres généraux'), icon: Settings },
-        ],
-      },
     ];
 
-    if (isAdmin) {
-      rawCategories.push({
-        id: 'admin',
-        label: t('common.admin'),
-        icon: Shield,
-        type: 'category',
-        items: [
-          { path: '/admin', label: t('common.admin'), icon: Shield },
-          { path: '/admin/seed-data', label: t('nav.seedData'), icon: Database },
-        ],
-      });
-    }
-
     return filterCategorizedNavigation(rawCategories, hasEntitlement);
-  }, [hasEntitlement, isAdmin, isOhadaZone, t]);
+  }, [hasEntitlement, isOhadaZone, t]);
 
   // Determine which category contains the current active path, to auto-expand it
   const activeCategoryId = useMemo(() => {
@@ -344,11 +300,6 @@ const MobileMenu = ({ isOpen, onClose }) => {
   const toggleCategory = useCallback((catId) => {
     setExpanded((prev) => ({ ...prev, [catId]: !prev[catId] }));
   }, []);
-
-  const handleLogout = () => {
-    logout();
-    onClose();
-  };
 
   const handleEscape = useCallback(() => {
     onClose();
@@ -404,8 +355,8 @@ const MobileMenu = ({ isOpen, onClose }) => {
               </Button>
             </div>
 
-            {/* Quick access: Profile + Logout */}
-            <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+            {/* Quick access: Profile */}
+            <div className="px-4 py-3 border-b border-gray-800">
               <Link
                 to="/app/settings?tab=profil"
                 onClick={onClose}
@@ -416,15 +367,6 @@ const MobileMenu = ({ isOpen, onClose }) => {
                 </div>
                 <span className="text-sm font-medium">{t('topNav.myProfile', 'Mon profil')}</span>
               </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleLogout}
-                className="text-red-400 hover:text-red-300 hover:bg-red-950/30 min-h-[44px] min-w-[44px]"
-                aria-label={t('common.logout')}
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
             </div>
 
             {/* Scrollable navigation */}
@@ -555,18 +497,6 @@ const MobileMenu = ({ isOpen, onClose }) => {
                 })}
               </div>
             </nav>
-
-            {/* Logout */}
-            <div className="p-4 border-t border-gray-800 bg-gray-900">
-              <Button
-                variant="outline"
-                className="w-full justify-center border-red-900/30 text-red-400 hover:bg-red-900/20 hover:text-red-300"
-                onClick={handleLogout}
-                aria-label={t('common.logout')}
-              >
-                {t('common.logout')}
-              </Button>
-            </div>
           </motion.div>
         </>
       )}
