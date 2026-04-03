@@ -2290,7 +2290,33 @@
   "api": {
     "keys": "API Keys",
     "documentation": "API Documentation",
-    "endpoint": "Endpoint"
+    "endpoint": "Endpoint",
+    "pageTitle": "Open API & Marketplace",
+    "pageDescription": "Manage your API keys and discover integrations",
+    "refresh": "Refresh",
+    "createKey": "New key",
+    "keyCopied": "Key copied to clipboard!",
+    "kpi": {
+      "totalKeys": "API keys",
+      "totalCalls": "Calls (7d)",
+      "avgResponse": "Average latency",
+      "installedApps": "Installed apps"
+    },
+    "keySection": {
+      "title": "Your API keys",
+      "empty": "No API keys yet. Create one to get started."
+    },
+    "marketplace": {
+      "search": "Search an app...",
+      "noResults": "No app found",
+      "empty": "Marketplace is empty for now"
+    },
+    "createDialog": {
+      "title": "New API key",
+      "name": "Key name",
+      "scopes": "Permissions",
+      "submit": "Create key"
+    }
   },
   "webhooks": {
     "title": "Webhooks",

@@ -2277,7 +2277,33 @@
   "api": {
     "keys": "Clés API",
     "documentation": "Documentation API",
-    "endpoint": "Endpoint"
+    "endpoint": "Endpoint",
+    "pageTitle": "Open API & Marketplace",
+    "pageDescription": "Gérez vos clés API et explorez les extensions",
+    "refresh": "Actualiser",
+    "createKey": "Nouvelle clé",
+    "keyCopied": "Clé copiée dans le presse-papiers !",
+    "kpi": {
+      "totalKeys": "Clés API",
+      "totalCalls": "Appels (7j)",
+      "avgResponse": "Temps moyen",
+      "installedApps": "Apps installées"
+    },
+    "keySection": {
+      "title": "Vos clés API",
+      "empty": "Aucune clé API. Créez-en une pour commencer."
+    },
+    "marketplace": {
+      "search": "Rechercher une app...",
+      "noResults": "Aucune app trouvée",
+      "empty": "Marketplace vide pour le moment"
+    },
+    "createDialog": {
+      "title": "Nouvelle clé API",
+      "name": "Nom de la clé",
+      "scopes": "Permissions",
+      "submit": "Créer la clé"
+    }
   },
   "webhooks": {
     "title": "Webhooks",

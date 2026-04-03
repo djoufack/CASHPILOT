@@ -470,11 +470,13 @@ const OpenApiPage = () => {
 
             {/* API Keys List */}
             <div className="rounded-xl border border-white/10 bg-[#0f1528]/80 backdrop-blur-sm p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">{t('api.keys.title', 'Vos clés API')}</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">{t('api.keySection.title', 'Vos clés API')}</h3>
               {apiKeys.length === 0 ? (
                 <div className="text-center py-8">
                   <Key className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                  <p className="text-gray-500">{t('api.keys.empty', 'Aucune clé API. Créez-en une pour commencer.')}</p>
+                  <p className="text-gray-500">
+                    {t('api.keySection.empty', 'Aucune clé API. Créez-en une pour commencer.')}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">

@@ -3187,7 +3187,33 @@
   "api": {
     "keys": "API-sleutels",
     "documentation": "API-documentatie",
-    "endpoint": "Eindpunt"
+    "endpoint": "Eindpunt",
+    "pageTitle": "Open API & Marketplace",
+    "pageDescription": "Beheer uw API-sleutels en ontdek integraties",
+    "refresh": "Vernieuwen",
+    "createKey": "Nieuwe sleutel",
+    "keyCopied": "Sleutel gekopieerd naar klembord!",
+    "kpi": {
+      "totalKeys": "API-sleutels",
+      "totalCalls": "Oproepen (7d)",
+      "avgResponse": "Gemiddelde responstijd",
+      "installedApps": "Geïnstalleerde apps"
+    },
+    "keySection": {
+      "title": "Uw API-sleutels",
+      "empty": "Nog geen API-sleutels. Maak er een aan om te starten."
+    },
+    "marketplace": {
+      "search": "Zoek een app...",
+      "noResults": "Geen app gevonden",
+      "empty": "Marketplace is momenteel leeg"
+    },
+    "createDialog": {
+      "title": "Nieuwe API-sleutel",
+      "name": "Sleutelnaam",
+      "scopes": "Rechten",
+      "submit": "Sleutel aanmaken"
+    }
   },
   "webhooks": {
     "title": "Webhooks",
