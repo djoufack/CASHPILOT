@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DollarSign, CreditCard, Banknote, Landmark, Globe, MoreHorizontal } from 'lucide-react';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { usePaymentInstruments } from '@/hooks/usePaymentInstruments';
 
 /** Map icon name strings (from DB) to Lucide components */
 const ICON_MAP = {
@@ -26,12 +27,14 @@ const ICON_MAP = {
 const PaymentRecorder = ({ open, onOpenChange, invoice = null, clientId = null, isLumpSum = false, onSuccess }) => {
   const { t } = useTranslation();
   const paymentMethods = usePaymentMethods();
+  const { instruments, fetchInstruments } = usePaymentInstruments();
   const { createPayment, createLumpSumPayment } = usePayments();
   const { _invoices, getPendingInvoicesByClient, fetchInvoices } = useInvoices();
 
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(formatDateInput());
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
+  const [paymentInstrumentId, setPaymentInstrumentId] = useState('');
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedAllocations, setSelectedAllocations] = useState({});
@@ -45,9 +48,40 @@ const PaymentRecorder = ({ open, onOpenChange, invoice = null, clientId = null, 
     );
   }, [paymentMethods]);
 
+  const activeInstruments = useMemo(
+    () => (Array.isArray(instruments) ? instruments.filter((instrument) => instrument.status !== 'archived') : []),
+    [instruments]
+  );
+
+  const preferredInstrumentId = useMemo(() => {
+    if (!Array.isArray(activeInstruments) || activeInstruments.length === 0) return '';
+
+    const method = paymentMethod || preferredPaymentMethod;
+    const preferredTypesByMethod = {
+      cash: ['cash'],
+      card: ['card'],
+      paypal: ['card', 'bank_account'],
+      check: ['bank_account', 'cash'],
+      bank_transfer: ['bank_account'],
+    };
+
+    const candidateTypes = preferredTypesByMethod[method] || [];
+    for (const type of candidateTypes) {
+      const match = activeInstruments.find((instrument) => instrument.instrument_type === type);
+      if (match?.id) return match.id;
+    }
+
+    return activeInstruments[0]?.id || '';
+  }, [activeInstruments, paymentMethod, preferredPaymentMethod]);
+
   // Get pending invoices for lump-sum mode
   const resolvedClientId = clientId || invoice?.client_id;
   const pendingInvoices = resolvedClientId ? getPendingInvoicesByClient(resolvedClientId) : [];
+
+  useEffect(() => {
+    if (!open) return;
+    void fetchInstruments({ status: 'active' });
+  }, [open, fetchInstruments]);
 
   useEffect(() => {
     if (open) {
@@ -59,6 +93,7 @@ const PaymentRecorder = ({ open, onOpenChange, invoice = null, clientId = null, 
       }
       setPaymentDate(formatDateInput());
       setPaymentMethod(preferredPaymentMethod);
+      setPaymentInstrumentId('');
       setReference('');
       setNotes('');
       setSelectedAllocations({});
@@ -72,6 +107,19 @@ const PaymentRecorder = ({ open, onOpenChange, invoice = null, clientId = null, 
       setPaymentMethod(preferredPaymentMethod);
     }
   }, [paymentMethods, paymentMethod, preferredPaymentMethod]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (activeInstruments.length === 0) {
+      setPaymentInstrumentId('');
+      return;
+    }
+
+    const hasCurrentInstrument = activeInstruments.some((instrument) => instrument.id === paymentInstrumentId);
+    if (!hasCurrentInstrument && preferredInstrumentId) {
+      setPaymentInstrumentId(preferredInstrumentId);
+    }
+  }, [open, activeInstruments, paymentInstrumentId, preferredInstrumentId]);
 
   const handleAutoAllocate = () => {
     if (!amount || pendingInvoices.length === 0) return;
@@ -113,6 +161,7 @@ const PaymentRecorder = ({ open, onOpenChange, invoice = null, clientId = null, 
           resolvedClientId,
           Number(amount),
           paymentMethod,
+          paymentInstrumentId || null,
           reference,
           notes,
           allocations,
@@ -125,6 +174,7 @@ const PaymentRecorder = ({ open, onOpenChange, invoice = null, clientId = null, 
           payment_date: paymentDate,
           amount: Number(amount),
           payment_method: paymentMethod,
+          payment_instrument_id: paymentInstrumentId || null,
           reference,
           notes,
         });
@@ -229,6 +279,46 @@ const PaymentRecorder = ({ open, onOpenChange, invoice = null, clientId = null, 
             )}
           </div>
 
+          {/* Settlement Instrument */}
+          <div className="space-y-2">
+            <Label>{t('payments.instrument', 'Compte de règlement')}</Label>
+            <Select
+              value={paymentInstrumentId}
+              onValueChange={setPaymentInstrumentId}
+              disabled={activeInstruments.length === 0}
+            >
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectValue placeholder={t('payments.selectInstrument', 'Selectionner un compte/caisse/carte')} />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-700 border-gray-600 text-white">
+                {activeInstruments.map((instrument) => (
+                  <SelectItem key={instrument.id} value={instrument.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{instrument.label}</span>
+                      <span className="text-xs text-gray-400">
+                        {instrument.instrument_type === 'bank_account'
+                          ? t('financialInstruments.bankAccount', 'Compte bancaire')
+                          : instrument.instrument_type === 'card'
+                            ? t('financialInstruments.card', 'Carte')
+                            : instrument.instrument_type === 'cash'
+                              ? t('financialInstruments.cash', 'Caisse')
+                              : instrument.instrument_type}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {activeInstruments.length === 0 && (
+              <p className="text-xs text-amber-300">
+                {t(
+                  'payments.noInstrumentsConfigured',
+                  'Aucun instrument financier actif. Configurez un compte bancaire, une carte ou une caisse.'
+                )}
+              </p>
+            )}
+          </div>
+
           {/* Reference */}
           <div className="space-y-2">
             <Label>{t('payments.reference')}</Label>
@@ -308,7 +398,9 @@ const PaymentRecorder = ({ open, onOpenChange, invoice = null, clientId = null, 
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !amount || Number(amount) <= 0}
+            disabled={
+              submitting || !amount || Number(amount) <= 0 || (activeInstruments.length > 0 && !paymentInstrumentId)
+            }
             className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
           >
             {submitting ? '...' : t('payments.recordPayment')}

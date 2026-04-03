@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
@@ -29,12 +28,13 @@ export const usePayments = () => {
     async () => {
       if (!user) return [];
       if (!supabase) {
-        console.warn("Supabase not configured");
+        console.warn('Supabase not configured');
         return [];
       }
       let query = supabase
         .from('payments')
-        .select(`
+        .select(
+          `
           *,
           invoice:invoices(id, invoice_number, total_ttc, client_id),
           client:clients(id, company_name),
@@ -43,7 +43,8 @@ export const usePayments = () => {
             amount,
             invoice:invoices(id, invoice_number, total_ttc)
           )
-        `)
+        `
+        )
         .eq('user_id', user.id)
         .order('payment_date', { ascending: false });
 
@@ -62,17 +63,19 @@ export const usePayments = () => {
     { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
   );
 
-  const fetchPayments = useCallback(async (filters = {}) => {
-    if (!user) return;
-    if (!supabase) {
-      console.warn("Supabase not configured");
-      return;
-    }
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('payments')
-        .select(`
+  const fetchPayments = useCallback(
+    async (filters = {}) => {
+      if (!user) return;
+      if (!supabase) {
+        console.warn('Supabase not configured');
+        return;
+      }
+      setLoading(true);
+      try {
+        let query = supabase
+          .from('payments')
+          .select(
+            `
           *,
           invoice:invoices(id, invoice_number, total_ttc, client_id),
           client:clients(id, company_name),
@@ -81,88 +84,97 @@ export const usePayments = () => {
             amount,
             invoice:invoices(id, invoice_number, total_ttc)
           )
-        `)
-        .eq('user_id', user.id)
-        .order('payment_date', { ascending: false });
+        `
+          )
+          .eq('user_id', user.id)
+          .order('payment_date', { ascending: false });
 
-      query = applyCompanyScope(query);
-      if (filters.invoice_id) query = query.eq('invoice_id', filters.invoice_id);
-      if (filters.client_id) query = query.eq('client_id', filters.client_id);
+        query = applyCompanyScope(query);
+        if (filters.invoice_id) query = query.eq('invoice_id', filters.invoice_id);
+        if (filters.client_id) query = query.eq('client_id', filters.client_id);
 
-      const { data, error } = await query;
-      if (error) throw error;
-      setPayments(data || []);
-      return data;
-    } catch (err) {
-      if (err.code === '42P17' || err.code === '42501') {
-        console.warn('RLS policy error fetching payments:', err.message);
-        setPayments([]);
+        const { data, error } = await query;
+        if (error) throw error;
+        setPayments(data || []);
+        return data;
+      } catch (err) {
+        if (err.code === '42P17' || err.code === '42501') {
+          console.warn('RLS policy error fetching payments:', err.message);
+          setPayments([]);
+          return [];
+        }
+        setError(err.message);
+        toast({
+          title: t('common.error'),
+          description: err.message,
+          variant: 'destructive',
+        });
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    },
+    [applyCompanyScope, t, toast, user, setLoading, setPayments, setError]
+  );
+
+  const fetchPaymentsByInvoice = useCallback(
+    async (invoiceId) => {
+      if (!user || !supabase) return [];
+      try {
+        let query = supabase.from('payments').select('*').eq('user_id', user.id).eq('invoice_id', invoiceId);
+
+        query = applyCompanyScope(query);
+
+        const { data, error } = await query.order('payment_date', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      } catch (err) {
+        console.error('Error fetching payments by invoice:', err);
         return [];
       }
-      setError(err.message);
-      toast({
-        title: t('common.error'),
-        description: err.message,
-        variant: "destructive"
-      });
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, [applyCompanyScope, t, toast, user, setLoading, setPayments, setError]);
+    },
+    [applyCompanyScope, user]
+  );
 
-  const fetchPaymentsByInvoice = useCallback(async (invoiceId) => {
-    if (!user || !supabase) return [];
-    try {
-      let query = supabase
-        .from('payments')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('invoice_id', invoiceId);
-
-      query = applyCompanyScope(query);
-
-      const { data, error } = await query.order('payment_date', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    } catch (err) {
-      console.error('Error fetching payments by invoice:', err);
-      return [];
-    }
-  }, [applyCompanyScope, user]);
-
-  const fetchPaymentsByClient = useCallback(async (clientId) => {
-    if (!user || !supabase) return [];
-    try {
-      let query = supabase
-        .from('payments')
-        .select(`
+  const fetchPaymentsByClient = useCallback(
+    async (clientId) => {
+      if (!user || !supabase) return [];
+      try {
+        let query = supabase
+          .from('payments')
+          .select(
+            `
           *,
           invoice:invoices(id, invoice_number, total_ttc),
           allocations:payment_allocations(
             id, amount,
             invoice:invoices(id, invoice_number, total_ttc)
           )
-        `)
-        .eq('user_id', user.id)
-        .eq('client_id', clientId);
+        `
+          )
+          .eq('user_id', user.id)
+          .eq('client_id', clientId);
 
-      query = applyCompanyScope(query);
+        query = applyCompanyScope(query);
 
-      const { data, error } = await query.order('payment_date', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    } catch (err) {
-      console.error('Error fetching payments by client:', err);
-      return [];
-    }
-  }, [applyCompanyScope, user]);
+        const { data, error } = await query.order('payment_date', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      } catch (err) {
+        console.error('Error fetching payments by client:', err);
+        return [];
+      }
+    },
+    [applyCompanyScope, user]
+  );
 
   const generateReceiptNumber = () => {
     const now = new Date();
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const random = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, '0');
     return `REC-${year}-${month}-${random}`;
   };
 
@@ -216,7 +228,7 @@ export const usePayments = () => {
           amount_paid: Number(totalPaid.toFixed(2)),
           balance_due: balanceDue,
           payment_status: paymentStatus,
-          status: paymentStatus === 'paid' ? 'paid' : undefined
+          status: paymentStatus === 'paid' ? 'paid' : undefined,
         })
         .eq('id', invoiceId);
 
@@ -231,24 +243,82 @@ export const usePayments = () => {
     }
   };
 
+  const createTreasuryTransactionForPayment = async (paymentRecord) => {
+    if (!paymentRecord?.payment_instrument_id || !paymentRecord?.id) {
+      return null;
+    }
+
+    try {
+      const paymentDate = paymentRecord.payment_date || formatDateInput();
+      const { data: paymentTransaction, error: txError } = await supabase
+        .from('payment_transactions')
+        .insert([
+          withCompanyScope({
+            user_id: user.id,
+            company_id: paymentRecord.company_id,
+            payment_instrument_id: paymentRecord.payment_instrument_id,
+            transaction_kind: 'income',
+            flow_direction: 'inflow',
+            source_module: 'payments',
+            source_table: 'payments',
+            source_id: paymentRecord.id,
+            transaction_date: paymentDate,
+            posting_date: paymentDate,
+            value_date: paymentDate,
+            amount: Number(paymentRecord.amount || 0),
+            currency: String(paymentRecord.currency || 'EUR').toUpperCase(),
+            counterparty_name: null,
+            description: paymentRecord.invoice_id ? `Invoice payment ${paymentRecord.invoice_id}` : 'Payment received',
+            reference: paymentRecord.reference || null,
+            notes: paymentRecord.notes || null,
+            status: 'posted',
+            created_by: user.id,
+            updated_by: user.id,
+          }),
+        ])
+        .select()
+        .single();
+
+      if (txError) throw txError;
+
+      const { error: paymentLinkError } = await supabase
+        .from('payments')
+        .update({ payment_transaction_id: paymentTransaction.id })
+        .eq('id', paymentRecord.id)
+        .eq('user_id', user.id);
+
+      if (paymentLinkError) throw paymentLinkError;
+
+      return paymentTransaction;
+    } catch (err) {
+      console.warn('Failed to create linked treasury transaction for payment:', err);
+      return null;
+    }
+  };
+
   const createPayment = async (paymentData) => {
     if (!user) return;
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       const receiptNumber = generateReceiptNumber();
       const { data, error } = await supabase
         .from('payments')
-        .insert([{
-          ...withCompanyScope(paymentData),
-          user_id: user.id,
-          receipt_number: receiptNumber,
-          is_lump_sum: false
-        }])
+        .insert([
+          {
+            ...withCompanyScope(paymentData),
+            user_id: user.id,
+            receipt_number: receiptNumber,
+            is_lump_sum: false,
+          },
+        ])
         .select()
         .single();
 
       if (error) throw error;
+
+      const paymentTransaction = await createTreasuryTransactionForPayment(data);
+      const createdPayment = paymentTransaction ? { ...data, payment_transaction_id: paymentTransaction.id } : data;
 
       // Update the invoice payment status
       let invoicePaymentData = null;
@@ -256,23 +326,25 @@ export const usePayments = () => {
         invoicePaymentData = await updateInvoicePaymentData(paymentData.invoice_id);
       }
 
-      logAction('create', 'payment', null, data);
+      logAction('create', 'payment', null, createdPayment);
 
-      setPayments([data, ...payments]);
+      setPayments([createdPayment, ...payments]);
       void triggerWebhook('payment.received', {
-        id: data.id,
-        company_id: data.company_id,
-        client_id: data.client_id,
-        invoice_id: data.invoice_id,
-        amount: data.amount,
-        payment_date: data.payment_date,
-        payment_method: data.payment_method,
-        reference: data.reference,
+        id: createdPayment.id,
+        company_id: createdPayment.company_id,
+        client_id: createdPayment.client_id,
+        invoice_id: createdPayment.invoice_id,
+        amount: createdPayment.amount,
+        payment_date: createdPayment.payment_date,
+        payment_method: createdPayment.payment_method,
+        payment_instrument_id: createdPayment.payment_instrument_id,
+        payment_transaction_id: createdPayment.payment_transaction_id,
+        reference: createdPayment.reference,
       });
       if (paymentData.invoice_id && invoicePaymentData?.paymentStatus === 'paid') {
         void triggerWebhook('invoice.paid', {
           id: paymentData.invoice_id,
-          company_id: data.company_id,
+          company_id: createdPayment.company_id,
           amount_paid: invoicePaymentData.totalPaid,
           balance_due: invoicePaymentData.balanceDue,
           payment_status: invoicePaymentData.paymentStatus,
@@ -280,15 +352,15 @@ export const usePayments = () => {
       }
       toast({
         title: t('common.success'),
-        description: t('payments.paymentRecorded')
+        description: t('payments.paymentRecorded'),
       });
-      return data;
+      return createdPayment;
     } catch (err) {
       setError(err.message);
       toast({
         title: t('common.error'),
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -296,9 +368,18 @@ export const usePayments = () => {
     }
   };
 
-  const createLumpSumPayment = async (clientId, amount, paymentMethod, reference, notes, allocations, paymentDate = formatDateInput()) => {
+  const createLumpSumPayment = async (
+    clientId,
+    amount,
+    paymentMethod,
+    paymentInstrumentId,
+    reference,
+    notes,
+    allocations,
+    paymentDate = formatDateInput()
+  ) => {
     if (!user) return;
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       const receiptNumber = generateReceiptNumber();
@@ -306,35 +387,41 @@ export const usePayments = () => {
       // 1. Create the lump-sum payment record
       const { data: payment, error: paymentError } = await supabase
         .from('payments')
-        .insert([{
-          ...withCompanyScope({}),
-          user_id: user.id,
-          client_id: clientId,
-          invoice_id: null,
-          payment_date: paymentDate,
-          amount: Number(amount),
-          payment_method: paymentMethod || 'bank_transfer',
-          reference: reference || '',
-          notes: notes || '',
-          is_lump_sum: true,
-          receipt_number: receiptNumber
-        }])
+        .insert([
+          {
+            ...withCompanyScope({}),
+            user_id: user.id,
+            client_id: clientId,
+            invoice_id: null,
+            payment_date: paymentDate,
+            amount: Number(amount),
+            payment_method: paymentMethod || 'bank_transfer',
+            payment_instrument_id: paymentInstrumentId || null,
+            reference: reference || '',
+            notes: notes || '',
+            is_lump_sum: true,
+            receipt_number: receiptNumber,
+          },
+        ])
         .select()
         .single();
 
       if (paymentError) throw paymentError;
 
+      const paymentTransaction = await createTreasuryTransactionForPayment(payment);
+      const createdPayment = paymentTransaction
+        ? { ...payment, payment_transaction_id: paymentTransaction.id }
+        : payment;
+
       // 2. Create allocations for each invoice
       if (allocations && allocations.length > 0) {
-        const allocationRows = allocations.map(a => ({
+        const allocationRows = allocations.map((a) => ({
           payment_id: payment.id,
           invoice_id: a.invoiceId,
-          amount: Number(a.allocatedAmount)
+          amount: Number(a.allocatedAmount),
         }));
 
-        const { error: allocError } = await supabase
-          .from('payment_allocations')
-          .insert(allocationRows);
+        const { error: allocError } = await supabase.from('payment_allocations').insert(allocationRows);
 
         if (allocError) throw allocError;
 
@@ -345,30 +432,32 @@ export const usePayments = () => {
       }
 
       void triggerWebhook('payment.received', {
-        id: payment.id,
-        company_id: payment.company_id,
-        client_id: payment.client_id,
-        amount: payment.amount,
-        payment_date: payment.payment_date,
-        payment_method: payment.payment_method,
-        reference: payment.reference,
+        id: createdPayment.id,
+        company_id: createdPayment.company_id,
+        client_id: createdPayment.client_id,
+        amount: createdPayment.amount,
+        payment_date: createdPayment.payment_date,
+        payment_method: createdPayment.payment_method,
+        payment_instrument_id: createdPayment.payment_instrument_id,
+        payment_transaction_id: createdPayment.payment_transaction_id,
+        reference: createdPayment.reference,
         allocations,
       });
 
-      logAction('create', 'payment', null, { ...payment, is_lump_sum: true, allocations });
+      logAction('create', 'payment', null, { ...createdPayment, is_lump_sum: true, allocations });
 
-      setPayments([payment, ...payments]);
+      setPayments([createdPayment, ...payments]);
       toast({
         title: t('common.success'),
-        description: t('payments.lumpSumRecorded')
+        description: t('payments.lumpSumRecorded'),
       });
-      return payment;
+      return createdPayment;
     } catch (err) {
       setError(err.message);
       toast({
         title: t('common.error'),
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -377,7 +466,7 @@ export const usePayments = () => {
   };
 
   const deletePayment = async (paymentId) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       // Get payment details before deleting
@@ -387,10 +476,17 @@ export const usePayments = () => {
         .eq('id', paymentId)
         .single();
 
-      const { error } = await supabase
-        .from('payments')
-        .delete()
-        .eq('id', paymentId);
+      if (payment?.payment_transaction_id) {
+        const { error: cancelTxError } = await supabase
+          .from('payment_transactions')
+          .update({ status: 'cancelled' })
+          .eq('id', payment.payment_transaction_id)
+          .eq('user_id', user.id);
+
+        if (cancelTxError) throw cancelTxError;
+      }
+
+      const { error } = await supabase.from('payments').delete().eq('id', paymentId);
 
       if (error) throw error;
 
@@ -408,17 +504,17 @@ export const usePayments = () => {
 
       logAction('delete', 'payment', payment || { id: paymentId }, null);
 
-      setPayments(payments.filter(p => p.id !== paymentId));
+      setPayments(payments.filter((p) => p.id !== paymentId));
       toast({
         title: t('common.success'),
-        description: t('payments.paymentDeleted')
+        description: t('payments.paymentDeleted'),
       });
     } catch (err) {
       setError(err.message);
       toast({
         title: t('common.error'),
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -436,7 +532,7 @@ export const usePayments = () => {
         .select()
         .single();
       if (error) throw error;
-      setPayments(payments.map(p => p.id === paymentId ? data : p));
+      setPayments(payments.map((p) => (p.id === paymentId ? data : p)));
       return data;
     } catch (err) {
       console.error('Error updating receipt info:', err);
@@ -454,6 +550,6 @@ export const usePayments = () => {
     createLumpSumPayment,
     deletePayment,
     updateReceiptInfo,
-    generateReceiptNumber
+    generateReceiptNumber,
   };
 };
