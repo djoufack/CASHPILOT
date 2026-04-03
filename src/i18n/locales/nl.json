@@ -58,7 +58,28 @@
     "unexpectedError": "Er is een onverwachte fout opgetreden.",
     "backToHome": "Terug naar startpagina",
     "goToDashboard": "Naar dashboard",
-    "deleted": "Verwijderd"
+    "deleted": "Verwijderd",
+    "refresh": "Actualiser",
+    "saving": "Enregistrement...",
+    "name": "Nom",
+    "currency": "Devise",
+    "noData": "No data available",
+    "processing": "Traitement...",
+    "documents": "Documents",
+    "language": "Language",
+    "mainContent": "Contenu principal",
+    "sidebar": "Barre latérale",
+    "exportError": "Echec de l'export PDF",
+    "topBar": "Top bar",
+    "updated": "Updated",
+    "select": "Select",
+    "add": "Ajouter",
+    "email": "Email",
+    "allRightsReserved": "All Rights Reserved",
+    "back": "Retour",
+    "selected": "Selectionne",
+    "all": "All",
+    "supplier": "Supplier"
   },
   "aiChat": {
     "title": "AI-assistent",
@@ -84,7 +105,9 @@
     "paid": "Betaald",
     "due": "Vervalt",
     "pendingApprovals": "Goedkeuringen in afwachting",
-    "noPendingTimesheets": "Geen urenstaten in afwachting van goedkeuring."
+    "noPendingTimesheets": "Geen urenstaten in afwachting van goedkeuring.",
+    "overdue": "Overdue",
+    "noInvoices": "No invoices found."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -144,6 +167,34 @@
     "hrAdministration": "Administratie",
     "hrTalents": "Talenten",
     "hrPerformance": "Prestaties",
+    "employees": "Werknemers",
+    "payroll": "Loonadministratie",
+    "absences": "Afwezigheden & Verlof",
+    "recruitment": "Werving",
+    "onboardingHR": "HR-onboarding",
+    "training": "Opleiding",
+    "skills": "Vaardigheden",
+    "performanceReview": "Evaluatiegesprekken",
+    "peopleReview": "People Review",
+    "qvt": "Welzijn & Risico's",
+    "bilanSocial": "Sociaal verslag",
+    "peopleAnalytics": "HR-analyses",
+    "hrSelfService": "HR Self-Service",
+    "employeePortal": "Werknemersportaal",
+    "projectResources": "Projectresources",
+    "crm": "CRM",
+    "cashFlowForecast": "Kasstroomprognose",
+    "embeddedBanking": "Embedded Banking",
+    "reconIA": "AI-afstemming",
+    "taxFiling": "Belastingaangifte",
+    "smartDunning": "Slimme aanmaningen",
+    "pdpCompliance": "PDP / Certificering",
+    "interCompany": "Intercompany",
+    "consolidation": "Consolidatie",
+    "regulatoryIntel": "Regelgevingsmonitoring",
+    "sycohadaBalance": "SYSCOHADA-balans",
+    "sycohadaIncome": "SYSCOHADA-resultatenrekening",
+    "tafire": "TAFIRE",
     "supplierMap": "Leverancierskaart",
     "productsStock": "Producten & Voorraad",
     "generalSettings": "Algemene instellingen",
@@ -155,7 +206,12 @@
     "newClient": "Nieuwe klant",
     "newSupplier": "Nieuwe leverancier",
     "newEmployee": "Nieuwe werknemer",
-    "more": "Meer"
+    "more": "Meer",
+    "goToDrh": "Gestion RH complète (DRH) : paie, congés, recrutement, formation...",
+    "goToResources": "Allocation des ressources aux projets (Ressources Projets)",
+    "openApi": "Open API & Marketplace",
+    "mobileMoney": "Mobile Money",
+    "accountantPortal": "Portail comptable"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -238,7 +294,18 @@
     "vatNumber": "BTW-nummer",
     "deleteClient": "Klant verwijderen",
     "confirmDelete": "Verwijdering bevestigen",
-    "deleteWarning": "Weet u zeker dat u deze klant wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt."
+    "deleteWarning": "Weet u zeker dat u deze klant wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+    "restore": "Restaurer",
+    "phone": "Téléphone",
+    "city": "Ville",
+    "country": "Pays",
+    "createdAt": "Créé le",
+    "showActive": "Clients actifs",
+    "showArchived": "Archivés",
+    "archiveClient": "Archiver le client",
+    "confirmArchive": "Ce client sera archivé et n'apparaîtra plus dans la liste. Vous pourrez le restaurer à tout moment depuis les clients archivés. Les factures et documents associés seront conservés.",
+    "noArchivedClients": "Aucun client archivé",
+    "deletedAt": "Archivé le"
   },
   "invoices": {
     "title": "Facturen",
@@ -296,7 +363,27 @@
     "exportFacturXXml": "XML exporteren (Factur-X)",
     "facturxXmlExported": "Factur-X XML geëxporteerd.",
     "exportFacturXPdf": "PDF exporteren (Factur-X)",
-    "facturxPdfExported": "Factur-X PDF geëxporteerd."
+    "facturxPdfExported": "Factur-X PDF geëxporteerd.",
+    "noItems": "Aucune ligne",
+    "searchAndAddProducts": "Search And Add Products",
+    "searchAndAddServices": "Search And Add Services",
+    "manualItemHint": "Manual Item Hint",
+    "itemsSummary": "Items Summary",
+    "noItemsYet": "No Items Yet",
+    "addItemsHint": "Add Items Hint",
+    "deleteTitle": "Delete Invoice",
+    "deleteConfirm": "Are you sure you want to delete this invoice? This action cannot be undone.",
+    "client": "Client",
+    "items": "Articles",
+    "itemDescription": "Description des articles",
+    "itemQuantity": "Quantite des articles",
+    "itemUnitPrice": "Prix unitaire des articles",
+    "file": "Fichier",
+    "number": "Numéro de facture",
+    "date": "Date de facture",
+    "totalAmount": "Montant total",
+    "itemsInsertError": "Failed to insert invoice items",
+    "viewInvoices": "View Invoices"
   },
   "quotesPage": {
     "title": "Offertes",
@@ -432,7 +519,8 @@
     "addNewEntryHint": "Begin met het toevoegen van een nieuwe tijdregistratie hierboven.",
     "entryCount_one": "{{count}} registratie",
     "entryCount_other": "{{count}} registraties",
-    "noDescription": "Geen beschrijving"
+    "noDescription": "Geen beschrijving",
+    "entryCount": "Entry Count"
   },
   "tasks": {
     "title": "Titel",
@@ -489,7 +577,16 @@
       "thisWeek": "Deze week",
       "laterNoDate": "Later / Geen datum"
     },
-    "emptyAgenda": "Geen taken gevonden. Voeg taken toe om uw agenda te bekijken."
+    "emptyAgenda": "Geen taken gevonden. Voeg taken toe om uw agenda te bekijken.",
+    "associatedProject": "Projet associé",
+    "client": "Client",
+    "openProject": "Ouvrir le projet",
+    "dependencies": "Dépendances (prérequis)",
+    "dependenciesDescription": "Sélectionnez les tâches qui doivent être terminées avant celle-ci.",
+    "clearDependencies": "Tout retirer",
+    "noDependenciesAvailable": "Aucune autre tâche disponible pour créer une dépendance.",
+    "subtasks": "Sous-tâches",
+    "saveBeforeSubtasks": "Enregistrez d’abord la tâche pour ajouter les sous-tâches."
   },
   "purchaseOrdersPage": {
     "title": "Inkooporders",
@@ -519,7 +616,8 @@
   "buttons": {
     "cancel": "Annuleren",
     "save": "Opslaan",
-    "delete": "Verwijderen"
+    "delete": "Verwijderen",
+    "archive": "Archiver"
   },
   "currency": {
     "EUR": "Euro (EUR)",
@@ -527,23 +625,47 @@
     "GBP": "Brits Pond (GBP)"
   },
   "status": {
-    "draft": "Concept",
-    "sent": "Verzonden",
-    "paid": "Betaald",
-    "overdue": "Achterstallig",
-    "cancelled": "Geannuleerd",
-    "unpaid": "Onbetaald",
-    "partial": "Gedeeltelijk betaald",
-    "overpaid": "Te veel betaald",
-    "active": "Actief",
-    "inProgress": "In uitvoering",
-    "onHold": "In de wacht",
-    "completed": "Voltooid",
-    "confirmed": "Bevestigd",
-    "accepted": "Geaccepteerd",
-    "rejected": "Geweigerd",
-    "expired": "Vervallen",
-    "received": "Ontvangen"
+    "pageTitle": "Servicestatus",
+    "metaDescription": "Realtime status van CashPilot-systemen",
+    "checking": "Status controleren…",
+    "allOperational": "Alle systemen operationeel",
+    "partialOutage": "Gedeeltelijke storing",
+    "majorOutage": "Grote storing",
+    "refresh": "Vernieuwen",
+    "lastChecked": "Laatste controle: {{seconds}}s geleden",
+    "autoRefresh": "Automatisch vernieuwen elke {{seconds}}s",
+    "backToApp": "Terug naar startpagina",
+    "components": {
+      "title": "Componenten",
+      "webapp": "Webapplicatie",
+      "api": "API v1",
+      "database": "Database",
+      "mcp": "MCP Server"
+    },
+    "states": {
+      "operational": "Operationeel",
+      "degraded": "Verminderd",
+      "down": "Offline",
+      "checking": "Controleren…"
+    },
+    "incidents": {
+      "title": "Incidentgeschiedenis",
+      "none": "Geen recente incidenten — alle systemen functioneren normaal."
+    },
+    "draft": "Draft",
+    "sent": "Sent",
+    "paid": "Paid",
+    "overdue": "Overdue",
+    "cancelled": "Cancelled",
+    "issued": "Issued",
+    "applied": "Applied",
+    "pending": "Pending",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "active": "Active",
+    "inProgress": "In Progress",
+    "onHold": "On Hold",
+    "completed": "Completed"
   },
   "messages": {
     "success": {
@@ -557,7 +679,9 @@
       "timesheetAdded": "Urenstaat succesvol toegevoegd",
       "timesheetUpdated": "Urenstaat succesvol bijgewerkt",
       "timesheetDeleted": "Urenstaat succesvol verwijderd",
-      "timesheetInvoiced": "Urenstaten succesvol gefactureerd"
+      "timesheetInvoiced": "Urenstaten succesvol gefactureerd",
+      "settingsSaved": "Settings Saved",
+      "clientRestored": "Client restauré avec succès"
     },
     "error": {
       "pdfExportFailed": "PDF-export mislukt",
@@ -570,7 +694,13 @@
       "timesheetDeleteFailed": "Verwijderingsfout",
       "timesheetDeleteDescription": "Kan de uurregistratie niet verwijderen. Probeer het opnieuw.",
       "timesheetInvoiceFailed": "Factureringsfout",
-      "timesheetInvoiceDescription": "Kan urenstaten niet als gefactureerd markeren."
+      "timesheetInvoiceDescription": "Kan urenstaten niet als gefactureerd markeren.",
+      "clientRequired": "Please select a client",
+      "noItems": "Please add at least one item",
+      "companyLoadTimeout": "Le chargement de la societe a expire.",
+      "companySaveTimeout": "La sauvegarde a expire. Veuillez reessayer.",
+      "companySaveFailed": "Erreur de sauvegarde",
+      "companySaveDescription": "Impossible de sauvegarder les informations de l'entreprise. Veuillez reessayer."
     }
   },
   "validation": {
@@ -584,7 +714,8 @@
     "passwordRequired": "Wachtwoord is verplicht",
     "passwordTooShort": "Wachtwoord moet minstens 12 tekens bevatten",
     "passwordTooWeak": "Wachtwoord moet minstens 12 tekens bevatten, met 1 hoofdletter, 1 cijfer en 1 speciaal teken",
-    "passwordsDoNotMatch": "Wachtwoorden komen niet overeen"
+    "passwordsDoNotMatch": "Wachtwoorden komen niet overeen",
+    "invalidEmailDescription": "Veuillez saisir une adresse email valide."
   },
   "admin": {
     "users": "Gebruikersbeheer",
@@ -600,7 +731,25 @@
     "revoke": "Intrekken",
     "roleSearchPlaceholder": "Zoeken op naam, rol of gebruikers-ID",
     "accessLevelPlaceholder": "Selecteer toegangsniveau",
-    "auditSearchPlaceholder": "Zoeken op actie, actor of bron"
+    "auditSearchPlaceholder": "Zoeken op actie, actor of bron",
+    "totalActiveClients": "Clients actifs",
+    "totalArchivedClients": "Clients archivés",
+    "totalClients": "Total clients",
+    "searchAllClients": "Rechercher parmi tous les clients...",
+    "showActiveClients": "Clients actifs",
+    "showArchivedClients": "Show Archived Clients",
+    "noArchivedClients": "Aucun client archivé",
+    "noClients": "Aucun client trouvé",
+    "owner": "Propriétaire",
+    "archivedDate": "Archivé le",
+    "archiveClientTitle": "Archiver ce client (admin)",
+    "archiveClientDescription": "Ce client sera archivé pour son propriétaire. Il pourra être restauré à tout moment. Les factures et documents associés seront conservés.",
+    "ownerInfo": "Propriétaire",
+    "errorFetchingClients": "Erreur chargement clients",
+    "clientArchived": "Client archivé avec succès",
+    "errorArchiving": "Erreur archivage",
+    "clientRestored": "Client restauré avec succès",
+    "errorRestoring": "Erreur restauration"
   },
   "suppliers": {
     "title": "Leveranciersbeheer",
@@ -625,7 +774,9 @@
       "pricing": "Prijsstelling",
       "ratePrice": "Tarief/Prijs",
       "actions": "Acties",
-      "noServices": "Nog geen diensten toegevoegd."
+      "noServices": "Nog geen diensten toegevoegd.",
+      "confirmDelete": "Supprimer ce service fournisseur ?",
+      "editService": "Modifier le service"
     }
   },
   "supplierInvoices": {
@@ -707,7 +858,33 @@
       "updatedDesc": "{{count}} factuur/facturen bijgewerkt."
     },
     "uploadSuccess": "Factuur succesvol toegevoegd",
-    "aiExtracted": "AI-geëxtraheerd"
+    "aiExtracted": "AI-geëxtraheerd",
+    "approvalWorkflowLevels": "Workflow levels",
+    "approvalLevelShort": "Approval Level Short",
+    "threeWayMatchUpdated": "3-way match mis a jour",
+    "threeWayOrderLinked": "Commande liée et match recalculé.",
+    "threeWayMatched": "3-way OK",
+    "threeWayMismatch": "Ecart",
+    "threeWayPartial": "Partiel",
+    "threeWayPending": "En attente",
+    "threeWayUnmatched": "Non lie",
+    "paid": "Payees",
+    "pending": "En attente",
+    "overdue": "En retard",
+    "threeWayMatchedShort": "3-way OK",
+    "threeWayMatchedSub": "{{count}} rapprochement(s) complets",
+    "filterThreeWay": "3-way match",
+    "threeWayAll": "Tous les statuts 3-way",
+    "colThreeWayMatch": "3-way",
+    "approvalLevelLabel": "Approval Level Label",
+    "approveCurrentLevel": "Approve Current Level",
+    "approveLevelShort": "Approve Level Short",
+    "threeWayScore": "Three Way Score",
+    "threeWayVarianceCompact": "Three Way Variance Compact",
+    "threeWayAutoOrder": "Auto (commande la plus proche)",
+    "threeWayLinkedOrder": "Three Way Linked Order",
+    "runThreeWayMatch": "Recalculer le 3-way match",
+    "runThreeWayShort": "Recalc."
   },
   "supplierReports": {
     "title": "Leveranciersrapporten",
@@ -757,7 +934,8 @@
       "received": "Ontvangen",
       "cancelled": "Geannuleerd",
       "draft": "Concept"
-    }
+    },
+    "varianceDays": "Variance Days"
   },
   "reportBuilder": {
     "title": "Rapportbouwer",
@@ -866,7 +1044,8 @@
     "serviceUpdated": "Dienst succesvol bijgewerkt",
     "serviceDeleted": "Dienst succesvol verwijderd",
     "categoryCreated": "Categorie succesvol aangemaakt",
-    "statusLegend": "Statuslegende"
+    "statusLegend": "Statuslegende",
+    "confirmDelete": "Supprimer cette prestation client ? Cette action desactive la prestation dans le catalogue."
   },
   "categories": {
     "title": "Categoriebeheer",
@@ -1199,6 +1378,23 @@
       "costCenter": "Kostenplaats",
       "department": "Afdeling",
       "productLine": "Productlijn"
+    },
+    "columns": {
+      "code": "Code",
+      "name": "Nom",
+      "type": "Type",
+      "category": "Catégorie",
+      "actions": "Actions"
+    },
+    "type": {
+      "asset": "Actif",
+      "liability": "Passif",
+      "equity": "Capitaux propres",
+      "revenue": "Produit",
+      "expense": "Charge"
+    },
+    "filter": {
+      "allTypes": "Tous les types"
     }
   },
   "payments": {
@@ -1397,7 +1593,9 @@
     "price": "Prijs",
     "uncategorized": "Niet gecategoriseerd",
     "importToStock": "Importeren naar mijn voorraad",
-    "noProducts": "Nog geen producten toegevoegd."
+    "noProducts": "Nog geen producten toegevoegd.",
+    "confirmDelete": "Supprimer ce produit fournisseur ?",
+    "editProduct": "Modifier le produit"
   },
   "backup": {
     "title": "Back-up & Herstel",
@@ -1502,7 +1700,8 @@
       "shipped": "Verzonden",
       "delivered": "Geleverd",
       "cancelled": "Geannuleerd"
-    }
+    },
+    "noItems": "Aucune ligne disponible"
   },
   "creditsGuard": {
     "insufficientCredits": "Onvoldoende tegoeden",
@@ -2054,7 +2253,18 @@
     "demoQuickFill": "Snel invullen",
     "demoBannerText": "Probeer CashPilot zonder registratie",
     "demoBannerAccess": "Directe toegang op de inlogpagina",
-    "demoBannerClose": "Sluiten"
+    "demoBannerClose": "Sluiten",
+    "logoutSuccess": "Logout Success",
+    "campaignHighlightRealtime": "Pilotage en temps reel",
+    "campaignHighlightRealtimeDesc": "Vision cash, ventes, depenses, KPI en direct",
+    "campaignHighlightCompliance": "Conformite & securite",
+    "campaignHighlightComplianceDesc": "RGPD, audit trail, gouvernance administrateur",
+    "campaignHighlightGlobal": "Multi-pays & multi-activites",
+    "campaignHighlightGlobalDesc": "Belgique, FR, OHADA, equipe distribuee",
+    "demoCredentialsCopied": "Identifiants démo copiés",
+    "copyFailed": "Copie impossible",
+    "copyManualHint": "Copiez manuellement les identifiants affichés.",
+    "backToLanding": "Retour a la landing"
   },
   "invoiceExtraction": {
     "extractWithAI": "Extraheren met AI",
@@ -2251,7 +2461,24 @@
       "tableSendLabel": "Verzenden ({{credits}} {{unit}})",
       "sendButton": "Peppol-verzending bevestigen ({{credits}} {{unit}})",
       "sendDialogNotice": "Deze verzending verbruikt {{credits}} {{unit}}. Als het Access Point het document weigert of de logging mislukt, worden de tegoeden automatisch teruggestort."
-    }
+    },
+    "apLiveStatus": "Statut du Point d'Accès",
+    "fetchingApInfo": "Interrogation du point d'accès...",
+    "apNotConfigured": "Credentials Scrada non configurés. Remplissez le formulaire ci-dessous.",
+    "registrationStatus": "Enregistrement Peppol",
+    "registeredOnNetwork": "Enregistré sur le réseau Peppol",
+    "notRegisteredOnNetwork": "Non enregistré sur le réseau Peppol",
+    "registrationUnknown": "Statut inconnu — vérifiez votre Endpoint ID",
+    "apCompanyProfile": "Profil Access Point",
+    "companyName": "Nom",
+    "vatNumber": "N° TVA",
+    "country": "Pays",
+    "accountStatus": "Statut compte",
+    "profileUnavailable": "Profil non disponible",
+    "supportedProfiles": "Profils UBL supportés",
+    "noProfiles": "Aucun profil trouvé",
+    "recentApDocuments": "Documents récents (AP)",
+    "noRecentDocs": "Aucun document récent"
   },
   "integrationsHub": {
     "badge": "Integratiehub",
@@ -2338,8 +2565,15 @@
         "disconnectedTitle": "Connector uitgeschakeld",
         "disconnectedDescription": "{{provider}} is ontkoppeld.",
         "syncStartedTitle": "Synchronisatie gestart",
-        "syncStartedDescription": "{{provider}}-sync is gepland."
-      }
+        "syncStartedDescription": "{{provider}}-sync is gepland.",
+        "oauthCompletedTitle": "OAuth completed",
+        "oauthFailedTitle": "OAuth failed",
+        "oauthCompletedDescription": "Connector status has been refreshed.",
+        "oauthLaunchTitle": "OAuth flow started",
+        "oauthLaunchDescription": "Oauth Launch Description"
+      },
+      "liveOauthTitle": "Live OAuth",
+      "liveOauthDescription": "OAuth callback and sync probes are active. Configure provider credentials in Edge Function environment variables before production rollout."
     }
   },
   "snapshotShare": {
@@ -2788,7 +3022,13 @@
       "ES": "Spanje",
       "IT": "Italië",
       "NL": "Nederland"
-    }
+    },
+    "integrationNotReady": "Le connecteur bancaire n est pas prêt. Vérifiez la configuration GoCardless dans les intégrations.",
+    "integrationReady": "Intégration bancaire opérationnelle",
+    "integrationNotReadyTitle": "Intégration bancaire non prête",
+    "integrationReadyHint": "GoCardless est joignable. Vous pouvez connecter des banques en production.",
+    "integrationNotReadyHint": "Les secrets ou la connectivité GoCardless sont manquants. Contactez un administrateur technique.",
+    "institutionLogo": "Institution Logo"
   },
   "quoteSignPage": {
     "invalidLink": "Deze ondertekenlink is ongeldig of verlopen.",
@@ -2975,6 +3215,14 @@
       "cancel": "Annuleren",
       "success": "Tweefactorauthenticatie is succesvol ingeschakeld!",
       "authenticatorApp": "Authenticator-app"
+    },
+    "enterprise": {
+      "title": "Enterprise access governance",
+      "subtitle": "Configure SSO/SAML policy, domain restrictions and session controls."
+    },
+    "esign": {
+      "title": "E-signature provider policy",
+      "subtitle": "Select native signature mode or route quotes through Yousign/DocuSign."
     }
   },
   "reminders": {
@@ -3112,7 +3360,15 @@
       "dismiss": "Tijdelijk wegklikken",
       "stepInfo": "Huidige stap: {{step}}",
       "ariaLabel": "Boekhoudinstelling"
-    }
+    },
+    "errors": {
+      "skipLocked": "Vous pourrez quitter l’assistant apres la creation de la societe et le choix du plan comptable.",
+      "stepPersistenceFailed": "Impossible de continuer pour le moment. Verifiez la connexion puis reessayez."
+    },
+    "skipLockedHint": "Vous pourrez quitter l'assistant apres la creation de la societe et le choix du plan comptable.",
+    "savingStep": "Enregistrement de l’etape en cours...",
+    "companyNamePlaceholder": "Ma Société SARL",
+    "cityPlaceholder": "Paris"
   },
   "projects": {
     "billProject": "Project factureren",
@@ -3141,7 +3397,12 @@
       "day": "Dag",
       "week": "Week",
       "month": "Maand"
-    }
+    },
+    "name": "Nom du projet",
+    "pageTitle": "Page Title",
+    "title": "Title",
+    "subtitle": "Subtitle",
+    "newProject": "New Project"
   },
   "pagination": {
     "showing": "Tonen",
@@ -3373,7 +3634,32 @@
       "rejected": "Geweigerd",
       "error": "Fout",
       "cancelled": "Geannuleerd"
-    }
+    },
+    "cancelNetworkConfirm": "Annuler l'envoi sur Scrada pour cette facture ? Cette action dépend du statut réseau actuel.",
+    "cancelNetworkSuccess": "Annulation réseau demandée avec succès.",
+    "deleteLocalConfirm": "Supprimer la trace locale de cet envoi et remettre la facture à l'état non envoyé ?",
+    "deleteLocalSuccess": "Trace locale supprimée",
+    "deleteLocalSuccessDesc": "La facture peut être renvoyée si nécessaire.",
+    "deleteDbConfirm": "Supprimer definitivement cette facture Peppol de la base de donnees et de la comptabilite ?",
+    "deleteDbSuccess": "Facture supprimee de la base",
+    "deleteDbSuccessDesc": "La journalisation comptable a ete remise a jour.",
+    "purgeAllConfirm": "Supprimer TOUTES les factures Peppol (onglet Envoi) de la base et remettre a jour la comptabilite ?",
+    "purgeAllSuccess": "Purge Peppol terminee",
+    "exportPDF": "Exporter en PDF",
+    "inboundToGedSuccess": "Inbound To Ged Success",
+    "externalImportSend": "Importer UBL (GED / Disque)",
+    "purgeAllAction": "Supprimer toutes les factures Peppol (DB)",
+    "cancelNetworkAction": "Annuler cote reseau",
+    "deleteLocalAction": "Supprimer localement",
+    "deleteDbAction": "Supprimer de la base (DB + compta)",
+    "sendToGed": "Envoyer vers GED",
+    "externalImportHint": "Le document UBL XML sera automatiquement enregistre en facture locale, journalise en comptabilite, puis envoye sur Peppol.",
+    "sourceDisk": "Disque",
+    "pickUblFile": "Selectionnez un fichier UBL XML",
+    "pickGedXml": "Selectionnez un XML depuis GED",
+    "noGedXmlFound": "Aucun document XML trouve dans GED.",
+    "selectGedXml": "Choisir un document XML",
+    "externalSendCreditNotice": "External Send Credit Notice"
   },
   "pricing": {
     "title": "CashPilot Prijzen",
@@ -3430,7 +3716,8 @@
       "a4": "U kunt op elk moment extra tegoedenspakketten kopen. Deze tegoeden verlopen nooit en worden na uw abonnementstegoeden gebruikt.",
       "q5": "Hoe annuleer ik mijn abonnement?",
       "a5": "U kunt uw abonnement op elk moment opzeggen vanuit de factureringsinstellingen. U behoudt toegang tot het einde van uw betaalde periode."
-    }
+    },
+    "navigation": "Navigation tarification"
   },
   "subscription": {
     "subCredits": "Abonnement",
@@ -3724,7 +4011,17 @@
       "runSimulation": "Simulatie uitvoeren",
       "compareScenarios": "Scenario's vergelijken",
       "goToBuilder": "Geavanceerde editor",
-      "createdAt": "Aangemaakt op"
+      "createdAt": "Aangemaakt op",
+      "quickSimTitle": "Simulation rapide",
+      "reset": "Reinitialiser",
+      "quickSimHint": "Ajustez les curseurs pour simuler l'impact sur vos indicateurs financiers.",
+      "revenueGrowth": "Croissance CA",
+      "expenseChange": "Variation charges",
+      "revenue": "Chiffre d'affaires",
+      "expenses": "Charges",
+      "netIncome": "Resultat net",
+      "margin": "Marge nette",
+      "savedScenarios": "Scenarios enregistres"
     },
     "audit": {
       "title": "AI-boekhoudaudit",
@@ -3902,13 +4199,23 @@
         "valuationInputs": "Waarderingsinputs",
         "benchmarkReference": "Sectorbenchmarkreferentie"
       }
+    },
+    "availability": {
+      "globalTitle": "Disponibilite reelle des analyses",
+      "globalSubtitle": "CashPilot n'affiche les analyses que si les donnees necessaires existent en base.",
+      "ready": "Disponible",
+      "partial": "Partiel",
+      "unavailable": "Indisponible",
+      "readyCount": "disponibles"
     }
   },
   "company": {
     "addCompany": "Bedrijf toevoegen",
     "selectCompany": "Bedrijf selecteren",
     "switchCompany": "Bedrijf wisselen",
-    "activeCompany": "Actief bedrijf"
+    "activeCompany": "Actief bedrijf",
+    "primaryCompany": "Société principale",
+    "primaryShort": "Principale"
   },
   "bankCallback": {
     "title": "Bankverbinding",
@@ -3976,7 +4283,9 @@
       "assumptions": "Aannames",
       "info": "Informatie",
       "results": "Resultaten"
-    }
+    },
+    "partialData": "Données comptables limitées",
+    "partialDataDesc": "La simulation utilisera des valeurs par défaut pour les données manquantes. Pour des résultats plus précis, ajoutez vos données comptables."
   },
   "signup": {
     "title": "Registreren",
@@ -3997,7 +4306,9 @@
       "passwordMismatch": "Wachtwoorden komen niet overeen",
       "alreadyRegistered": "E-mail is al geregistreerd. Log in.",
       "rateLimited": "Te veel pogingen. Probeer het opnieuw over {{seconds}} seconden."
-    }
+    },
+    "confirmationEmailSent": "Account created. Please check your email to confirm your account, then log in.",
+    "confirmationEmailPending": "We sent a confirmation email. Please verify your inbox, then log in."
   },
   "stockManagement": {
     "title": "Voorraadbeheer",
@@ -4017,7 +4328,262 @@
       "adjustments": "Voorraadbeheer",
       "cockpit": "Voorraadcockpit",
       "history": "Geschiedenis",
-      "inventory": "Inventaris"
+      "inventory": "Inventaris",
+      "warehouses": "Entrepôts"
+    },
+    "valuationModes": {
+      "cost": "Valeur au coût",
+      "retail": "Valeur de vente",
+      "margin": "Marge potentielle"
+    },
+    "badges": {
+      "unstocked": "Unstocked",
+      "outOfStock": "Out Of Stock",
+      "lowStock": "Low Stock",
+      "ok": "Ok",
+      "abcA": "Abc A",
+      "abcB": "Abc B",
+      "abcC": "Abc C",
+      "priorityCritical": "Priority Critical",
+      "priorityHigh": "Priority High",
+      "priorityPlanned": "Priority Planned"
+    },
+    "exportColumns": {
+      "product": "Product",
+      "sku": "Sku",
+      "category": "Category",
+      "supplier": "Supplier",
+      "salePrice": "Sale Price",
+      "purchasePrice": "Purchase Price",
+      "quantity": "Quantity",
+      "minStock": "Min Stock",
+      "unit": "Unit"
+    },
+    "warehouses": {
+      "activeWarehouses": "Entrepôts actifs",
+      "lots": "Lots",
+      "serializedLots": "Lots sérialisés",
+      "trackedQuantity": "Quantité suivie",
+      "title": "Gestion des entrepôts",
+      "subtitle": "Pilotez les entrepôts, lots et numéros de série.",
+      "warehouseCode": "Code entrepôt",
+      "warehouseName": "Nom de l'entrepôt",
+      "description": "Description",
+      "descriptionPlaceholder": "Description de l'entrepôt",
+      "setDefault": "Définir comme entrepôt par défaut",
+      "createWarehouse": "Créer l'entrepôt",
+      "noWarehouses": "Aucun entrepôt configuré",
+      "noDescription": "Aucune description",
+      "default": "Par défaut",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "deactivate": "Désactiver",
+      "activate": "Activer",
+      "lotsTitle": "Gestion des lots",
+      "lotsSubtitle": "Suivez les entrées par lot et numéro de série.",
+      "product": "Produit",
+      "selectProduct": "Sélectionner un produit",
+      "warehouse": "Entrepôt",
+      "selectWarehouse": "Sélectionner un entrepôt",
+      "lotNumberLabel": "Numéro de lot",
+      "serialNumberLabel": "Numéro de série",
+      "quantityLabel": "Quantité",
+      "receptionDate": "Date de réception",
+      "expiryDate": "Date d'expiration",
+      "notes": "Notes",
+      "notesTip": "Informations complémentaires",
+      "saveLot": "Enregistrer le lot",
+      "lotsRegistry": "Registre des lots",
+      "lotsRegistrySubtitle": "Historique des lots enregistrés",
+      "noLots": "Aucun lot enregistré",
+      "lotNumber": "Lot",
+      "serialNumber": "Série",
+      "quantity": "Quantité",
+      "status": "Statut",
+      "reception": "Réception",
+      "expiry": "Expiration",
+      "noSku": "Sans SKU"
+    },
+    "adjustments": {
+      "product": "Product",
+      "selectProduct": "Select Product",
+      "currentQty": "Current Qty",
+      "newQuantity": "New Quantity",
+      "reason": "Reason",
+      "reasons": {
+        "adjustment": "Adjustment",
+        "reception": "Reception",
+        "sale": "Sale",
+        "damage": "Damage",
+        "return": "Return",
+        "inventory": "Inventory"
+      },
+      "notes": "Notes",
+      "notesPlaceholder": "Notes Placeholder"
+    },
+    "cockpit": {
+      "trackedProductsCount": "{{count}} produits suivis",
+      "costValue": "Valeur au coût",
+      "costValueSubtitle": "Coût total du stock valorisé au prix d’achat",
+      "retailValue": "Valeur de vente",
+      "retailValueSubtitle": "Potentiel de chiffre d’affaires du stock",
+      "potentialMargin": "Marge potentielle",
+      "potentialMarginSubtitle": "Différence entre valeur de vente et coût",
+      "replenishmentBudget": "Budget de réapprovisionnement",
+      "replenishmentBudgetSubtitle": "Montant estimé pour revenir au stock cible",
+      "strategicItems": "Articles stratégiques",
+      "strategicItemsSubtitle": "Produits triés selon l’impact financier",
+      "noProductsFilter": "Aucun produit ne correspond au filtre",
+      "skuStock": "SKU {{sku}} • Stock {{stock}} / Min {{min}}",
+      "unitCost": "Coût unitaire",
+      "salePrice": "Prix de vente",
+      "grossMargin": "Marge brute",
+      "notCalculable": "Non calculable",
+      "portfolioQuality": "Qualité du portefeuille",
+      "portfolioQualitySubtitle": "Indicateurs de fiabilité du stock",
+      "missingPurchasePrice": "Produits sans prix d’achat",
+      "missingPurchasePriceSubtitle": "Complétez les prix d’achat pour fiabiliser les valorisations",
+      "riskMargins": "Marge à risque",
+      "riskMarginsSubtitle": "Produits avec marge brute négative",
+      "abcMix": "Répartition ABC",
+      "abcClass": "Classe {{cls}}",
+      "abcProducts": "{{count}} produits • {{share}}%",
+      "valuationTitle": "Valorisation du stock",
+      "valuationSubtitle": "Comparaison FIFO, CMUP et impact sur le COGS",
+      "fifoStock": "Stock FIFO",
+      "cmupStock": "Stock CMUP",
+      "fifoCogs": "COGS FIFO",
+      "cmupCogs": "COGS CMUP",
+      "valuationLoading": "Chargement des données de valorisation...",
+      "noTrackedFilter": "Aucun article suivi pour ce filtre",
+      "replenishmentTitle": "Plan de réapprovisionnement",
+      "replenishmentSubtitle": "Priorisation des commandes fournisseurs",
+      "itemsToOrder": "Articles à commander",
+      "criticalAlerts": "Alertes critiques",
+      "recommendedBudget": "Budget recommandé",
+      "noReplenishment": "Aucun réapprovisionnement nécessaire"
+    },
+    "alerts": {
+      "current": "Stock actuel: {{qty}}",
+      "min": "Stock minimum: {{min}}"
+    },
+    "valuationTable": {
+      "product": "Product",
+      "stock": "Stock",
+      "fifo": "Fifo",
+      "cmup": "Cmup",
+      "gap": "Gap",
+      "fifoCogs": "Fifo Cogs",
+      "cmupCogs": "Cmup Cogs",
+      "soldQty": "Sold Qty",
+      "noSku": "No Sku"
+    },
+    "replenishmentTable": {
+      "product": "Product",
+      "priority": "Priority",
+      "stock": "Stock",
+      "dailyConsumption": "Daily Consumption",
+      "coverage": "Coverage",
+      "recommendedQty": "Recommended Qty",
+      "orderDate": "Order Date",
+      "purchaseBudget": "Purchase Budget",
+      "action": "Action",
+      "noSku": "No Sku"
+    },
+    "inventory": {
+      "noProducts": "No Products",
+      "noProductsSubtitle": "No Products Subtitle",
+      "columns": {
+        "product": "Product",
+        "sku": "Sku",
+        "category": "Category",
+        "supplier": "Supplier",
+        "salePrice": "Sale Price",
+        "purchasePrice": "Purchase Price",
+        "stock": "Stock",
+        "min": "Min",
+        "mode": "Mode",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "modeUnstocked": "Mode Unstocked",
+      "modeStocked": "Mode Stocked"
+    },
+    "viewDialog": {
+      "title": "Title",
+      "edit": "Edit",
+      "name": "Name",
+      "sku": "Sku",
+      "category": "Category",
+      "supplier": "Supplier",
+      "salePrice": "Sale Price",
+      "purchasePrice": "Purchase Price",
+      "stock": "Stock",
+      "minStock": "Min Stock",
+      "description": "Description",
+      "close": "Close",
+      "priceQty": "Price Qty"
+    },
+    "pricingDialog": {
+      "title": "Title",
+      "salePrice": "Sale Price",
+      "purchasePrice": "Purchase Price",
+      "inventoryTracking": "Inventory Tracking",
+      "stocked": "Stocked",
+      "unstocked": "Unstocked",
+      "stockQuantity": "Stock Quantity",
+      "minThreshold": "Min Threshold",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "deleteDialog": {
+      "confirm": "Confirm",
+      "title": "Title",
+      "message": "Message",
+      "cancel": "Cancel"
+    },
+    "history": {
+      "selectProduct": "Select Product",
+      "noHistory": "No History",
+      "columns": {
+        "date": "Date",
+        "before": "Before",
+        "after": "After",
+        "change": "Change",
+        "reason": "Reason",
+        "notes": "Notes",
+        "by": "By"
+      }
+    },
+    "addDialog": {
+      "productName": "Product Name",
+      "sku": "Sku",
+      "salePrice": "Sale Price",
+      "purchasePrice": "Purchase Price",
+      "inventoryTracking": "Inventory Tracking",
+      "inventoryTrackingHint": "Inventory Tracking Hint",
+      "unit": "Unit",
+      "initialStock": "Initial Stock",
+      "minStock": "Min Stock",
+      "category": "Category",
+      "noneCategory": "None Category",
+      "supplier": "Supplier",
+      "noneSupplier": "None Supplier",
+      "supplierRecommended": "Supplier Recommended",
+      "description": "Description"
+    },
+    "editDialog": {
+      "title": "Title",
+      "inventoryTracking": "Inventory Tracking",
+      "inventoryTrackingHint": "Inventory Tracking Hint",
+      "unit": "Unit",
+      "stock": "Stock",
+      "minStock": "Min Stock",
+      "category": "Category",
+      "supplier": "Supplier",
+      "description": "Description",
+      "cancel": "Cancel",
+      "save": "Save"
     }
   },
   "supplierProfile": {
@@ -4058,35 +4624,6 @@
     "title": "Er is iets misgegaan",
     "description": "Er is een fout opgetreden bij het laden van deze pagina. De rest van de applicatie is nog beschikbaar.",
     "retry": "Opnieuw proberen"
-  },
-  "status": {
-    "pageTitle": "Servicestatus",
-    "metaDescription": "Realtime status van CashPilot-systemen",
-    "checking": "Status controleren…",
-    "allOperational": "Alle systemen operationeel",
-    "partialOutage": "Gedeeltelijke storing",
-    "majorOutage": "Grote storing",
-    "refresh": "Vernieuwen",
-    "lastChecked": "Laatste controle: {{seconds}}s geleden",
-    "autoRefresh": "Automatisch vernieuwen elke {{seconds}}s",
-    "backToApp": "Terug naar startpagina",
-    "components": {
-      "title": "Componenten",
-      "webapp": "Webapplicatie",
-      "api": "API v1",
-      "database": "Database",
-      "mcp": "MCP Server"
-    },
-    "states": {
-      "operational": "Operationeel",
-      "degraded": "Verminderd",
-      "down": "Offline",
-      "checking": "Controleren…"
-    },
-    "incidents": {
-      "title": "Incidentgeschiedenis",
-      "none": "Geen recente incidenten — alle systemen functioneren normaal."
-    }
   },
   "cookies": {
     "banner": {
@@ -4315,7 +4852,90 @@
     "netFlow": "Flux net",
     "balanceEvolution": "Évolution du solde",
     "paymentVolume": "Volume des paiements",
-    "cashFlowByInstrument": "Flux de trésorerie par instrument"
+    "cashFlowByInstrument": "Flux de trésorerie par instrument",
+    "editBankAccount": "Modifier le compte bancaire",
+    "fields": {
+      "label": "Libelle",
+      "bankName": "Banque",
+      "accountHolder": "Titulaire",
+      "accountKind": "Type de compte",
+      "currency": "Devise",
+      "openingBalance": "Solde d'ouverture",
+      "isDefault": "Compte par defaut",
+      "cardBrand": "Reseau",
+      "cardType": "Type",
+      "cardHolder": "Titulaire",
+      "last4": "4 derniers chiffres",
+      "expiryMonth": "Mois",
+      "expiryYear": "Annee",
+      "issuer": "Emetteur",
+      "creditLimit": "Plafond",
+      "isVirtual": "Carte virtuelle"
+    },
+    "placeholders": {
+      "bankLabel": "Ex: Compte courant BNP",
+      "cardLabel": "Ex: Carte Visa pro",
+      "transferNotes": "Motif du virement..."
+    },
+    "editCard": "Modifier la carte",
+    "expiry": "Expire",
+    "editCash": "Modifier la caisse",
+    "daily": "Quotidien",
+    "weekly": "Hebdomadaire",
+    "monthly": "Mensuel",
+    "manual": "Manuel",
+    "setAsDefault": "Définir comme caisse par défaut",
+    "cashCount": "Nombre",
+    "addCash": "Ajouter une caisse",
+    "noCash": "Aucune caisse enregistree",
+    "dailyInflow": "Daily Inflow",
+    "dailyOutflow": "Daily Outflow",
+    "closingBalance": "Closing Balance",
+    "cashFlow": "Cash Flow by Instrument",
+    "inflow": "Inflow",
+    "outflow": "Outflow",
+    "runningBalance": "Running Balance",
+    "addFirst": "Cliquez sur \"Ajouter\" pour creer votre premier instrument",
+    "default": "Par defaut",
+    "stats": {
+      "totalBalance": "Solde total",
+      "activeInstruments": "instruments actifs",
+      "bankBalance": "Solde bancaire",
+      "cardCount": "Cartes",
+      "registered": "enregistrees",
+      "cashBalance": "Solde caisses",
+      "breakdown": "Repartition par type",
+      "allInstruments": "Tous les instruments"
+    },
+    "tabs": {
+      "bankAccounts": "comptes",
+      "cash": "caisses",
+      "cards": "Cartes",
+      "stats": "Statistiques"
+    },
+    "unknownCompany": "Unknown Company",
+    "instrument": "Instrument",
+    "originalBalance": "Balance",
+    "baseBalance": "Base Balance",
+    "grandTotal": "Grand Total",
+    "transferFrom": "De",
+    "selectInstrument": "Selectionner un compte",
+    "availableBalance": "Solde disponible",
+    "transferTo": "Vers",
+    "amount": "Montant",
+    "fee": "Frais",
+    "transferDate": "Date",
+    "notes": "Notes",
+    "executeTransfer": "Effectuer le virement",
+    "cardCreated": "Card Created",
+    "cashAccountCreated": "Cash Account Created",
+    "transactionCreated": "Transaction Created",
+    "sameInstrumentError": "Same Instrument Error",
+    "transferCreated": "Transfer Created",
+    "transferCancelled": "Transfer Cancelled",
+    "portfolioCreated": "Portfolio Created",
+    "confirmDelete": "Confirm Delete",
+    "subtitle": "Gerez vos comptes bancaires, cartes et caisses"
   },
   "cashflow": {
     "page": {
@@ -4827,7 +5447,12 @@
     "transferPending": "En attente",
     "transferProcessing": "En cours",
     "transferFailed": "Échoué",
-    "transferCancelled": "Annulé"
+    "transferCancelled": "Annulé",
+    "transferSourceUnavailable": "Transfer Source Unavailable",
+    "integrationReady": "Connecteur bancaire opérationnel",
+    "integrationNotReady": "Connecteur bancaire non prêt",
+    "integrationReadyHint": "GoCardless est disponible pour synchroniser les comptes.",
+    "integrationNotReadyHint": "Configuration GoCardless incomplète. Le bouton de connexion est temporairement désactivé."
   },
   "compliance": {
     "pageTitle": "PDP / Fiscale certificering",
@@ -5350,6 +5975,15 @@
       "response": "Réponse",
       "aiScore": "Score IA",
       "empty": "Aucune relance effectuée pour cette facture"
+    },
+    "rules": {
+      "title": "Règles de relance J+5 / J+15 / J+30",
+      "description": "Paramétrez les 3 niveaux de relance par société, avec activation/désactivation par règle.",
+      "loading": "Chargement des règles...",
+      "empty": "Aucune règle configurée.",
+      "daysAfterDue": "Jours après échéance",
+      "channel": "Canal",
+      "tone": "Ton"
     }
   },
   "employee": {
@@ -6462,7 +7096,11 @@
       "noCompany": "Geen actief bedrijf geselecteerd",
       "createError": "Aanmaakfout",
       "updateError": "Updatefout",
-      "deleteError": "Verwijderfout"
+      "deleteError": "Verwijderfout",
+      "approvalUpdatedTitle": "Approbation mise a jour",
+      "approvalUpdatedDesc": "La depense a ete validee sur le niveau courant.",
+      "approvalRejectedDesc": "La depense a ete rejetee.",
+      "approvalResetDesc": "Le workflow d'approbation a ete reinitialise."
     },
     "profileSettings": {
       "avatarDeleted": "Avatar verwijderd",
@@ -6709,7 +7347,166 @@
       }
     },
     "toast": {
-      "error": "Fout"
+      "error": "Fout",
+      "positionCreated": "Position Created",
+      "positionUpdated": "Position Updated",
+      "candidateAdded": "Candidate Added",
+      "applicationCreated": "Application Created",
+      "applicationMoved": "Application Moved",
+      "interviewScheduled": "Interview Scheduled",
+      "onboardingPlanCreated": "Onboarding Plan Created",
+      "taskUpdated": "Task Updated"
     }
+  },
+  "bankReconciliation": {
+    "searchPlaceholder": "Rechercher...",
+    "cancelMatch": "Annuler le rapprochement",
+    "searchMatchPlaceholder": "Filtrer par description, référence..."
+  },
+  "openApi": {
+    "copyUnavailable": "La clé complète n’est plus disponible. Regénérez une nouvelle clé.",
+    "keyCopied": "Clé copiée",
+    "hideKey": "Masquer la clé",
+    "showKey": "Afficher la clé",
+    "created": "Créée",
+    "lastUsed": "Dernière utilisation",
+    "expires": "Expire le",
+    "rateLimit": "Limite",
+    "usageLast7Days": "Utilisation sur 7 jours",
+    "deactivate": "Désactiver",
+    "activate": "Activer",
+    "totalCalls": "Appels API",
+    "avgResponseTime": "Temps moyen",
+    "successRate": "Taux de succès",
+    "errorRate": "Taux d erreur",
+    "callsLast7Days": "Appels des 7 derniers jours",
+    "calls": "Appels",
+    "errors": "Erreurs",
+    "avgTime": "Temps moyen"
+  },
+  "intercompany": {
+    "eliminations": {
+      "empty": "Aucune elimination enregistree.",
+      "totalEliminated": "Total elimine",
+      "totalEntries": "Ecritures eliminees",
+      "periodsCount": "Periodes traitees",
+      "period": "Periode",
+      "amount": "Montant",
+      "entries": "Ecritures",
+      "createdAt": "Date"
+    },
+    "links": {
+      "empty": "Aucun lien inter-societes configure.",
+      "deactivate": "Desactiver",
+      "activate": "Activer"
+    },
+    "pricing": {
+      "title": "Regles de prix de transfert",
+      "serviceType": "Type de service",
+      "method": "Methode",
+      "margin": "Marge %",
+      "minAmount": "Min",
+      "maxAmount": "Max",
+      "serviceTypePlaceholder": "Ex: Conseil IT",
+      "empty": "Aucune regle de prix de transfert."
+    },
+    "kpi": {
+      "linkedCompanies": "Sociétés liées",
+      "pendingSyncs": "Synchros en attente",
+      "eliminationTotal": "Total éliminé",
+      "activeRules": "Règles actives"
+    },
+    "pageTitle": "Inter-Sociétés",
+    "pageDescription": "Factures inter-sociétés, prix de transfert et éliminations",
+    "refresh": "Actualiser",
+    "computing": "Calcul en cours...",
+    "computeEliminations": "Calculer les éliminations",
+    "autoComputing": "Automatisation...",
+    "autoComputeEliminations": "Auto-appliquer les éliminations",
+    "transactions": {
+      "title": "Transactions inter-sociétés",
+      "empty": "Aucune transaction inter-sociétés",
+      "type": "Type",
+      "company": "Société",
+      "amount": "Montant",
+      "status": "Statut",
+      "date": "Date"
+    }
+  },
+  "marketplace": {
+    "uninstall": "Uninstall",
+    "install": "Install"
+  },
+  "sectionError": {
+    "title": "Something went wrong in this section",
+    "retry": "Retry"
+  },
+  "offline": {
+    "banner_offline": "Mode hors-ligne",
+    "banner_syncing": "Synchronisation en cours...",
+    "banner_error": "Erreur de synchronisation",
+    "banner_synced": "Synchronisation terminee",
+    "queue_count": "{{count}} operations en attente"
+  },
+  "pages": {
+    "accounting": "Accounting Integration",
+    "categories": "Categories",
+    "creditNotes": "Credit Notes",
+    "debtManager": "Debt Manager",
+    "forgotPassword": "Forgot Password",
+    "login": "Login",
+    "peppol": "Peppol",
+    "pilotage": "Pilotage",
+    "pricing": "Pricing",
+    "resetPassword": "Reset Password",
+    "securitySettings": "Security Settings",
+    "supplierReports": "Supplier Reports"
+  },
+  "clientProfile": {
+    "notFound": "Not Found",
+    "backToClients": "Back To Clients",
+    "pageTitle": "Page Title",
+    "revenue": "Revenue",
+    "pending": "Pending",
+    "invoices": "Invoices",
+    "contact": "Contact",
+    "address": "Address",
+    "businessDetails": "Business Details",
+    "vat": "Vat",
+    "siret": "Siret",
+    "currency": "Currency",
+    "paymentTerms": "Payment Terms",
+    "bankDetails": "Bank Details",
+    "bank": "Bank",
+    "iban": "Iban",
+    "bic": "Bic",
+    "noBankData": "No Bank Data",
+    "notes": "Notes",
+    "recentInvoices": "Recent Invoices",
+    "noInvoices": "No Invoices"
+  },
+  "gedHub": {
+    "subtitle": "Point central des documents entreprise, federes depuis tous les modules CashPilot."
+  },
+  "gocardless": {
+    "callback": {
+      "processing": "Finalisation du mandat...",
+      "pleaseWait": "Veuillez patienter.",
+      "errorTitle": "Autorisation échouée",
+      "noPending": "Aucune demande en attente",
+      "noPendingDesc": "Session expirée ou demande déjà traitée.",
+      "success": "Mandat SEPA activé",
+      "successDesc": "Le prélèvement est configuré."
+    }
+  },
+  "Status": {
+    "Active": "Active",
+    "InProgress": "In Progress",
+    "OnHold": "On Hold",
+    "Completed": "Completed",
+    "Cancelled": "Cancelled"
+  },
+  "Common": {
+    "All": "All"
   }
 }
