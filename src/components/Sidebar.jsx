@@ -154,6 +154,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
             icon: ShieldCheck,
           },
           { path: '/app/portfolio', label: t('nav.companyPortfolio', 'Portfolio sociétés'), icon: Building2 },
+          {
+            path: '/app/financial-instruments',
+            label: t('nav.bankAccounts', 'Comptes bancaires'),
+            icon: CreditCard,
+          },
           { path: '/app/peppol', label: t('nav.peppolEInvoicing'), icon: Globe },
           { path: '/app/pdp-compliance', label: t('nav.pdpCompliance', 'PDP / Certification'), icon: FileCheck },
           { path: '/app/inter-company', label: t('nav.interCompany', 'Inter-Sociétés'), icon: ArrowLeftRight },
@@ -217,11 +222,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/bank-connections', label: t('nav.bankConnections', 'Connexions bancaires'), icon: Building2 },
           { path: '/app/embedded-banking', label: t('nav.embeddedBanking', 'Banking intégré'), icon: Landmark },
           { path: '/app/recon-ia', label: t('nav.reconIA', 'Rapprochement IA'), icon: Sparkles },
-          {
-            path: '/app/financial-instruments',
-            label: t('nav.financialInstruments', 'Instruments financiers'),
-            icon: CreditCard,
-          },
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
           ...(isOhadaZone
             ? [
