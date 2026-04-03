@@ -2104,6 +2104,11 @@ function buildDataset(config) {
     notificationRows: extendedDataset.notificationRows,
     webhookRows: extendedDataset.webhookRows,
     webhookDeliveryRows: extendedDataset.webhookDeliveryRows,
+    companyPaymentInstrumentRows: extendedDataset.companyPaymentInstrumentRows || [],
+    paymentInstrumentBankAccountRows: extendedDataset.paymentInstrumentBankAccountRows || [],
+    paymentInstrumentCardRows: extendedDataset.paymentInstrumentCardRows || [],
+    paymentInstrumentCashAccountRows: extendedDataset.paymentInstrumentCashAccountRows || [],
+    paymentTransactionRows: extendedDataset.paymentTransactionRows || [],
     bankConnectionRows: extendedDataset.bankConnectionRows,
     bankSyncHistoryRows: extendedDataset.bankSyncHistoryRows,
     bankTransactionRows: extendedDataset.bankTransactionRows,
@@ -2301,6 +2306,19 @@ function buildEnhancedDataset(config) {
   const primaryDebtPaymentRows = base.debtPaymentRows.map((row) => ({
     ...row,
     company_id: primaryCompanyId,
+  }));
+  const primaryCompanyPaymentInstrumentRows = (base.companyPaymentInstrumentRows || []).map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+    user_id: base.userId,
+  }));
+  const primaryPaymentInstrumentBankAccountRows = base.paymentInstrumentBankAccountRows || [];
+  const primaryPaymentInstrumentCardRows = base.paymentInstrumentCardRows || [];
+  const primaryPaymentInstrumentCashAccountRows = base.paymentInstrumentCashAccountRows || [];
+  const primaryPaymentTransactionRows = (base.paymentTransactionRows || []).map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+    user_id: base.userId,
   }));
   const primaryBankConnectionRows = base.bankConnectionRows.map((row) => ({
     ...row,
@@ -3815,6 +3833,11 @@ function buildEnhancedDataset(config) {
         receivableRows: primaryReceivableRows,
         payableRows: primaryPayableRows,
         debtPaymentRows: primaryDebtPaymentRows,
+        companyPaymentInstrumentRows: primaryCompanyPaymentInstrumentRows,
+        paymentInstrumentBankAccountRows: primaryPaymentInstrumentBankAccountRows,
+        paymentInstrumentCardRows: primaryPaymentInstrumentCardRows,
+        paymentInstrumentCashAccountRows: primaryPaymentInstrumentCashAccountRows,
+        paymentTransactionRows: primaryPaymentTransactionRows,
         bankConnectionRows: primaryBankConnectionRows,
         bankSyncHistoryRows: primaryBankSyncHistoryRows,
         bankTransactionRows: primaryBankTransactionRows,
@@ -4033,6 +4056,26 @@ function buildEnhancedDataset(config) {
     receivableRows: [...primaryReceivableRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.receivableRows)],
     payableRows: [...primaryPayableRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.payableRows)],
     debtPaymentRows: [...primaryDebtPaymentRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.debtPaymentRows)],
+    companyPaymentInstrumentRows: [
+      ...primaryCompanyPaymentInstrumentRows,
+      ...clonedCompanyDatasets.flatMap((dataset) => dataset.companyPaymentInstrumentRows || []),
+    ],
+    paymentInstrumentBankAccountRows: [
+      ...primaryPaymentInstrumentBankAccountRows,
+      ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentInstrumentBankAccountRows || []),
+    ],
+    paymentInstrumentCardRows: [
+      ...primaryPaymentInstrumentCardRows,
+      ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentInstrumentCardRows || []),
+    ],
+    paymentInstrumentCashAccountRows: [
+      ...primaryPaymentInstrumentCashAccountRows,
+      ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentInstrumentCashAccountRows || []),
+    ],
+    paymentTransactionRows: [
+      ...primaryPaymentTransactionRows,
+      ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentTransactionRows || []),
+    ],
     productStockHistoryRows: [...primaryStockHistoryRows, secondaryStockHistoryRow, ...portfolioCompanyDatasets.map((dataset) => dataset.stockHistoryRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.productStockHistoryRows)],
     stockAlertRows: [...primaryStockAlertRows, secondaryStockAlertRow, ...portfolioCompanyDatasets.map((dataset) => dataset.stockAlertRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.stockAlertRows)],
     bankConnectionRows: [...primaryBankConnectionRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.bankConnectionRows)],
@@ -4166,10 +4209,14 @@ function isMissingColumnError(message, column) {
 
 async function listIdsByFilter(client, table, filterColumn, value, options = {}) {
   if (!value) return [];
-  const { allowMissingColumn = false } = options;
+  const { allowMissingColumn = false, allowMissingTable = false } = options;
   const { data, error } = await client.from(table).select('id').eq(filterColumn, value);
   if (error) {
-    if (allowMissingColumn && isMissingColumnError(String(error.message || ''), filterColumn)) {
+    const message = String(error.message || '');
+    if (allowMissingColumn && isMissingColumnError(message, filterColumn)) {
+      return [];
+    }
+    if (allowMissingTable && isMissingTableError(message, table)) {
       return [];
     }
     throw new Error(`Failed to list ${table} by ${filterColumn}: ${error.message}`);
@@ -4180,13 +4227,17 @@ async function listIdsByFilter(client, table, filterColumn, value, options = {})
 async function listIdsByValues(client, table, filterColumn, values, options = {}) {
   const scopedValues = toUniqueIds(values);
   if (!scopedValues.length) return [];
-  const { allowMissingColumn = false } = options;
+  const { allowMissingColumn = false, allowMissingTable = false } = options;
   const ids = [];
 
   for (const batch of chunkValues(scopedValues)) {
     const { data, error } = await client.from(table).select('id').in(filterColumn, batch);
     if (error) {
-      if (allowMissingColumn && isMissingColumnError(String(error.message || ''), filterColumn)) {
+      const message = String(error.message || '');
+      if (allowMissingColumn && isMissingColumnError(message, filterColumn)) {
+        return [];
+      }
+      if (allowMissingTable && isMissingTableError(message, table)) {
         return [];
       }
       throw new Error(`Failed to list ${table} by ${filterColumn}: ${error.message}`);
@@ -4200,12 +4251,16 @@ async function listIdsByValues(client, table, filterColumn, values, options = {}
 async function deleteRowsByValues(client, table, filterColumn, values, options = {}) {
   const scopedValues = toUniqueIds(values);
   if (!scopedValues.length) return;
-  const { allowMissingColumn = false } = options;
+  const { allowMissingColumn = false, allowMissingTable = false } = options;
 
   for (const batch of chunkValues(scopedValues)) {
     const { error } = await client.from(table).delete().in(filterColumn, batch);
     if (error) {
-      if (allowMissingColumn && isMissingColumnError(String(error.message || ''), filterColumn)) {
+      const message = String(error.message || '');
+      if (allowMissingColumn && isMissingColumnError(message, filterColumn)) {
+        return;
+      }
+      if (allowMissingTable && isMissingTableError(message, table)) {
         return;
       }
       throw new Error(`Failed to cleanup ${table}: ${error.message}`);
@@ -4263,6 +4318,22 @@ async function cleanupDemoDataset(client, dataset, options = {}) {
     ...(await listIdsByFilter(client, 'payments', 'user_id', dataset.userId)),
     ...(await listIdsByValues(client, 'payments', 'company_id', companyIds, { allowMissingColumn: true })),
   ]);
+  const paymentInstrumentIds = toUniqueIds([
+    ...((dataset.companyPaymentInstrumentRows || []).map((row) => row.id)),
+    ...(await listIdsByFilter(client, 'company_payment_instruments', 'user_id', dataset.userId, { allowMissingTable: true })),
+    ...(await listIdsByValues(client, 'company_payment_instruments', 'company_id', companyIds, {
+      allowMissingColumn: true,
+      allowMissingTable: true,
+    })),
+  ]);
+  const paymentTransactionIds = toUniqueIds([
+    ...((dataset.paymentTransactionRows || []).map((row) => row.id)),
+    ...(await listIdsByFilter(client, 'payment_transactions', 'user_id', dataset.userId, { allowMissingTable: true })),
+    ...(await listIdsByValues(client, 'payment_transactions', 'company_id', companyIds, {
+      allowMissingColumn: true,
+      allowMissingTable: true,
+    })),
+  ]);
   const recurringInvoiceIds = toUniqueIds([
     ...(await listIdsByFilter(client, 'recurring_invoices', 'user_id', dataset.userId)),
     ...(await listIdsByValues(client, 'recurring_invoices', 'company_id', companyIds, { allowMissingColumn: true })),
@@ -4317,9 +4388,26 @@ async function cleanupDemoDataset(client, dataset, options = {}) {
   await deleteRows(client, 'accounting_depreciation_schedule', 'user_id', dataset.userId);
   await deleteRows(client, 'accounting_fixed_assets', 'user_id', dataset.userId);
   await deleteRows(client, 'accounting_analytical_axes', 'user_id', dataset.userId);
+  await deleteRowsByValues(client, 'payment_transaction_allocations', 'payment_transaction_id', paymentTransactionIds, {
+    allowMissingTable: true,
+  });
+  await deleteRows(client, 'payment_transfers', 'user_id', dataset.userId, { allowMissingTable: true });
+  await deleteRows(client, 'payment_report_exports', 'user_id', dataset.userId, { allowMissingTable: true });
   await deleteRowsByIds(client, 'webhook_deliveries', dataset.webhookDeliveryRows.map((row) => row.id));
+  await deleteRowsByValues(client, 'payment_transactions', 'id', paymentTransactionIds, { allowMissingTable: true });
   await deleteRowsByIds(client, 'bank_transactions', dataset.bankTransactionRows.map((row) => row.id));
   await deleteRowsByIds(client, 'bank_sync_history', dataset.bankSyncHistoryRows.map((row) => row.id));
+  await deleteRowsByValues(client, 'payment_instrument_bank_accounts', 'instrument_id', paymentInstrumentIds, {
+    allowMissingTable: true,
+  });
+  await deleteRowsByValues(client, 'payment_instrument_cards', 'instrument_id', paymentInstrumentIds, {
+    allowMissingTable: true,
+  });
+  await deleteRowsByValues(client, 'payment_instrument_cash_accounts', 'instrument_id', paymentInstrumentIds, {
+    allowMissingTable: true,
+  });
+  await deleteRows(client, 'payment_instrument_audit_log', 'user_id', dataset.userId, { allowMissingTable: true });
+  await deleteRows(client, 'company_payment_instruments', 'user_id', dataset.userId, { allowMissingTable: true });
   await deleteRowsByValues(client, 'delivery_note_items', 'delivery_note_id', deliveryNoteIds);
   await deleteRowsByValues(client, 'credit_note_items', 'credit_note_id', creditNoteIds);
   await deleteRowsByValues(client, 'recurring_invoice_line_items', 'recurring_invoice_id', recurringInvoiceIds);
@@ -4417,6 +4505,11 @@ async function cleanupDemoDataset(client, dataset, options = {}) {
     'receivables',
     'payables',
     'debt_payments',
+    'payment_transactions',
+    'payment_transfers',
+    'payment_report_exports',
+    'company_payment_instruments',
+    'payment_instrument_audit_log',
     'bank_transactions',
     'bank_sync_history',
     'bank_connections',
@@ -4434,7 +4527,10 @@ async function cleanupDemoDataset(client, dataset, options = {}) {
   ];
 
   for (const table of companyScopedResidualTables) {
-    await deleteRowsByValues(client, table, 'company_id', companyIds, { allowMissingColumn: true });
+    await deleteRowsByValues(client, table, 'company_id', companyIds, {
+      allowMissingColumn: true,
+      allowMissingTable: true,
+    });
   }
 
   if (!preserveCompanies) {
@@ -4513,6 +4609,124 @@ async function filterExistingAccountingEntries(client, userId, entries) {
   }
 
   return filteredEntries;
+}
+
+function roundCurrency(value) {
+  return Math.round(Number(value || 0) * 100) / 100;
+}
+
+async function validateBankingSeedConsistency(client, userId) {
+  const [instrumentsResult, paymentTransactionsResult, bankTransactionsResult] = await Promise.all([
+    client
+      .from('company_payment_instruments')
+      .select('id,company_id,opening_balance,current_balance')
+      .eq('user_id', userId),
+    client
+      .from('payment_transactions')
+      .select('id,company_id,payment_instrument_id,flow_direction,amount,status,deleted_at,source_module,source_id')
+      .eq('user_id', userId),
+    client
+      .from('bank_transactions')
+      .select('id,payment_instrument_id,payment_transaction_id')
+      .eq('user_id', userId),
+  ]);
+
+  const possibleErrors = [
+    ['company_payment_instruments', instrumentsResult.error],
+    ['payment_transactions', paymentTransactionsResult.error],
+    ['bank_transactions', bankTransactionsResult.error],
+  ];
+  for (const [table, error] of possibleErrors) {
+    if (!error) continue;
+    if (isMissingTableError(String(error.message || ''), table)) {
+      return { skipped: true, reason: `missing_table:${table}` };
+    }
+    throw new Error(`Banking validation failed while reading ${table}: ${error.message}`);
+  }
+
+  const instruments = instrumentsResult.data || [];
+  const paymentTransactions = paymentTransactionsResult.data || [];
+  const bankTransactions = bankTransactionsResult.data || [];
+
+  const instrumentById = new Map(instruments.map((row) => [row.id, row]));
+  const bankTransactionIdSet = new Set(bankTransactions.map((row) => row.id));
+
+  let missingInstrumentCount = 0;
+  let companyMismatchCount = 0;
+  let missingBankSourceCount = 0;
+
+  for (const row of paymentTransactions) {
+    const instrument = instrumentById.get(row.payment_instrument_id);
+    if (!instrument) {
+      missingInstrumentCount += 1;
+      continue;
+    }
+    if (instrument.company_id !== row.company_id) {
+      companyMismatchCount += 1;
+    }
+    if (
+      row.source_module === 'bank_transactions'
+      && row.source_id
+      && !bankTransactionIdSet.has(row.source_id)
+    ) {
+      missingBankSourceCount += 1;
+    }
+  }
+
+  const signedTotalByInstrument = new Map();
+  for (const row of paymentTransactions) {
+    const isPosted = row.deleted_at == null && ['posted', 'reconciled'].includes(row.status);
+    if (!isPosted) continue;
+    const signedAmount = row.flow_direction === 'inflow'
+      ? Number(row.amount || 0)
+      : -Number(row.amount || 0);
+    signedTotalByInstrument.set(
+      row.payment_instrument_id,
+      roundCurrency((signedTotalByInstrument.get(row.payment_instrument_id) || 0) + signedAmount)
+    );
+  }
+
+  let balanceMismatchCount = 0;
+  for (const instrument of instruments) {
+    const expectedBalance = roundCurrency(
+      Number(instrument.opening_balance || 0) + (signedTotalByInstrument.get(instrument.id) || 0)
+    );
+    const actualBalance = roundCurrency(instrument.current_balance || 0);
+    if (Math.abs(expectedBalance - actualBalance) > 0.01) {
+      balanceMismatchCount += 1;
+    }
+  }
+
+  const bankRowsWithoutInstrument = bankTransactions.filter((row) => !row.payment_instrument_id).length;
+  const bankRowsWithoutPaymentLink = bankTransactions.filter((row) => !row.payment_transaction_id).length;
+
+  const hasError = [
+    missingInstrumentCount,
+    companyMismatchCount,
+    missingBankSourceCount,
+    balanceMismatchCount,
+    bankRowsWithoutInstrument,
+    bankRowsWithoutPaymentLink,
+  ].some((value) => Number(value || 0) > 0);
+
+  const summary = {
+    skipped: false,
+    instruments: instruments.length,
+    paymentTransactions: paymentTransactions.length,
+    bankTransactions: bankTransactions.length,
+    missingInstrumentCount,
+    companyMismatchCount,
+    missingBankSourceCount,
+    balanceMismatchCount,
+    bankRowsWithoutInstrument,
+    bankRowsWithoutPaymentLink,
+  };
+
+  if (hasError) {
+    throw new Error(`Banking seed validation failed: ${JSON.stringify(summary)}`);
+  }
+
+  return summary;
 }
 
 async function listCompanyRowsForUser(client, userId) {
@@ -5329,8 +5543,33 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'notifications', effectiveDataset.notificationRows, 'id');
   await upsertRows(client, 'webhook_endpoints', effectiveDataset.webhookRows, 'id');
   await upsertRows(client, 'webhook_deliveries', effectiveDataset.webhookDeliveryRows, 'id');
+  await upsertRows(client, 'company_payment_instruments', effectiveDataset.companyPaymentInstrumentRows || [], 'id');
   await upsertRows(client, 'bank_connections', effectiveDataset.bankConnectionRows, 'id');
+  await upsertRows(
+    client,
+    'payment_instrument_bank_accounts',
+    effectiveDataset.paymentInstrumentBankAccountRows || [],
+    'instrument_id'
+  );
+  await upsertRows(
+    client,
+    'payment_instrument_cards',
+    effectiveDataset.paymentInstrumentCardRows || [],
+    'instrument_id'
+  );
+  await upsertRows(
+    client,
+    'payment_instrument_cash_accounts',
+    effectiveDataset.paymentInstrumentCashAccountRows || [],
+    'instrument_id'
+  );
   await upsertRows(client, 'bank_sync_history', effectiveDataset.bankSyncHistoryRows, 'id');
+  const bankTransactionsWithoutPaymentLinks = (effectiveDataset.bankTransactionRows || []).map((row) => {
+    const { payment_transaction_id, ...rest } = row;
+    return { ...rest, payment_transaction_id: null };
+  });
+  await upsertRows(client, 'bank_transactions', bankTransactionsWithoutPaymentLinks, 'id');
+  await upsertRows(client, 'payment_transactions', effectiveDataset.paymentTransactionRows || [], 'id');
   await upsertRows(client, 'bank_transactions', effectiveDataset.bankTransactionRows, 'id');
   await upsertRows(client, 'peppol_transmission_log', effectiveDataset.peppolLogRows, 'id');
   await upsertRows(client, 'billing_info', [effectiveDataset.billingInfoRow], 'id');
@@ -5348,6 +5587,7 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'scenario_assumptions', scenarioSeed.scenarioAssumptionRows, 'id');
   await upsertRows(client, 'scenario_results', scenarioSeed.scenarioResultRows, 'scenario_id,calculation_date');
   await ensureCompanyThresholdRows(client, effectiveDataset, 10);
+  const bankingConsistency = await validateBankingSeedConsistency(client, effectiveDataset.userId);
 
   const preferencePayload = {
     user_id: effectiveDataset.userId,
@@ -5393,6 +5633,7 @@ async function applyDataset(client, dataset, options) {
     fixedAssets: (effectiveDataset.fixedAssetRows || []).length,
     analyticalAxes: (effectiveDataset.analyticalAxisRows || []).length,
     sharedSnapshots: (effectiveDataset.dashboardSnapshotRows || []).length,
+    bankingConsistency,
   };
 }
 

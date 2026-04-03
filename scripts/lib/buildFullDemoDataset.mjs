@@ -1771,6 +1771,201 @@ export function buildFullDemoDataset(args) {
   const bankConnectionCompanyById = new Map(
     bankConnectionRows.map((row) => [row.id, row.company_id || defaultCompanyId])
   );
+  const bankInstrumentByConnectionId = new Map();
+  const bankInstrumentDefaultByCompany = new Map();
+  const activeConnectionStatuses = new Set(['active', 'pending']);
+  const maskBankReference = (value) => {
+    if (!value) return null;
+    const sanitized = String(value).replace(/\s+/g, '');
+    if (sanitized.length <= 4) return sanitized;
+    return `****${sanitized.slice(-4)}`;
+  };
+
+  const bankAccountInstrumentRows = bankConnectionRows.map((connection, index) => {
+    const companyId = connection.company_id || defaultCompanyId;
+    const companyBankSequence = (bankInstrumentDefaultByCompany.get(companyId)?.sequence || 0) + 1;
+    const isDefault = !bankInstrumentDefaultByCompany.has(companyId);
+    const openingBalance = clampAmount(
+      connection.account_balance ?? amount(12500 + index * 850),
+      roundAmount
+    );
+    const instrumentId = uuidFromSeed(`${userSeed}:payment-instrument:bank:${connection.id}`);
+
+    if (isDefault) {
+      bankInstrumentDefaultByCompany.set(companyId, { id: instrumentId, sequence: companyBankSequence });
+    } else {
+      bankInstrumentDefaultByCompany.set(companyId, {
+        ...bankInstrumentDefaultByCompany.get(companyId),
+        sequence: companyBankSequence,
+      });
+    }
+    bankInstrumentByConnectionId.set(connection.id, instrumentId);
+
+    return {
+      id: instrumentId,
+      user_id: userId,
+      company_id: companyId,
+      portfolio_id: null,
+      instrument_type: 'bank_account',
+      instrument_subtype: 'checking',
+      code: `BANK-${String(companyBankSequence).padStart(3, '0')}`,
+      label: connection.account_name || `${locale.bank.primaryInstitutionName} ${companyBankSequence}`,
+      display_name: `${locale.bank.primaryInstitutionName} · ${config.country}`,
+      description: `Compte synchronise (${connection.institution_name || locale.bank.primaryInstitutionName})`,
+      currency,
+      status: activeConnectionStatuses.has(connection.status) ? 'active' : 'inactive',
+      is_default: isDefault,
+      allow_incoming: true,
+      allow_outgoing: true,
+      include_in_dashboard: true,
+      opening_balance: openingBalance,
+      current_balance: openingBalance,
+      account_code: config.accounts?.bank || null,
+      journal_code: 'BQ',
+      external_provider: 'bank_sync',
+      external_reference: connection.account_id || connection.external_id || connection.id,
+      metadata: {
+        seed: 'pilotage-demo',
+        country: config.country,
+        bank_connection_id: connection.id,
+      },
+      created_at: connection.created_at,
+      updated_at: connection.updated_at,
+      archived_at: null,
+    };
+  });
+
+  bankConnectionRows = bankConnectionRows.map((connection) => ({
+    ...connection,
+    payment_instrument_id: bankInstrumentByConnectionId.get(connection.id) || null,
+  }));
+
+  const scopedCompanyIds = companyScopeIds.filter(Boolean);
+  const cardInstrumentRows = scopedCompanyIds.map((companyId, index) => ({
+    id: uuidFromSeed(`${userSeed}:payment-instrument:card:${companyId}`),
+    user_id: userId,
+    company_id: companyId,
+    portfolio_id: null,
+    instrument_type: 'card',
+    instrument_subtype: 'debit_card',
+    code: 'CARD-001',
+    label: `Carte entreprise ${index + 1}`,
+    display_name: `${locale.bank.primaryInstitutionName} Business Card`,
+    description: 'Carte de paiement professionnelle',
+    currency,
+    status: 'active',
+    is_default: true,
+    allow_incoming: false,
+    allow_outgoing: true,
+    include_in_dashboard: true,
+    opening_balance: 0,
+    current_balance: 0,
+    account_code: config.accounts?.bank || null,
+    journal_code: 'BQ',
+    external_provider: 'manual',
+    external_reference: `CARD-${config.country}-${String(index + 1).padStart(2, '0')}`,
+    metadata: { seed: 'pilotage-demo', country: config.country, channel: 'card' },
+    created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 8 + (index % 10)), 9),
+    updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 8 + (index % 10)), 9, 5),
+    archived_at: null,
+  }));
+
+  const cashInstrumentRows = scopedCompanyIds.map((companyId, index) => ({
+    id: uuidFromSeed(`${userSeed}:payment-instrument:cash:${companyId}`),
+    user_id: userId,
+    company_id: companyId,
+    portfolio_id: null,
+    instrument_type: 'cash',
+    instrument_subtype: 'petty_cash',
+    code: 'CASH-001',
+    label: `Caisse ${index + 1}`,
+    display_name: `Caisse principale ${config.country}`,
+    description: 'Caisse pour paiements espece',
+    currency,
+    status: 'active',
+    is_default: true,
+    allow_incoming: true,
+    allow_outgoing: true,
+    include_in_dashboard: true,
+    opening_balance: amount(500),
+    current_balance: amount(500),
+    account_code: config.accounts?.bank || null,
+    journal_code: 'CA',
+    external_provider: 'manual',
+    external_reference: `CASH-${config.country}-${String(index + 1).padStart(2, '0')}`,
+    metadata: { seed: 'pilotage-demo', country: config.country, channel: 'cash' },
+    created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 9 + (index % 10)), 9),
+    updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 9 + (index % 10)), 9, 5),
+    archived_at: null,
+  }));
+
+  const companyPaymentInstrumentRows = [
+    ...bankAccountInstrumentRows,
+    ...cardInstrumentRows,
+    ...cashInstrumentRows,
+  ];
+  const firstInstrumentByCompany = new Map();
+  for (const instrument of companyPaymentInstrumentRows) {
+    if (!firstInstrumentByCompany.has(instrument.company_id)) {
+      firstInstrumentByCompany.set(instrument.company_id, instrument.id);
+    }
+  }
+  const cardInstrumentByCompany = new Map(cardInstrumentRows.map((row) => [row.company_id, row.id]));
+  const cashInstrumentByCompany = new Map(cashInstrumentRows.map((row) => [row.company_id, row.id]));
+
+  const paymentInstrumentBankAccountRows = bankAccountInstrumentRows.map((instrument, index) => {
+    const connection = bankConnectionRows.find((row) => row.payment_instrument_id === instrument.id);
+    return {
+      instrument_id: instrument.id,
+      bank_connection_id: connection?.id || null,
+      bank_name: connection?.institution_name || locale.bank.primaryInstitutionName,
+      account_holder: config.company.company_name,
+      iban_masked: maskBankReference(connection?.account_iban || locale.bank.iban),
+      iban_encrypted: connection?.account_iban || locale.bank.iban || null,
+      bic_swift: locale.companySwift || config.company.swift || null,
+      account_number_masked: maskBankReference(connection?.account_id || connection?.account_name),
+      institution_country: config.company.country || null,
+      account_kind: 'business',
+      statement_import_enabled: true,
+      api_sync_enabled: connection?.status === 'active',
+      last_sync_at: connection?.last_sync_at || null,
+      created_at: connection?.created_at || timestampFor(isoDate(CURRENT_YEAR, 1, 12 + (index % 8)), 8),
+      updated_at: connection?.updated_at || timestampFor(isoDate(CURRENT_YEAR, 1, 12 + (index % 8)), 8, 5),
+    };
+  });
+
+  const paymentInstrumentCardRows = cardInstrumentRows.map((instrument, index) => {
+    const cardLimit = amount(6000 + index * 250);
+    return {
+      instrument_id: instrument.id,
+      card_brand: index % 2 === 0 ? 'Visa' : 'Mastercard',
+      card_type: 'debit',
+      holder_name: config.company.company_name,
+      last4: String(4100 + index).slice(-4),
+      expiry_month: 12,
+      expiry_year: CURRENT_YEAR + 3,
+      issuer_name: locale.bank.primaryInstitutionName,
+      billing_cycle_day: 25,
+      statement_due_day: 5,
+      credit_limit: cardLimit,
+      available_credit: clampAmount(cardLimit - amount(450 + index * 40), roundAmount),
+      network_token: null,
+      is_virtual: index % 3 === 0,
+      created_at: instrument.created_at,
+      updated_at: instrument.updated_at,
+    };
+  });
+
+  const paymentInstrumentCashAccountRows = cashInstrumentRows.map((instrument) => ({
+    instrument_id: instrument.id,
+    cash_point_name: `${instrument.label} · ${config.country}`,
+    custodian_user_id: userId,
+    location: `${config.company.city}, ${config.company.country}`,
+    max_authorized_balance: amount(2500),
+    reconciliation_frequency: 'weekly',
+    created_at: instrument.created_at,
+    updated_at: instrument.updated_at,
+  }));
 
   let bankSyncHistoryRows = [
     ['001', bankConnectionRows[0].id, 'full', 'success', 4, timestampFor(isoDate(CURRENT_YEAR, 1, 12), 8), timestampFor(isoDate(CURRENT_YEAR, 1, 12), 8, 3), null],
@@ -1834,6 +2029,10 @@ export function buildFullDemoDataset(args) {
     creditor_name: valueAmount >= 0 ? config.company.company_name : counterparty,
     remittance_info: remittanceInfo,
     reference: `BANK-${config.country}-${code}`,
+    payment_instrument_id: bankInstrumentByConnectionId.get(bankConnectionId) || firstInstrumentByCompany.get(
+      bankConnectionCompanyById.get(bankConnectionId) || defaultCompanyId
+    ) || null,
+    payment_transaction_id: null,
     reconciliation_status: reconciliationStatus,
     match_confidence: matchConfidence,
     matched_at: matchedAtDate ? timestampFor(matchedAtDate, 16) : null,
@@ -1869,6 +2068,17 @@ export function buildFullDemoDataset(args) {
       creditor_name: amountValue >= 0 ? config.company.company_name : counterparty,
       remittance_info: index % 2 === 0 ? (invoice?.invoice_number || 'Invoice settlement') : `Charge ${index + 1}`,
       reference: `BANK-${config.country}-X${String(index + 1).padStart(3, '0')}`,
+      payment_instrument_id:
+        bankInstrumentByConnectionId.get(bankConnection?.id) ||
+        firstInstrumentByCompany.get(
+          bankConnection?.company_id ||
+          invoiceCompanyById.get(invoice?.id) ||
+          template.company_id ||
+          defaultCompanyId
+        ) ||
+        template.payment_instrument_id ||
+        null,
+      payment_transaction_id: null,
       reconciliation_status: amountValue >= 0 ? 'matched' : ['unreconciled', 'ignored', 'matched'][index % 3],
       match_confidence: amountValue >= 0 ? 0.94 : null,
       matched_at: amountValue >= 0 ? timestampFor(date, 16) : null,
@@ -1876,6 +2086,245 @@ export function buildFullDemoDataset(args) {
       updated_at: timestampFor(date, 16),
     };
   });
+
+  const bankLinkedPaymentTransactionRows = bankTransactionRows.map((row) => {
+    const absoluteAmount = clampAmount(Math.abs(Number(row.amount || 0)), roundAmount);
+    const flowDirection = Number(row.amount || 0) >= 0 ? 'inflow' : 'outflow';
+    const paymentInstrumentId =
+      row.payment_instrument_id || firstInstrumentByCompany.get(row.company_id) || null;
+    return {
+      id: uuidFromSeed(`${userSeed}:payment-transaction:bank:${row.id}`),
+      user_id: userId,
+      company_id: row.company_id || defaultCompanyId,
+      portfolio_id: null,
+      payment_instrument_id: paymentInstrumentId,
+      transaction_kind: flowDirection === 'inflow' ? 'income' : 'expense',
+      flow_direction: flowDirection,
+      status: row.reconciliation_status === 'matched' ? 'reconciled' : 'posted',
+      source_module: 'bank_transactions',
+      source_table: 'bank_transactions',
+      source_id: row.id,
+      transaction_date: row.date,
+      posting_date: row.booking_date || row.date,
+      value_date: row.value_date || row.date,
+      amount: absoluteAmount,
+      currency: row.currency || currency,
+      company_currency: row.currency || currency,
+      fx_rate: 1,
+      amount_company_currency: absoluteAmount,
+      counterparty_name:
+        (flowDirection === 'inflow' ? row.debtor_name : row.creditor_name) ||
+        row.description ||
+        null,
+      description: row.remittance_info || row.description || null,
+      reference: row.reference || null,
+      external_reference: row.external_id || null,
+      category: flowDirection === 'inflow' ? 'bank_in' : 'bank_out',
+      subcategory: row.reconciliation_status || null,
+      analytical_axis_id: null,
+      attachment_url: null,
+      notes: row.remittance_info ? `Remittance: ${row.remittance_info}` : null,
+      is_internal_transfer: false,
+      transfer_group_id: null,
+      matched_bank_transaction_id: row.id,
+      accounting_entry_id: null,
+      created_by: userId,
+      updated_by: userId,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      deleted_at: null,
+    };
+  });
+
+  const cardManualPaymentTransactionRows = cardInstrumentRows.map((instrument, index) => {
+    const date = isoDate(CURRENT_YEAR, 1 + (index % 6), 5 + (index % 20));
+    return {
+      id: uuidFromSeed(`${userSeed}:payment-transaction:card:${instrument.id}`),
+      user_id: userId,
+      company_id: instrument.company_id,
+      portfolio_id: null,
+      payment_instrument_id: instrument.id,
+      transaction_kind: 'fee',
+      flow_direction: 'outflow',
+      status: 'posted',
+      source_module: 'manual',
+      source_table: 'payment_transactions',
+      source_id: uuidFromSeed(`${userSeed}:payment-transaction:card-source:${instrument.id}`),
+      transaction_date: date,
+      posting_date: date,
+      value_date: date,
+      amount: amount(35 + index * 3),
+      currency,
+      company_currency: currency,
+      fx_rate: 1,
+      amount_company_currency: amount(35 + index * 3),
+      counterparty_name: locale.bank.primaryInstitutionName,
+      description: 'Frais carte bancaire entreprise',
+      reference: `CARD-FEE-${config.country}-${String(index + 1).padStart(2, '0')}`,
+      external_reference: null,
+      category: 'card_fee',
+      subcategory: 'card',
+      analytical_axis_id: null,
+      attachment_url: null,
+      notes: 'Operation manuelle de demonstration',
+      is_internal_transfer: false,
+      transfer_group_id: null,
+      matched_bank_transaction_id: null,
+      accounting_entry_id: null,
+      created_by: userId,
+      updated_by: userId,
+      created_at: timestampFor(date, 12),
+      updated_at: timestampFor(date, 12, 5),
+      deleted_at: null,
+    };
+  });
+
+  const cashManualPaymentTransactionRows = scopedCompanyIds.flatMap((companyId, index) => {
+    const cashInstrumentId = cashInstrumentByCompany.get(companyId);
+    const bankInstrumentId =
+      bankInstrumentDefaultByCompany.get(companyId)?.id ||
+      firstInstrumentByCompany.get(companyId) ||
+      null;
+    const depositDate = isoDate(CURRENT_YEAR, 1 + (index % 6), 7 + (index % 18));
+    const expenseDate = addDays(depositDate, 4);
+    const transferGroupId = uuidFromSeed(`${userSeed}:cash-transfer-group:${companyId}:${index}`);
+    const depositAmount = amount(160 + index * 15);
+    const pettyCashExpense = amount(55 + index * 6);
+
+    return [
+      {
+        id: uuidFromSeed(`${userSeed}:payment-transaction:cash-in:${companyId}`),
+        user_id: userId,
+        company_id: companyId,
+        portfolio_id: null,
+        payment_instrument_id: cashInstrumentId,
+        transaction_kind: 'transfer_in',
+        flow_direction: 'inflow',
+        status: 'posted',
+        source_module: 'manual',
+        source_table: 'payment_transactions',
+        source_id: uuidFromSeed(`${userSeed}:payment-transaction:cash-in-source:${companyId}`),
+        transaction_date: depositDate,
+        posting_date: depositDate,
+        value_date: depositDate,
+        amount: depositAmount,
+        currency,
+        company_currency: currency,
+        fx_rate: 1,
+        amount_company_currency: depositAmount,
+        counterparty_name: locale.bank.primaryInstitutionName,
+        description: 'Alimentation de caisse depuis le compte bancaire',
+        reference: `CASH-IN-${config.country}-${String(index + 1).padStart(2, '0')}`,
+        external_reference: null,
+        category: 'cash_topup',
+        subcategory: 'cash',
+        analytical_axis_id: null,
+        attachment_url: null,
+        notes: 'Flux de tresorerie interne de demonstration',
+        is_internal_transfer: true,
+        transfer_group_id: transferGroupId,
+        matched_bank_transaction_id: null,
+        accounting_entry_id: null,
+        created_by: userId,
+        updated_by: userId,
+        created_at: timestampFor(depositDate, 13),
+        updated_at: timestampFor(depositDate, 13, 5),
+        deleted_at: null,
+      },
+      {
+        id: uuidFromSeed(`${userSeed}:payment-transaction:cash-out:${companyId}`),
+        user_id: userId,
+        company_id: companyId,
+        portfolio_id: null,
+        payment_instrument_id: cashInstrumentId,
+        transaction_kind: 'expense',
+        flow_direction: 'outflow',
+        status: 'posted',
+        source_module: 'manual',
+        source_table: 'payment_transactions',
+        source_id: uuidFromSeed(`${userSeed}:payment-transaction:cash-out-source:${companyId}`),
+        transaction_date: expenseDate,
+        posting_date: expenseDate,
+        value_date: expenseDate,
+        amount: pettyCashExpense,
+        currency,
+        company_currency: currency,
+        fx_rate: 1,
+        amount_company_currency: pettyCashExpense,
+        counterparty_name: 'Depenses operationnelles',
+        description: 'Depense en caisse (petite caisse)',
+        reference: `CASH-OUT-${config.country}-${String(index + 1).padStart(2, '0')}`,
+        external_reference: null,
+        category: 'cash_expense',
+        subcategory: 'cash',
+        analytical_axis_id: null,
+        attachment_url: null,
+        notes: 'Depense manuelle de demonstration',
+        is_internal_transfer: false,
+        transfer_group_id: null,
+        matched_bank_transaction_id: null,
+        accounting_entry_id: null,
+        created_by: userId,
+        updated_by: userId,
+        created_at: timestampFor(expenseDate, 13, 30),
+        updated_at: timestampFor(expenseDate, 13, 35),
+        deleted_at: null,
+      },
+      {
+        id: uuidFromSeed(`${userSeed}:payment-transaction:bank-out:${companyId}`),
+        user_id: userId,
+        company_id: companyId,
+        portfolio_id: null,
+        payment_instrument_id: bankInstrumentId,
+        transaction_kind: 'transfer_out',
+        flow_direction: 'outflow',
+        status: 'posted',
+        source_module: 'manual',
+        source_table: 'payment_transactions',
+        source_id: uuidFromSeed(`${userSeed}:payment-transaction:bank-out-source:${companyId}`),
+        transaction_date: depositDate,
+        posting_date: depositDate,
+        value_date: depositDate,
+        amount: depositAmount,
+        currency,
+        company_currency: currency,
+        fx_rate: 1,
+        amount_company_currency: depositAmount,
+        counterparty_name: 'Caisse principale',
+        description: 'Sortie banque vers caisse',
+        reference: `BANK-TO-CASH-${config.country}-${String(index + 1).padStart(2, '0')}`,
+        external_reference: null,
+        category: 'internal_transfer',
+        subcategory: 'bank_to_cash',
+        analytical_axis_id: null,
+        attachment_url: null,
+        notes: 'Flux de tresorerie interne de demonstration',
+        is_internal_transfer: true,
+        transfer_group_id: transferGroupId,
+        matched_bank_transaction_id: null,
+        accounting_entry_id: null,
+        created_by: userId,
+        updated_by: userId,
+        created_at: timestampFor(depositDate, 13, 10),
+        updated_at: timestampFor(depositDate, 13, 12),
+        deleted_at: null,
+      },
+    ].filter((row) => row.payment_instrument_id);
+  });
+
+  const paymentTransactionRows = [
+    ...bankLinkedPaymentTransactionRows,
+    ...cardManualPaymentTransactionRows,
+    ...cashManualPaymentTransactionRows,
+  ];
+
+  const paymentTransactionIdByBankTransactionId = new Map(
+    bankLinkedPaymentTransactionRows.map((row) => [row.source_id, row.id])
+  );
+  bankTransactionRows = bankTransactionRows.map((row) => ({
+    ...row,
+    payment_transaction_id: paymentTransactionIdByBankTransactionId.get(row.id) || null,
+  }));
 
   let peppolLogRows = [
     ['001', enhancedInvoiceRows[0].id, 'outbound', 'delivered', enhancedClientRows[0].peppol_endpoint_id, enhancedInvoiceRows[0].peppol_document_id, timestampFor(isoDate(CURRENT_YEAR, 1, 10), 14)],
@@ -2003,6 +2452,11 @@ export function buildFullDemoDataset(args) {
     notificationRows,
     webhookRows,
     webhookDeliveryRows,
+    companyPaymentInstrumentRows,
+    paymentInstrumentBankAccountRows,
+    paymentInstrumentCardRows,
+    paymentInstrumentCashAccountRows,
+    paymentTransactionRows,
     bankConnectionRows,
     bankSyncHistoryRows,
     bankTransactionRows,
