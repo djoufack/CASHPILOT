@@ -1397,6 +1397,8 @@
     "amount": "Amount",
     "date": "Payment Date",
     "method": "Payment Method",
+    "selectMethod": "Select a payment method",
+    "noMethodsConfigured": "No active payment method found in the database.",
     "reference": "Reference",
     "referencePlaceholder": "Check no., transfer ref., etc.",
     "history": "Payment History",

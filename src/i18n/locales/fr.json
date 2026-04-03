@@ -1394,6 +1394,8 @@
     "amount": "Montant",
     "date": "Date de paiement",
     "method": "Mode de paiement",
+    "selectMethod": "Sélectionner un mode de paiement",
+    "noMethodsConfigured": "Aucun mode de paiement actif trouvé dans la base.",
     "reference": "Référence",
     "referencePlaceholder": "N° de chèque, virement, etc.",
     "history": "Historique des paiements",

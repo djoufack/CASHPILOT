@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePayments } from '@/hooks/usePayments';
 import { useInvoices } from '@/hooks/useInvoices';
@@ -7,20 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DollarSign, CreditCard, Banknote, Landmark, Globe, MoreHorizontal } from 'lucide-react';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
@@ -35,14 +23,7 @@ const ICON_MAP = {
   MoreHorizontal,
 };
 
-const PaymentRecorder = ({
-  open,
-  onOpenChange,
-  invoice = null,
-  clientId = null,
-  isLumpSum = false,
-  onSuccess
-}) => {
+const PaymentRecorder = ({ open, onOpenChange, invoice = null, clientId = null, isLumpSum = false, onSuccess }) => {
   const { t } = useTranslation();
   const paymentMethods = usePaymentMethods();
   const { createPayment, createLumpSumPayment } = usePayments();
@@ -55,6 +36,14 @@ const PaymentRecorder = ({
   const [notes, setNotes] = useState('');
   const [selectedAllocations, setSelectedAllocations] = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  const preferredPaymentMethod = useMemo(() => {
+    if (!Array.isArray(paymentMethods) || paymentMethods.length === 0) return '';
+    const bankTransferMethod = paymentMethods.find((method) => (method.code || method.name) === 'bank_transfer');
+    return (
+      bankTransferMethod?.code || bankTransferMethod?.name || paymentMethods[0].code || paymentMethods[0].name || ''
+    );
+  }, [paymentMethods]);
 
   // Get pending invoices for lump-sum mode
   const resolvedClientId = clientId || invoice?.client_id;
@@ -69,25 +58,33 @@ const PaymentRecorder = ({
         setAmount('');
       }
       setPaymentDate(formatDateInput());
-      setPaymentMethod('bank_transfer');
+      setPaymentMethod(preferredPaymentMethod);
       setReference('');
       setNotes('');
       setSelectedAllocations({});
     }
-  }, [open, invoice, isLumpSum]);
+  }, [open, invoice, isLumpSum, preferredPaymentMethod]);
+
+  useEffect(() => {
+    if (!Array.isArray(paymentMethods) || paymentMethods.length === 0) return;
+    const hasCurrentMethod = paymentMethods.some((method) => (method.code || method.name) === paymentMethod);
+    if (!hasCurrentMethod && preferredPaymentMethod) {
+      setPaymentMethod(preferredPaymentMethod);
+    }
+  }, [paymentMethods, paymentMethod, preferredPaymentMethod]);
 
   const handleAutoAllocate = () => {
     if (!amount || pendingInvoices.length === 0) return;
     const allocations = allocateLumpSumPayment(Number(amount), pendingInvoices);
     const newSelected = {};
-    allocations.forEach(a => {
+    allocations.forEach((a) => {
       newSelected[a.invoiceId] = a.allocatedAmount.toFixed(2);
     });
     setSelectedAllocations(newSelected);
   };
 
   const handleAllocationChange = (invoiceId, value) => {
-    setSelectedAllocations(prev => {
+    setSelectedAllocations((prev) => {
       const next = { ...prev };
       if (value === '' || value === '0') {
         delete next[invoiceId];
@@ -98,8 +95,7 @@ const PaymentRecorder = ({
     });
   };
 
-  const totalAllocated = Object.values(selectedAllocations)
-    .reduce((sum, val) => sum + Number(val || 0), 0);
+  const totalAllocated = Object.values(selectedAllocations).reduce((sum, val) => sum + Number(val || 0), 0);
 
   const handleSubmit = async () => {
     if (!amount || Number(amount) <= 0) return;
@@ -110,7 +106,7 @@ const PaymentRecorder = ({
           .filter(([, val]) => Number(val) > 0)
           .map(([invoiceId, val]) => ({
             invoiceId,
-            allocatedAmount: Number(val)
+            allocatedAmount: Number(val),
           }));
 
         await createLumpSumPayment(
@@ -130,7 +126,7 @@ const PaymentRecorder = ({
           amount: Number(amount),
           payment_method: paymentMethod,
           reference,
-          notes
+          notes,
         });
       }
 
@@ -172,7 +168,9 @@ const PaymentRecorder = ({
               )}
               <div className="flex justify-between text-sm font-semibold border-t border-gray-600 mt-1 pt-1">
                 <span className="text-gray-300">{t('payments.balanceDue')}</span>
-                <span className="text-orange-400">{formatCurrency(Number(invoice.balance_due || invoice.total_ttc || 0))}</span>
+                <span className="text-orange-400">
+                  {formatCurrency(Number(invoice.balance_due || invoice.total_ttc || 0))}
+                </span>
               </div>
             </div>
           )}
@@ -205,25 +203,30 @@ const PaymentRecorder = ({
           {/* Payment Method */}
           <div className="space-y-2">
             <Label>{t('payments.method')}</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod} disabled={paymentMethods.length === 0}>
               <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                <SelectValue />
+                <SelectValue placeholder={t('payments.selectMethod', 'Selectionner un mode de paiement')} />
               </SelectTrigger>
               <SelectContent className="bg-gray-700 border-gray-600 text-white">
-                {paymentMethods.map(method => {
+                {paymentMethods.map((method) => {
                   const IconComp = ICON_MAP[method.icon] || MoreHorizontal;
                   const value = method.code || method.name;
                   return (
                     <SelectItem key={value} value={value}>
                       <div className="flex items-center gap-2">
                         <IconComp className="w-4 h-4" />
-                        {t(`payments.${value}`)}
+                        {t(`payments.${value}`, method.name || value)}
                       </div>
                     </SelectItem>
                   );
                 })}
               </SelectContent>
             </Select>
+            {paymentMethods.length === 0 && (
+              <p className="text-xs text-amber-300">
+                {t('payments.noMethodsConfigured', 'Aucun mode de paiement actif trouve dans la base.')}
+              </p>
+            )}
           </div>
 
           {/* Reference */}
@@ -264,7 +267,7 @@ const PaymentRecorder = ({
                 </Button>
               </div>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {pendingInvoices.map(inv => (
+                {pendingInvoices.map((inv) => (
                   <div key={inv.id} className="flex items-center justify-between bg-gray-700/50 p-2 rounded-lg text-sm">
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-medium truncate">{inv.invoice_number}</p>

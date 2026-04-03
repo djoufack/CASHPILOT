@@ -1407,6 +1407,8 @@
     "amount": "Bedrag",
     "date": "Betaaldatum",
     "method": "Betaalmethode",
+    "selectMethod": "Selecteer een betaalmethode",
+    "noMethodsConfigured": "Geen actieve betaalmethode gevonden in de database.",
     "reference": "Referentie",
     "referencePlaceholder": "Chequenr., overschrijvingsref., enz.",
     "history": "Betalingsgeschiedenis",
