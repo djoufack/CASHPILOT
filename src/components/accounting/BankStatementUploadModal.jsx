@@ -25,7 +25,14 @@ const FRENCH_BANKS = [
 const ACCEPTED_TYPES = '.pdf,.xlsx,.xls,.csv';
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
-const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
+const BankStatementUploadModal = ({
+  open,
+  onOpenChange,
+  onUploadComplete,
+  instruments = [],
+  selectedInstrumentId = '',
+  onSelectedInstrumentIdChange,
+}) => {
   const [step, setStep] = useState('upload'); // upload, parsing, preview, result
   const [file, setFile] = useState(null);
   const [bankName, setBankName] = useState('');
@@ -111,6 +118,7 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
     setImporting(true);
     try {
       const selectedBank = FRENCH_BANKS.find((b) => b.value === bankName);
+      const selectedInstrument = instruments.find((instrument) => instrument.id === selectedInstrumentId);
       const metadata = {
         bankName: selectedBank?.label || bankName || parsedData.metadata?.bankName || null,
         accountNumber: parsedData.metadata?.accountNumber || null,
@@ -118,9 +126,11 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
         periodEnd: parsedData.metadata?.periodEnd || null,
         openingBalance: parsedData.metadata?.openingBalance || null,
         closingBalance: parsedData.metadata?.closingBalance || null,
+        paymentInstrumentId: selectedInstrumentId || null,
+        currency: selectedInstrument?.currency || parsedData.metadata?.currency || null,
       };
 
-      const success = await onUploadComplete(file, parsedData, metadata);
+      const success = await onUploadComplete(file, parsedData, metadata, selectedInstrumentId || null);
       setResult({
         success: !!success,
         message: success ? `${parsedData.lines.length} opérations importées avec succès.` : "Erreur lors de l'import.",
@@ -151,6 +161,31 @@ const BankStatementUploadModal = ({ open, onOpenChange, onUploadComplete }) => {
         {/* STEP 1: Upload */}
         {step === 'upload' && (
           <div className="space-y-4">
+            {/* Payment instrument selector */}
+            <div>
+              <label className="text-sm text-gray-400 mb-1 block">Compte / moyen de paiement (optionnel)</label>
+              <Select
+                value={selectedInstrumentId || '__none__'}
+                onValueChange={(value) => onSelectedInstrumentIdChange?.(value === '__none__' ? '' : value)}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                  <SelectValue placeholder="Sélectionner un compte bancaire" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectItem value="__none__" className="text-white">
+                    Non défini
+                  </SelectItem>
+                  {instruments
+                    .filter((instrument) => instrument.status === 'active')
+                    .map((instrument) => (
+                      <SelectItem key={instrument.id} value={instrument.id} className="text-white">
+                        {instrument.label}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Bank selector */}
             <div>
               <label className="text-sm text-gray-400 mb-1 block">Banque (optionnel)</label>

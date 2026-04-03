@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createAuthClient, HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
 import { getScopedCompany } from '../_shared/companyScope.ts';
 import { resolveScradaCredentials } from '../_shared/scradaCredentials.ts';
+import { fetchWithTimeout, parseScradaTimeoutMs } from './timeout.ts';
 
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
@@ -52,71 +53,81 @@ serve(async (req) => {
       'X-PASSWORD': password || '',
       Language: 'FR',
     };
+    const requestTimeoutMs = parseScradaTimeoutMs(Deno.env.get('SCRADA_REQUEST_TIMEOUT_MS'));
 
-    // 1. Fetch company profile from Scrada
-    let companyProfile = null;
-    try {
-      const companyRes = await fetch(`${scradaBaseUrl}/company/${company.scrada_company_id}`, {
-        method: 'GET',
-        headers,
-      });
-      if (companyRes.ok) {
-        companyProfile = await companyRes.json();
-      }
-    } catch {
-      /* ignore */
-    }
+    const companyUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}`;
 
-    // 2. Check own Peppol registration status
-    let registrationStatus = null;
-    if (company.peppol_endpoint_id) {
-      const peppolId = `${company.peppol_scheme_id || '0208'}:${company.peppol_endpoint_id}`;
+    const companyProfilePromise = (async () => {
       try {
-        const regRes = await fetch(
-          `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolRegistration/check/${encodeURIComponent(peppolId)}`,
-          { method: 'GET', headers }
-        );
-        if (regRes.ok) {
-          registrationStatus = { registered: true, details: await regRes.json() };
-        } else if (regRes.status === 404) {
-          registrationStatus = { registered: false };
+        const companyRes = await fetchWithTimeout(companyUrl, { method: 'GET', headers }, requestTimeoutMs);
+        if (companyRes.ok) {
+          return await companyRes.json();
         }
       } catch {
         /* ignore */
       }
-    }
+      return null;
+    })();
 
-    // 3. Fetch recent outbound documents (last 20)
-    let recentDocuments: any[] = [];
-    try {
-      const docsRes = await fetch(`${scradaBaseUrl}/company/${company.scrada_company_id}/peppolOutbound?limit=20`, {
-        method: 'GET',
-        headers,
-      });
-      if (docsRes.ok) {
+    const registrationStatusPromise = (async () => {
+      if (!company.peppol_endpoint_id) return null;
+      const peppolId = `${company.peppol_scheme_id || '0208'}:${company.peppol_endpoint_id}`;
+      try {
+        const regRes = await fetchWithTimeout(
+          `${companyUrl}/peppolRegistration/check/${encodeURIComponent(peppolId)}`,
+          { method: 'GET', headers },
+          requestTimeoutMs
+        );
+        if (regRes.ok) {
+          return { registered: true, details: await regRes.json() };
+        }
+        if (regRes.status === 404) {
+          return { registered: false };
+        }
+      } catch {
+        /* ignore */
+      }
+      return null;
+    })();
+
+    const recentDocumentsPromise = (async () => {
+      try {
+        const docsRes = await fetchWithTimeout(
+          `${companyUrl}/peppolOutbound?limit=20`,
+          { method: 'GET', headers },
+          requestTimeoutMs
+        );
+        if (!docsRes.ok) return [];
         const docsData = await docsRes.json();
-        recentDocuments = Array.isArray(docsData) ? docsData : docsData.items || docsData.data || [];
+        return Array.isArray(docsData) ? docsData : docsData.items || docsData.data || [];
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
-    }
+      return [];
+    })();
 
-    // 4. Fetch supported document types / profiles
-    let supportedProfiles: any[] = [];
-    try {
-      const profRes = await fetch(`${scradaBaseUrl}/company/${company.scrada_company_id}/peppolRegistration`, {
-        method: 'GET',
-        headers,
-      });
-      if (profRes.ok) {
+    const supportedProfilesPromise = (async () => {
+      try {
+        const profRes = await fetchWithTimeout(
+          `${companyUrl}/peppolRegistration`,
+          { method: 'GET', headers },
+          requestTimeoutMs
+        );
+        if (!profRes.ok) return [];
         const profData = await profRes.json();
-        supportedProfiles = Array.isArray(profData)
-          ? profData
-          : profData.profiles || profData.documentTypes || [profData];
+        return Array.isArray(profData) ? profData : profData.profiles || profData.documentTypes || [profData];
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
-    }
+      return [];
+    })();
+
+    const [companyProfile, registrationStatus, recentDocuments, supportedProfiles] = await Promise.all([
+      companyProfilePromise,
+      registrationStatusPromise,
+      recentDocumentsPromise,
+      supportedProfilesPromise,
+    ]);
 
     return new Response(
       JSON.stringify({

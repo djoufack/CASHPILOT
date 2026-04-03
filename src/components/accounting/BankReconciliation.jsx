@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import BankStatementUploadModal from './BankStatementUploadModal';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
+import { usePaymentInstruments } from '@/hooks/usePaymentInstruments';
 
 const RECON_INFO = {
   mainPanel: {
@@ -94,9 +95,11 @@ const BankReconciliation = ({ period }) => {
   const [searchText, setSearchText] = useState('');
   const [searchingLineId, setSearchingLineId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUploadInstrumentId, setSelectedUploadInstrumentId] = useState('');
 
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const { instruments, fetchInstruments } = usePaymentInstruments();
 
   const {
     statements,
@@ -151,14 +154,28 @@ const BankReconciliation = ({ period }) => {
   }, [searchingLineId, searchQuery, lines, transactions]);
 
   // Handle upload flow
-  const handleUploadComplete = async (file, parsedData, metadata) => {
+  const handleUploadComplete = async (file, parsedData, metadata, paymentInstrumentId) => {
     const statement = await uploadStatement(file, metadata);
     if (statement) {
-      const success = await importParsedLines(statement.id, parsedData.lines, parsedData.errors);
+      const success = await importParsedLines(statement.id, parsedData.lines, parsedData.errors, {
+        paymentInstrumentId: paymentInstrumentId || metadata?.paymentInstrumentId || null,
+        bankName: metadata?.bankName || null,
+        accountNumber: metadata?.accountNumber || null,
+        statementCurrency: metadata?.currency || 'EUR',
+      });
       return success;
     }
     return false;
   };
+
+  useEffect(() => {
+    void fetchInstruments({ status: 'active' });
+  }, [fetchInstruments]);
+
+  useEffect(() => {
+    if (selectedUploadInstrumentId || !Array.isArray(instruments) || instruments.length === 0) return;
+    setSelectedUploadInstrumentId(instruments[0].id);
+  }, [selectedUploadInstrumentId, instruments]);
 
   // Open workspace
   const openWorkspace = async (statement) => {
@@ -351,6 +368,9 @@ const BankReconciliation = ({ period }) => {
           open={showUploadModal}
           onOpenChange={setShowUploadModal}
           onUploadComplete={handleUploadComplete}
+          instruments={instruments}
+          selectedInstrumentId={selectedUploadInstrumentId}
+          onSelectedInstrumentIdChange={setSelectedUploadInstrumentId}
         />
       </div>
     );

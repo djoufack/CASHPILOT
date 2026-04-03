@@ -6,6 +6,15 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { isMissingColumnError } from '@/lib/supabaseCompatibility';
 import { autoMatchLines, normalizeTransactions, getReconciliationSummary } from '@/utils/reconciliationMatcher';
 
+const toLineExternalId = (statementId, lineNumber, fallbackIndex = 0) =>
+  `${statementId}:${lineNumber ?? fallbackIndex + 1}`;
+
+const toBankReconciliationStatus = (lineStatus) => {
+  if (lineStatus === 'matched') return 'matched';
+  if (lineStatus === 'ignored') return 'ignored';
+  return 'unreconciled';
+};
+
 export const useBankReconciliation = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -20,6 +29,46 @@ export const useBankReconciliation = () => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const syncLinkedBankTransactionStatus = useCallback(
+    async (line, lineStatus, matchedSourceType = null, matchedSourceId = null, confidence = null) => {
+      if (!user || !supabase || !line?.statement_id) return;
+      const externalId = toLineExternalId(line.statement_id, line.line_number);
+      const reconciliationStatus = toBankReconciliationStatus(lineStatus);
+
+      try {
+        const payload = {
+          reconciliation_status: reconciliationStatus,
+          matched_at: reconciliationStatus === 'matched' ? new Date().toISOString() : null,
+          match_confidence: reconciliationStatus === 'matched' ? confidence : null,
+          invoice_id: matchedSourceType === 'invoice' ? matchedSourceId : null,
+        };
+
+        let query = supabase
+          .from('bank_transactions')
+          .update(payload)
+          .eq('user_id', user.id)
+          .eq('external_id', externalId);
+        query = applyCompanyScope(query);
+        let { error } = await query;
+
+        if (error && isMissingColumnError(error, 'company_id')) {
+          ({ error } = await supabase
+            .from('bank_transactions')
+            .update(payload)
+            .eq('user_id', user.id)
+            .eq('external_id', externalId));
+        }
+
+        if (error) {
+          throw error;
+        }
+      } catch (err) {
+        console.warn('Failed to sync linked bank transaction status:', err);
+      }
+    },
+    [user, applyCompanyScope]
+  );
 
   // ========================================================================
   // STATEMENTS CRUD
@@ -83,15 +132,12 @@ export const useBankReconciliation = () => {
           period_end: metadata.periodEnd || null,
           opening_balance: metadata.openingBalance || null,
           closing_balance: metadata.closingBalance || null,
+          payment_instrument_id: metadata.paymentInstrumentId || null,
           parse_status: 'pending',
           line_count: 0,
         });
 
-        let { data, error } = await supabase
-          .from('bank_statements')
-          .insert([scopedPayload])
-          .select()
-          .single();
+        let { data, error } = await supabase.from('bank_statements').insert([scopedPayload]).select().single();
 
         if (error && scopedPayload.company_id && isMissingColumnError(error, 'company_id')) {
           ({ data, error } = await supabase
@@ -181,7 +227,7 @@ export const useBankReconciliation = () => {
   );
 
   const importParsedLines = useCallback(
-    async (statementId, parsedLines, parseErrors = []) => {
+    async (statementId, parsedLines, parseErrors = [], options = {}) => {
       if (!user || !supabase || !statementId) return false;
       try {
         setLoading(true);
@@ -206,13 +252,256 @@ export const useBankReconciliation = () => {
 
         let { error: insertError } = await supabase.from('bank_statement_lines').insert(records);
 
-        if (insertError && records.some((record) => record.company_id) && isMissingColumnError(insertError, 'company_id')) {
+        if (
+          insertError &&
+          records.some((record) => record.company_id) &&
+          isMissingColumnError(insertError, 'company_id')
+        ) {
           ({ error: insertError } = await supabase
             .from('bank_statement_lines')
             .insert(records.map((record) => stripCompanyId(record))));
         }
 
         if (insertError) throw insertError;
+
+        const ensureManualConnectionForInstrument = async () => {
+          if (!options.paymentInstrumentId) return null;
+
+          let existingQuery = supabase
+            .from('bank_connections')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('payment_instrument_id', options.paymentInstrumentId)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          existingQuery = applyCompanyScope(existingQuery);
+
+          let { data: existing, error: existingError } = await existingQuery;
+
+          if (existingError && isMissingColumnError(existingError, 'payment_instrument_id')) {
+            const fallbackInstitutionId = `manual-${options.paymentInstrumentId}`;
+            let fallbackQuery = supabase
+              .from('bank_connections')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('institution_id', fallbackInstitutionId)
+              .order('created_at', { ascending: false })
+              .limit(1);
+            fallbackQuery = applyCompanyScope(fallbackQuery);
+            ({ data: existing, error: existingError } = await fallbackQuery);
+          }
+
+          if (existingError && isMissingColumnError(existingError, 'company_id')) {
+            ({ data: existing, error: existingError } = await supabase
+              .from('bank_connections')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('payment_instrument_id', options.paymentInstrumentId)
+              .order('created_at', { ascending: false })
+              .limit(1));
+          }
+
+          if (existingError) throw existingError;
+          if (existing?.[0]?.id) return existing[0].id;
+
+          const { data: instrument } = await supabase
+            .from('company_payment_instruments')
+            .select('id, label, currency, payment_instrument_bank_accounts(bank_name, iban_encrypted, account_holder)')
+            .eq('id', options.paymentInstrumentId)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          const bankDetails = instrument?.payment_instrument_bank_accounts?.[0] || {};
+          const connectionPayload = withCompanyScope({
+            user_id: user.id,
+            institution_id: `manual-${options.paymentInstrumentId}`,
+            institution_name: options.bankName || bankDetails.bank_name || instrument?.label || 'Banque virtuelle',
+            status: 'active',
+            account_id: instrument?.id || options.paymentInstrumentId,
+            account_iban: options.accountNumber || bankDetails.iban_encrypted || null,
+            account_name: bankDetails.account_holder || instrument?.label || 'Compte manuel',
+            account_currency: options.statementCurrency || instrument?.currency || 'EUR',
+            account_balance: null,
+            payment_instrument_id: options.paymentInstrumentId,
+            last_sync_at: new Date().toISOString(),
+          });
+
+          let { data: createdConnection, error: createConnectionError } = await supabase
+            .from('bank_connections')
+            .insert([connectionPayload])
+            .select('id')
+            .single();
+
+          if (createConnectionError && isMissingColumnError(createConnectionError, 'payment_instrument_id')) {
+            const { payment_instrument_id: _ignoredPaymentInstrumentId, ...withoutInstrument } = connectionPayload;
+            ({ data: createdConnection, error: createConnectionError } = await supabase
+              .from('bank_connections')
+              .insert([withoutInstrument])
+              .select('id')
+              .single());
+          }
+
+          if (
+            createConnectionError &&
+            connectionPayload.company_id &&
+            isMissingColumnError(createConnectionError, 'company_id')
+          ) {
+            ({ data: createdConnection, error: createConnectionError } = await supabase
+              .from('bank_connections')
+              .insert([stripCompanyId(connectionPayload)])
+              .select('id')
+              .single());
+          }
+
+          if (createConnectionError) throw createConnectionError;
+          return createdConnection?.id || null;
+        };
+
+        const bankConnectionId = await ensureManualConnectionForInstrument();
+
+        if (bankConnectionId) {
+          const bankTransactionRows = parsedLines.map((line, index) =>
+            withCompanyScope({
+              user_id: user.id,
+              bank_connection_id: bankConnectionId,
+              payment_instrument_id: options.paymentInstrumentId || null,
+              external_id: toLineExternalId(statementId, line.lineNumber, index),
+              date: line.date,
+              booking_date: line.date,
+              value_date: line.valueDate || null,
+              amount: Number(line.amount || 0),
+              currency: (line.currency || options.statementCurrency || 'EUR').toUpperCase(),
+              description: line.description || '',
+              reference: line.reference || null,
+              reconciliation_status: 'unreconciled',
+              raw_data: {
+                ...(line.rawData || {}),
+                statement_id: statementId,
+                line_number: line.lineNumber ?? index + 1,
+              },
+            })
+          );
+
+          let { data: bankTransactions, error: bankTransactionsError } = await supabase
+            .from('bank_transactions')
+            .upsert(bankTransactionRows, { onConflict: 'bank_connection_id,external_id', ignoreDuplicates: false })
+            .select('id, external_id, date, booking_date, value_date, amount, currency, description, reference');
+
+          if (
+            bankTransactionsError &&
+            bankTransactionRows.some((row) => row.payment_instrument_id) &&
+            isMissingColumnError(bankTransactionsError, 'payment_instrument_id')
+          ) {
+            ({ data: bankTransactions, error: bankTransactionsError } = await supabase
+              .from('bank_transactions')
+              .upsert(
+                bankTransactionRows.map(({ payment_instrument_id: _ignoredPaymentInstrumentId, ...row }) => row),
+                { onConflict: 'bank_connection_id,external_id', ignoreDuplicates: false }
+              )
+              .select('id, external_id, date, booking_date, value_date, amount, currency, description, reference'));
+          }
+
+          if (
+            bankTransactionsError &&
+            bankTransactionRows.some((row) => row.company_id) &&
+            isMissingColumnError(bankTransactionsError, 'company_id')
+          ) {
+            ({ data: bankTransactions, error: bankTransactionsError } = await supabase
+              .from('bank_transactions')
+              .upsert(
+                bankTransactionRows.map((row) => stripCompanyId(row)),
+                {
+                  onConflict: 'bank_connection_id,external_id',
+                  ignoreDuplicates: false,
+                }
+              )
+              .select('id, external_id, date, booking_date, value_date, amount, currency, description, reference'));
+          }
+
+          if (bankTransactionsError) throw bankTransactionsError;
+
+          const bankTransactionIds = (bankTransactions || []).map((tx) => tx.id).filter(Boolean);
+          if (options.paymentInstrumentId && bankTransactionIds.length > 0) {
+            let existingPaymentTxQuery = supabase
+              .from('payment_transactions')
+              .select('id, source_id')
+              .eq('user_id', user.id)
+              .eq('source_module', 'bank_transactions')
+              .in('source_id', bankTransactionIds);
+            existingPaymentTxQuery = applyCompanyScope(existingPaymentTxQuery);
+            let { data: existingPaymentTransactions, error: existingPaymentTransactionsError } =
+              await existingPaymentTxQuery;
+
+            if (
+              existingPaymentTransactionsError &&
+              isMissingColumnError(existingPaymentTransactionsError, 'company_id')
+            ) {
+              ({ data: existingPaymentTransactions, error: existingPaymentTransactionsError } = await supabase
+                .from('payment_transactions')
+                .select('id, source_id')
+                .eq('user_id', user.id)
+                .eq('source_module', 'bank_transactions')
+                .in('source_id', bankTransactionIds));
+            }
+
+            if (existingPaymentTransactionsError) throw existingPaymentTransactionsError;
+
+            const existingBySource = new Set((existingPaymentTransactions || []).map((tx) => tx.source_id));
+
+            const paymentTransactionRows = (bankTransactions || [])
+              .filter((tx) => !existingBySource.has(tx.id))
+              .map((tx) =>
+                withCompanyScope({
+                  user_id: user.id,
+                  payment_instrument_id: options.paymentInstrumentId,
+                  transaction_kind: Number(tx.amount) >= 0 ? 'deposit' : 'withdrawal',
+                  flow_direction: Number(tx.amount) >= 0 ? 'inflow' : 'outflow',
+                  source_module: 'bank_transactions',
+                  source_table: 'bank_transactions',
+                  source_id: tx.id,
+                  transaction_date: tx.value_date || tx.booking_date || tx.date,
+                  posting_date: tx.booking_date || tx.date,
+                  value_date: tx.value_date || tx.booking_date || tx.date,
+                  amount: Math.abs(Number(tx.amount || 0)),
+                  currency: (tx.currency || options.statementCurrency || 'EUR').toUpperCase(),
+                  description: tx.description || 'Import relevé bancaire',
+                  reference: tx.reference || tx.external_id || null,
+                  status: 'posted',
+                  created_by: user.id,
+                  updated_by: user.id,
+                })
+              );
+
+            if (paymentTransactionRows.length > 0) {
+              let { data: createdPaymentTransactions, error: paymentTransactionsError } = await supabase
+                .from('payment_transactions')
+                .insert(paymentTransactionRows)
+                .select('id, source_id');
+
+              if (
+                paymentTransactionsError &&
+                paymentTransactionRows.some((row) => row.company_id) &&
+                isMissingColumnError(paymentTransactionsError, 'company_id')
+              ) {
+                ({ data: createdPaymentTransactions, error: paymentTransactionsError } = await supabase
+                  .from('payment_transactions')
+                  .insert(paymentTransactionRows.map((row) => stripCompanyId(row)))
+                  .select('id, source_id'));
+              }
+
+              if (paymentTransactionsError) throw paymentTransactionsError;
+
+              for (const paymentTransaction of createdPaymentTransactions || []) {
+                if (!paymentTransaction?.source_id) continue;
+                await supabase
+                  .from('bank_transactions')
+                  .update({ payment_transaction_id: paymentTransaction.id })
+                  .eq('id', paymentTransaction.source_id)
+                  .eq('user_id', user.id);
+              }
+            }
+          }
+        }
 
         // Update statement status
         const { error: updateError } = await supabase
@@ -240,7 +529,7 @@ export const useBankReconciliation = () => {
         setLoading(false);
       }
     },
-    [user, toast, fetchLines, fetchStatements, withCompanyScope, stripCompanyId]
+    [user, toast, fetchLines, fetchStatements, withCompanyScope, stripCompanyId, applyCompanyScope]
   );
 
   // ========================================================================
@@ -282,7 +571,19 @@ export const useBankReconciliation = () => {
               })
               .eq('id', result.bankLineId);
 
-            if (!error) matchCount++;
+            if (!error) {
+              matchCount++;
+              const matchedLine = unmatchedLines.find((line) => line.id === result.bankLineId);
+              if (matchedLine) {
+                await syncLinkedBankTransactionStatus(
+                  matchedLine,
+                  'matched',
+                  result.matchedSourceType,
+                  result.matchedSourceId,
+                  result.confidence
+                );
+              }
+            }
           }
         }
 
@@ -301,7 +602,7 @@ export const useBankReconciliation = () => {
         setLoading(false);
       }
     },
-    [user, lines, toast, fetchLines]
+    [user, lines, toast, fetchLines, syncLinkedBankTransactionStatus]
   );
 
   const matchLine = useCallback(
@@ -339,12 +640,17 @@ export const useBankReconciliation = () => {
         );
 
         toast({ title: 'Rapproché', description: 'Ligne rapprochée avec succès.' });
+
+        const matchedLine = lines.find((l) => l.id === lineId);
+        if (matchedLine) {
+          await syncLinkedBankTransactionStatus(matchedLine, 'matched', sourceType, sourceId, 1.0);
+        }
       } catch (err) {
         console.error('Error matching line:', err);
         toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
       }
     },
-    [user, toast]
+    [user, toast, lines, syncLinkedBankTransactionStatus]
   );
 
   const unmatchLine = useCallback(
@@ -379,12 +685,17 @@ export const useBankReconciliation = () => {
               : l
           )
         );
+
+        const unmatchedLine = lines.find((l) => l.id === lineId);
+        if (unmatchedLine) {
+          await syncLinkedBankTransactionStatus(unmatchedLine, 'unmatched');
+        }
       } catch (err) {
         console.error('Error unmatching line:', err);
         toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
       }
     },
-    [user, toast]
+    [user, toast, lines, syncLinkedBankTransactionStatus]
   );
 
   const ignoreLine = useCallback(
@@ -416,12 +727,17 @@ export const useBankReconciliation = () => {
               : l
           )
         );
+
+        const ignoredLine = lines.find((l) => l.id === lineId);
+        if (ignoredLine) {
+          await syncLinkedBankTransactionStatus(ignoredLine, 'ignored');
+        }
       } catch (err) {
         console.error('Error ignoring line:', err);
         toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
       }
     },
-    [user, toast]
+    [user, toast, lines, syncLinkedBankTransactionStatus]
   );
 
   const bulkIgnoreLines = useCallback(
@@ -454,13 +770,21 @@ export const useBankReconciliation = () => {
           )
         );
 
+        const lineLookup = new Map(lines.map((line) => [line.id, line]));
+        for (const lineId of lineIds) {
+          const line = lineLookup.get(lineId);
+          if (line) {
+            await syncLinkedBankTransactionStatus(line, 'ignored');
+          }
+        }
+
         toast({ title: 'Succès', description: `${lineIds.length} lignes ignorées.` });
       } catch (err) {
         console.error('Error bulk ignoring:', err);
         toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
       }
     },
-    [user, toast]
+    [user, toast, lines, syncLinkedBankTransactionStatus]
   );
 
   // ========================================================================
