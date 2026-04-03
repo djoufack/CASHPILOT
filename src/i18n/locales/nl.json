@@ -156,6 +156,7 @@
     "logoutError": "Fout",
     "logoutErrorDescription": "Uitloggen mislukt. Probeer opnieuw.",
     "financialInstruments": "Financiële instrumenten",
+    "bankAccounts": "Bankrekeningen",
     "home": "Startpagina",
     "purchasesExpenses": "Aankopen & Uitgaven",
     "treasuryAccounting": "Liquiditeitsbeheer & Boekhouding",
@@ -4917,10 +4918,11 @@
       "allInstruments": "Tous les instruments"
     },
     "tabs": {
-      "bankAccounts": "comptes",
-      "cash": "caisses",
-      "cards": "Cartes",
-      "stats": "Statistiques"
+      "bankAccounts": "Bankrekeningen",
+      "cash": "Kassa's",
+      "cards": "Kaarten",
+      "stats": "Statistieken",
+      "transactions": "Transacties"
     },
     "unknownCompany": "Unknown Company",
     "instrument": "Instrument",

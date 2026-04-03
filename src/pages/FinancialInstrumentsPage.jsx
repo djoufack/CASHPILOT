@@ -14,6 +14,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   FileText,
+  Upload,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -35,37 +36,24 @@ import { CashRegisterPanel } from '@/components/financial-instruments/CashRegist
 import { CashForm } from '@/components/financial-instruments/CashForm';
 import { TransferDialog } from '@/components/financial-instruments/TransferDialog';
 import { InstrumentStatsPanel } from '@/components/financial-instruments/InstrumentStatsPanel';
+import BankStatementUploadModal from '@/components/accounting/BankStatementUploadModal';
 import { formatCurrency } from '@/utils/currencyService';
+import { useBankReconciliation } from '@/hooks/useBankReconciliation';
 
-const FLOW_OPTIONS = [
-  { value: 'all', label: 'Tous les flux' },
-  { value: 'inflow', label: 'Entrées' },
-  { value: 'outflow', label: 'Sorties' },
-];
-
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Tous les statuts' },
-  { value: 'draft', label: 'Brouillon' },
-  { value: 'pending', label: 'En attente' },
-  { value: 'posted', label: 'Comptabilisée' },
-  { value: 'reconciled', label: 'Rapprochée' },
-  { value: 'cancelled', label: 'Annulée' },
-];
-
+const FLOW_OPTIONS = ['all', 'inflow', 'outflow'];
+const STATUS_OPTIONS = ['all', 'draft', 'pending', 'posted', 'reconciled', 'cancelled'];
 const KIND_OPTIONS = [
-  { value: 'income', label: 'Encaissement' },
-  { value: 'expense', label: 'Décaissement' },
-  { value: 'transfer_in', label: 'Virement entrant' },
-  { value: 'transfer_out', label: 'Virement sortant' },
-  { value: 'refund_in', label: 'Remboursement entrant' },
-  { value: 'refund_out', label: 'Remboursement sortant' },
-  { value: 'fee', label: 'Frais bancaires' },
-  { value: 'adjustment', label: 'Ajustement' },
-  { value: 'withdrawal', label: 'Retrait' },
-  { value: 'deposit', label: 'Dépôt' },
+  'income',
+  'expense',
+  'transfer_in',
+  'transfer_out',
+  'refund_in',
+  'refund_out',
+  'fee',
+  'adjustment',
+  'withdrawal',
+  'deposit',
 ];
-
-const getKindLabel = (kind) => KIND_OPTIONS.find((option) => option.value === kind)?.label || kind;
 
 const getFlowBadgeClass = (flow) =>
   flow === 'inflow'
@@ -99,6 +87,7 @@ const FinancialInstrumentsPage = () => {
     deleteTransaction,
     resolveFlowDirection,
   } = usePaymentTransactions();
+  const { uploadStatement, importParsedLines } = useBankReconciliation();
 
   const [activeTab, setActiveTab] = useState('bank_accounts');
   const [bankFormOpen, setBankFormOpen] = useState(false);
@@ -113,6 +102,8 @@ const FinancialInstrumentsPage = () => {
   const [transactionFlowFilter, setTransactionFlowFilter] = useState('all');
   const [transactionStatusFilter, setTransactionStatusFilter] = useState('all');
   const [transactionSearch, setTransactionSearch] = useState('');
+  const [statementUploadOpen, setStatementUploadOpen] = useState(false);
+  const [selectedUploadInstrumentId, setSelectedUploadInstrumentId] = useState('');
 
   useEffect(() => {
     fetchInstruments();
@@ -251,6 +242,11 @@ const FinancialInstrumentsPage = () => {
     () => instruments.filter((instrument) => instrument.status === 'active'),
     [instruments]
   );
+
+  const getKindLabel = (kind) => t(`paymentTransactions.${kind}`, kind || '-');
+  const getStatusLabel = (status) => t(`paymentTransactions.${status}`, status || '-');
+  const getFlowLabel = (flow) =>
+    flow === 'all' ? t('common.all', 'Tous') : t(`paymentTransactions.${flow}`, flow || '-');
 
   const transactionRows = useMemo(
     () =>
@@ -392,7 +388,9 @@ const FinancialInstrumentsPage = () => {
   };
 
   const handleDeleteTransaction = async (transactionId) => {
-    if (!window.confirm('Supprimer cette transaction ?')) return;
+    if (!window.confirm(t('financialInstruments.transactions.deleteConfirm', 'Supprimer cette transaction ?'))) {
+      return;
+    }
     await deleteTransaction(transactionId);
     await fetchTransactions({ limit: 500 });
     await fetchInstruments();
@@ -415,10 +413,10 @@ const FinancialInstrumentsPage = () => {
       row.transaction_date || '',
       row.company_payment_instruments?.label || '',
       getKindLabel(row.transaction_kind),
-      row.flow_direction === 'inflow' ? 'Entrée' : 'Sortie',
+      getFlowLabel(row.flow_direction),
       String(Number(row.amount || 0).toFixed(2)),
       row.currency || '',
-      row.status || '',
+      getStatusLabel(row.status),
       row.reference || '',
       row.counterparty_name || '',
       row.description || '',
@@ -435,6 +433,31 @@ const FinancialInstrumentsPage = () => {
     link.download = `cashpilot-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(downloadUrl);
+  };
+
+  const handleStatementUploadComplete = async (file, parsedData, metadata = {}, paymentInstrumentId = null) => {
+    const scopedInstrumentId = paymentInstrumentId || metadata.paymentInstrumentId || null;
+
+    const statement = await uploadStatement(file, {
+      ...metadata,
+      paymentInstrumentId: scopedInstrumentId,
+    });
+    if (!statement?.id) return false;
+
+    const importSuccess = await importParsedLines(statement.id, parsedData?.lines || [], parsedData?.errors || [], {
+      paymentInstrumentId: scopedInstrumentId,
+      bankName: metadata.bankName || null,
+      accountNumber: metadata.accountNumber || null,
+      statementCurrency: metadata.currency || parsedData?.metadata?.currency || null,
+    });
+
+    if (importSuccess) {
+      await fetchTransactions({ limit: 500 });
+      await fetchInstruments();
+      setStatementUploadOpen(false);
+    }
+
+    return importSuccess;
   };
 
   return (
@@ -556,9 +579,25 @@ const FinancialInstrumentsPage = () => {
                 <TabsContent value="transactions" className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="text-sm text-gray-400">
-                      Tableau de bord par compte/moyen de paiement, rapports et registre CRUD des opérations.
+                      {t(
+                        'financialInstruments.transactions.helpText',
+                        'Tableau de bord par compte/moyen de paiement, rapports et registre CRUD des opérations.'
+                      )}
                     </div>
                     <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                        onClick={() => {
+                          setSelectedUploadInstrumentId(
+                            transactionInstrumentFilter !== 'all' ? transactionInstrumentFilter : ''
+                          );
+                          setStatementUploadOpen(true);
+                        }}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {t('accounting.reconciliation.importStatement', 'Importer un relevé')}
+                      </Button>
                       <Button
                         variant="outline"
                         className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
@@ -566,14 +605,14 @@ const FinancialInstrumentsPage = () => {
                         disabled={transactionRows.length === 0}
                       >
                         <Download className="h-4 w-4 mr-2" />
-                        Export CSV
+                        {t('financialInstruments.transactions.exportCsv', 'Export CSV')}
                       </Button>
                       <Button
                         className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
                         onClick={openCreateTransactionDialog}
                       >
                         <Plus className="h-4 w-4 mr-2" />
-                        Nouvelle transaction
+                        {t('paymentTransactions.newTransaction', 'Nouvelle transaction')}
                       </Button>
                     </div>
                   </div>
@@ -587,7 +626,9 @@ const FinancialInstrumentsPage = () => {
                             <SelectValue placeholder="Tous les comptes" />
                           </SelectTrigger>
                           <SelectContent className="bg-[#141c33] border-gray-800/50">
-                            <SelectItem value="all">Tous les comptes</SelectItem>
+                            <SelectItem value="all">
+                              {t('financialInstruments.transactions.allInstruments', 'Tous les comptes')}
+                            </SelectItem>
                             {activeInstruments.map((instrument) => (
                               <SelectItem key={instrument.id} value={instrument.id}>
                                 {instrument.label}
@@ -605,8 +646,8 @@ const FinancialInstrumentsPage = () => {
                           </SelectTrigger>
                           <SelectContent className="bg-[#141c33] border-gray-800/50">
                             {FLOW_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
+                              <SelectItem key={option} value={option}>
+                                {getFlowLabel(option)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -621,8 +662,8 @@ const FinancialInstrumentsPage = () => {
                           </SelectTrigger>
                           <SelectContent className="bg-[#141c33] border-gray-800/50">
                             {STATUS_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
+                              <SelectItem key={option} value={option}>
+                                {option === 'all' ? t('common.all', 'Tous') : getStatusLabel(option)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -767,7 +808,7 @@ const FinancialInstrumentsPage = () => {
                                         ) : (
                                           <ArrowUpRight className="h-3 w-3" />
                                         )}
-                                        {transaction.flow_direction === 'inflow' ? 'Entrée' : 'Sortie'}
+                                        {getFlowLabel(transaction.flow_direction)}
                                       </span>
                                     </Badge>
                                   </td>
@@ -782,7 +823,7 @@ const FinancialInstrumentsPage = () => {
                                       transaction.currency || transactionDashboard.currency
                                     )}
                                   </td>
-                                  <td className="py-2 pr-3 text-gray-300">{transaction.status}</td>
+                                  <td className="py-2 pr-3 text-gray-300">{getStatusLabel(transaction.status)}</td>
                                   <td className="py-2 pr-3 text-gray-400">{transaction.reference || '-'}</td>
                                   <td className="py-2 text-right">
                                     <div className="inline-flex gap-1">
@@ -852,7 +893,9 @@ const FinancialInstrumentsPage = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-white">
                 <FileText className="h-5 w-5 text-amber-500" />
-                {editingTransaction ? 'Modifier la transaction' : 'Nouvelle transaction'}
+                {editingTransaction
+                  ? t('financialInstruments.transactions.editTransaction', 'Modifier la transaction')
+                  : t('paymentTransactions.newTransaction', 'Nouvelle transaction')}
               </DialogTitle>
             </DialogHeader>
 
@@ -888,8 +931,8 @@ const FinancialInstrumentsPage = () => {
                     </SelectTrigger>
                     <SelectContent className="bg-[#141c33] border-gray-800/50">
                       {KIND_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
+                        <SelectItem key={option} value={option}>
+                          {getKindLabel(option)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -921,9 +964,9 @@ const FinancialInstrumentsPage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-[#141c33] border-gray-800/50">
-                      {STATUS_OPTIONS.filter((option) => option.value !== 'all').map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
+                      {STATUS_OPTIONS.filter((option) => option !== 'all').map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {getStatusLabel(option)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1007,12 +1050,23 @@ const FinancialInstrumentsPage = () => {
                   className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
                   disabled={!transactionForm.payment_instrument_id || Number(transactionForm.amount || 0) <= 0}
                 >
-                  {editingTransaction ? 'Enregistrer les modifications' : 'Créer la transaction'}
+                  {editingTransaction
+                    ? t('common.save', 'Enregistrer')
+                    : t('financialInstruments.transactions.create', 'Créer la transaction')}
                 </Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
+
+        <BankStatementUploadModal
+          open={statementUploadOpen}
+          onOpenChange={setStatementUploadOpen}
+          onUploadComplete={handleStatementUploadComplete}
+          instruments={activeInstruments}
+          selectedInstrumentId={selectedUploadInstrumentId}
+          onSelectedInstrumentIdChange={setSelectedUploadInstrumentId}
+        />
       </div>
     </>
   );

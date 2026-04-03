@@ -155,6 +155,7 @@
     "logoutError": "Error",
     "logoutErrorDescription": "Failed to log out. Please try again.",
     "financialInstruments": "Financial Instruments",
+    "bankAccounts": "Bank Accounts",
     "home": "Home",
     "purchasesExpenses": "Purchases & Expenses",
     "treasuryAccounting": "Treasury & Accounting",
@@ -4782,10 +4783,11 @@
       "allInstruments": "Tous les instruments"
     },
     "tabs": {
-      "bankAccounts": "comptes",
-      "cash": "caisses",
-      "cards": "Cartes",
-      "stats": "Statistiques"
+      "bankAccounts": "Bank Accounts",
+      "cash": "Cash Registers",
+      "cards": "Cards",
+      "stats": "Statistics",
+      "transactions": "Transactions"
     },
     "unknownCompany": "Unknown Company",
     "instrument": "Instrument",
