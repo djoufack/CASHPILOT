@@ -14,18 +14,18 @@ Avec CashPilot + Scrada, vos factures sont envoyees au format **Peppol BIS Billi
 
 ## Architecture : qui fait quoi ?
 
-| Etape | Responsable | Detail |
-|-------|-------------|--------|
-| Creer un compte Scrada | **Vous** | 1 fois, 5 minutes |
-| Choisir un abonnement Scrada | **Vous** | A partir de 2 EUR/mois |
-| Generer une cle API Scrada | **Vous** | 1 fois, dans le portail Scrada |
-| Coller les identifiants dans CashPilot | **Vous** | 1 fois, dans Parametres > Peppol |
-| Tester la connexion | **Vous** | 1 clic dans CashPilot |
-| Generer le XML UBL conforme | **CashPilot** | Automatique a chaque envoi |
-| Envoyer la facture via Peppol | **CashPilot** | 1 clic sur "Envoyer via Peppol" |
-| Suivre le statut de livraison | **CashPilot** | Polling automatique (2 min) |
-| Verifier si un client est sur Peppol | **CashPilot** | 1 clic dans la fiche client |
-| Recevoir des factures entrantes | **CashPilot** | Synchronisation manuelle |
+| Etape                                  | Responsable   | Detail                           |
+| -------------------------------------- | ------------- | -------------------------------- |
+| Creer un compte Scrada                 | **Vous**      | 1 fois, 5 minutes                |
+| Choisir un abonnement Scrada           | **Vous**      | A partir de 2 EUR/mois           |
+| Generer une cle API Scrada             | **Vous**      | 1 fois, dans le portail Scrada   |
+| Coller les identifiants dans CashPilot | **Vous**      | 1 fois, dans Parametres > Peppol |
+| Tester la connexion                    | **Vous**      | 1 clic dans CashPilot            |
+| Generer le XML UBL conforme            | **CashPilot** | Automatique a chaque envoi       |
+| Envoyer la facture via Peppol          | **CashPilot** | 1 clic sur "Envoyer via Peppol"  |
+| Suivre le statut de livraison          | **CashPilot** | Polling automatique (2 min)      |
+| Verifier si un client est sur Peppol   | **CashPilot** | 1 clic dans la fiche client      |
+| Recevoir des factures entrantes        | **CashPilot** | Synchronisation manuelle         |
 
 ---
 
@@ -36,12 +36,12 @@ Avec CashPilot + Scrada, vos factures sont envoyees au format **Peppol BIS Billi
 3. Remplissez les informations de votre entreprise
 4. Choisissez un abonnement :
 
-| Plan | Prix | Factures/an | Ideal pour |
-|------|------|-------------|------------|
-| Peppol Inbox | 2 EUR/mois | Reception uniquement | Recevoir des factures |
-| Basic Peppol Box | 6 EUR/mois | 600 | Freelances, petites PME |
-| Professional | 11 EUR/mois | 1 200 | PME actives |
-| Premium | Sur mesure | Illimite | Grandes entreprises |
+| Plan             | Prix        | Factures/an          | Ideal pour              |
+| ---------------- | ----------- | -------------------- | ----------------------- |
+| Peppol Inbox     | 2 EUR/mois  | Reception uniquement | Recevoir des factures   |
+| Basic Peppol Box | 6 EUR/mois  | 600                  | Freelances, petites PME |
+| Professional     | 11 EUR/mois | 1 200                | PME actives             |
+| Premium          | Sur mesure  | Illimite             | Grandes entreprises     |
 
 > **Recommandation :** Pour un freelance ou une petite PME, le plan **Basic Peppol Box** a 6 EUR/mois couvre largement les besoins (50 factures/mois).
 
@@ -55,11 +55,11 @@ Dans le portail Scrada ([my.scrada.be](https://my.scrada.be)) :
 2. Cliquez sur **"Generer une nouvelle cle API"**
 3. Notez les **3 informations** suivantes :
 
-| Champ | Ou le trouver | Exemple |
-|-------|---------------|---------|
+| Champ          | Ou le trouver               | Exemple                                |
+| -------------- | --------------------------- | -------------------------------------- |
 | **Company ID** | Dashboard ou URL du portail | `a1b2c3d4-e5f6-7890-abcd-ef1234567890` |
-| **API Key** | Parametres > Cles API | (chaine longue generee) |
-| **Password** | Parametres > Cles API | (mot de passe associe a la cle) |
+| **API Key**    | Parametres > Cles API       | (chaine longue generee)                |
+| **Password**   | Parametres > Cles API       | (mot de passe associe a la cle)        |
 
 > **Important :** Conservez ces identifiants en lieu sur. Le mot de passe ne sera pas redemontrable apres generation.
 
@@ -101,11 +101,11 @@ Dans le portail Scrada ([my.scrada.be](https://my.scrada.be)) :
    - Lance le suivi automatique du statut
 4. Le statut evolue automatiquement :
 
-| Statut | Signification |
-|--------|--------------|
+| Statut         | Signification                                      |
+| -------------- | -------------------------------------------------- |
 | **En attente** | Facture envoyee, en cours de traitement par Scrada |
-| **Livre** | Facture recue par le destinataire |
-| **Erreur** | Probleme de transmission (details affiches) |
+| **Livre**      | Facture recue par le destinataire                  |
+| **Erreur**     | Probleme de transmission (details affiches)        |
 
 > CashPilot verifie le statut toutes les 10 secondes pendant 2 minutes apres l'envoi. Le badge de statut se met a jour automatiquement.
 
@@ -138,6 +138,73 @@ CashPilot peut recuperer les factures que vous recevez via Peppol :
 
 ---
 
+## Flux complet : Peppol -> GED -> Factures fournisseurs -> Journalisation -> Bilan
+
+Quand une facture est recue via Peppol, il faut distinguer 5 etapes.
+
+| Etape                       | Action utilisateur                        | Ce que fait CashPilot                                                                       | Ou vous le voyez                             |
+| --------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 1. Reception reseau         | Cliquer **Synchroniser**                  | Recupere les documents entrants depuis Scrada                                               | Onglet Peppol > Reception                    |
+| 2. Integration metier       | Cliquer action d'integration (compta/GED) | Cree la facture fournisseur + cree/met a jour le fournisseur + archive le document dans GED | Factures fournisseurs + GED                  |
+| 3. Journalisation comptable | Automatique lors de l'integration         | Ecritures d'achat (charge, TVA deductible, dette fournisseur)                               | Comptabilite (journal / grand livre / bilan) |
+| 4. Paiement                 | Marquer/mettre en **Paye**                | Ecritures de reglement (debit fournisseur, credit banque)                                   | Factures fournisseurs + comptabilite         |
+| 5. Lecture des etats        | Choisir la bonne periode                  | Calcule les soldes a date                                                                   | Bilan / Resultat / TVA                       |
+
+---
+
+## Pourquoi une facture peut etre visible dans le GED mais pas dans le bilan
+
+Ce cas est normal dans plusieurs situations :
+
+1. La facture est archivee, mais pas encore integree comptablement  
+   Le GED confirme le stockage du document. Tant que la facture n'est pas dans le flux fournisseur/compta, elle n'alimente pas les etats.
+
+2. La facture est deja payee  
+   Si la dette fournisseur a ete creee puis reglee, le poste "Fournisseurs" peut etre proche de 0 a la date de consultation du bilan.
+
+3. La periode de bilan ne couvre pas la bonne date  
+   Le bilan est une photo a date. Si vous consultez une date differente de la date d'ecriture, vous ne verrez pas le meme solde.
+
+4. Mauvaise societe active (scope company)  
+   Les donnees sont filtrees par societe active. Verifiez la societe selectionnee en haut de l'interface.
+
+---
+
+## Ou verifier chaque information
+
+| Question                                      | Ecran a verifier                          | Indice attendu                                      |
+| --------------------------------------------- | ----------------------------------------- | --------------------------------------------------- |
+| "La facture est-elle bien recue via Peppol ?" | Peppol > Reception                        | Ligne presente dans la liste des documents entrants |
+| "Le document est-il archive ?"                | GED HUB                                   | PDF/XML visible avec metadonnees                    |
+| "La facture est-elle creee cote achats ?"     | Achats & Depenses > Factures fournisseurs | Facture presente avec fournisseur et montant        |
+| "L'ecriture comptable existe-t-elle ?"        | Comptabilite > Journal / Grand livre      | Ecritures source facture fournisseur                |
+| "Pourquoi le bilan ne bouge pas ?"            | Comptabilite > Bilan (date)               | Verifier date de coupe et statut paye/non paye      |
+
+---
+
+## Procedure recommandee (factures recues Peppol)
+
+1. Synchroniser les receptions Peppol.
+2. Integrer chaque facture dans le flux comptable/GED.
+3. Verifier fournisseur, numero facture, date, montants HT/TVA/TTC.
+4. Controler l'ecriture dans le journal comptable.
+5. Mettre le statut de paiement a jour uniquement lors du vrai reglement.
+6. Relire le bilan a la bonne date de coupe.
+
+---
+
+## Cas pratique : "Je vois 151,25 EUR dans GED, mais pas en bilan"
+
+Interpretation la plus frequente :
+
+1. La facture a bien ete integree (donc visible GED + factures fournisseurs).
+2. Elle a ete marquee **Paye**.
+3. Le bilan a date affiche alors une dette fournisseur deja soldee.
+
+Resultat : vous voyez le document et l'historique, mais le poste dettes fournisseurs n'est plus ouvert sur la date consultee.
+
+---
+
 ## FAQ
 
 ### Combien coute Peppol ?
@@ -151,6 +218,7 @@ Oui. Les identifiants sont stockes de maniere chiffree dans la base de donnees S
 ### Que se passe-t-il si l'envoi echoue ?
 
 Le statut passe a "Erreur" avec un message explicatif. Vous pouvez corriger la facture et la renvoyer. Les erreurs courantes sont :
+
 - Identifiant Peppol du destinataire invalide
 - Facture non conforme EN16931 (CashPilot valide avant envoi)
 - Probleme temporaire du reseau Peppol (reessayez)

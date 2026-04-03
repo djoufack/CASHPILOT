@@ -2738,6 +2738,7 @@
     "exportPDF": "Exporter en PDF",
     "inboundToGedSuccess": "Inbound To Ged Success",
     "externalImportSend": "Importer UBL (GED / Disque)",
+    "openGuideHtml": "Guide operationnel (HTML)",
     "purgeAllAction": "Supprimer toutes les factures Peppol (DB)",
     "cancelNetworkAction": "Annuler cote reseau",
     "deleteLocalAction": "Supprimer localement",

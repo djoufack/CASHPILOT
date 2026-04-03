@@ -1350,6 +1350,12 @@ const PeppolPage = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
+            <a href="/peppol-guide#flow-accounting" target="_blank" rel="noopener noreferrer">
+              <FileCheck className="w-4 h-4 mr-2" />
+              {t('peppol.openGuideHtml', 'Guide opérationnel (HTML)')}
+            </a>
+          </Button>
           <Button
             variant="outline"
             size="sm"
