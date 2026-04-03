@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +58,7 @@ import {
   CalendarClock,
   Kanban,
   List,
+  HelpCircle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreview from '@/components/InvoicePreview';
@@ -917,7 +919,7 @@ const PeppolPage = () => {
   }, []);
 
   const getBusinessStatusBadge = useCallback(
-    (record, { outbound = false } = {}) => {
+    (record, { outbound = false, inboundHelp = false } = {}) => {
       if (!record) return null;
       const paymentStatus = String(record.payment_status || '')
         .trim()
@@ -939,11 +941,26 @@ const PeppolPage = () => {
       }
 
       if (paymentStatus === 'paid' || status === 'paid') {
-        return (
+        const badge = (
           <Badge className="bg-emerald-500/20 text-emerald-300 border-0 gap-1">
             <CheckCircle className="w-3 h-3" />
             Paye
+            {inboundHelp ? <HelpCircle className="w-3 h-3 opacity-80" /> : null}
           </Badge>
+        );
+        if (!inboundHelp) return badge;
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">{badge}</span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs bg-gray-900 border-gray-700 text-gray-100 text-xs">
+              {t(
+                'peppol.statusHelpPaye',
+                'Facture fournisseur reglee: la dette est soldee et visible dans les ecritures de paiement.'
+              )}
+            </TooltipContent>
+          </Tooltip>
         );
       }
 
@@ -972,42 +989,74 @@ const PeppolPage = () => {
         </Badge>
       );
     },
-    [isBusinessDisputed, isOverdueBusiness]
+    [isBusinessDisputed, isOverdueBusiness, t]
   );
 
-  const getInboundOperationalBadge = useCallback((doc, linkedSupplierInvoice) => {
-    if (linkedSupplierInvoice?.id) {
-      return (
-        <Badge className="bg-green-500/20 text-green-300 border-0 gap-1">
-          <FileCheck className="w-3 h-3" />
-          Integree compta
-        </Badge>
-      );
-    }
+  const getInboundOperationalBadge = useCallback(
+    (doc, linkedSupplierInvoice) => {
+      if (linkedSupplierInvoice?.id) {
+        const badge = (
+          <Badge className="bg-green-500/20 text-green-300 border-0 gap-1">
+            <FileCheck className="w-3 h-3" />
+            Integree compta
+            <HelpCircle className="w-3 h-3 opacity-80" />
+          </Badge>
+        );
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">{badge}</span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs bg-gray-900 border-gray-700 text-gray-100 text-xs">
+              {t(
+                'peppol.statusHelpIntegrated',
+                'Document converti en facture fournisseur et integre dans le flux comptable.'
+              )}
+            </TooltipContent>
+          </Tooltip>
+        );
+      }
 
-    const operationalStatus = String(doc?.status || 'new').toLowerCase();
-    if (operationalStatus === 'archived') {
-      return (
-        <Badge className="bg-gray-500/20 text-gray-300 border-0 gap-1">
-          <FileCheck className="w-3 h-3" />
-          Archivee
+      const operationalStatus = String(doc?.status || 'new').toLowerCase();
+      if (operationalStatus === 'archived') {
+        return (
+          <Badge className="bg-gray-500/20 text-gray-300 border-0 gap-1">
+            <FileCheck className="w-3 h-3" />
+            Archivee
+          </Badge>
+        );
+      }
+      if (operationalStatus === 'processed') {
+        return (
+          <Badge className="bg-cyan-500/20 text-cyan-300 border-0 gap-1">
+            <Activity className="w-3 h-3" />
+            En revue
+          </Badge>
+        );
+      }
+      const pendingBadge = (
+        <Badge className="bg-yellow-500/20 text-yellow-300 border-0 gap-1">
+          <Clock className="w-3 h-3" />
+          A traiter
+          <HelpCircle className="w-3 h-3 opacity-80" />
         </Badge>
       );
-    }
-    if (operationalStatus === 'processed') {
       return (
-        <Badge className="bg-cyan-500/20 text-cyan-300 border-0 gap-1">
-          <Activity className="w-3 h-3" />
-          En revue
-        </Badge>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">{pendingBadge}</span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs bg-gray-900 border-gray-700 text-gray-100 text-xs">
+            {t(
+              'peppol.statusHelpATraiter',
+              'Document recu mais pas encore integre. Utilisez "Envoyer vers GED" pour lancer le flux comptable.'
+            )}
+          </TooltipContent>
+        </Tooltip>
       );
-    }
-    return (
-      <Badge className="bg-yellow-500/20 text-yellow-300 border-0 gap-1">
-        <Clock className="w-3 h-3" />A traiter
-      </Badge>
-    );
-  }, []);
+    },
+    [t]
+  );
 
   const getLogStatusBadge = (status) => {
     const config = {
@@ -1329,537 +1378,874 @@ const PeppolPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] p-4 sm:p-6 lg:p-8 space-y-6">
-      <Helmet>
-        <title>{t('pages.peppol', 'Peppol')} | CashPilot</title>
-      </Helmet>
-      <CreditsGuardModal {...creditsModalProps} />
-      <CreditsGuardModal {...inboundCreditsModalProps} />
+    <TooltipProvider delayDuration={120}>
+      <div className="min-h-screen bg-[#0a0e1a] p-4 sm:p-6 lg:p-8 space-y-6">
+        <Helmet>
+          <title>{t('pages.peppol', 'Peppol')} | CashPilot</title>
+        </Helmet>
+        <CreditsGuardModal {...creditsModalProps} />
+        <CreditsGuardModal {...inboundCreditsModalProps} />
 
-      {/* ======== HEADER ======== */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent flex items-center gap-3">
-            <Globe className="w-8 h-8 text-orange-400" />
-            Peppol e-Invoicing
-          </h1>
-          <p className="text-gray-400 mt-1 text-sm">
-            {isPeppolConfigured
-              ? `${t('peppol.companyEndpoint')}: ${company.peppol_endpoint_id}`
-              : t('peppol.noEndpoint')}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
-            <a href="/peppol-guide#flow-accounting" target="_blank" rel="noopener noreferrer">
-              <FileCheck className="w-4 h-4 mr-2" />
-              {t('peppol.openGuideHtml', 'Guide opérationnel (HTML)')}
-            </a>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openExternalSendDialog}
-            className="border-gray-700 text-gray-300 hover:bg-gray-800"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            {t('peppol.externalImportSend', 'Importer UBL (GED / Disque)')}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSyncInbound}
-            className="border-gray-700 text-gray-300 hover:bg-gray-800"
-            disabled={syncingInbound}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${syncingInbound ? 'animate-spin' : ''}`} />
-            {t('peppolPage.creditPolicy.syncButton', {
-              credits: CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE,
-              unit: creditUnit,
-              defaultValue: `Synchroniser (${CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE} ${creditUnit}/facture)`,
-            })}
-          </Button>
-          <Link to="/app/settings">
-            <Button variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
-              <Settings className="w-4 h-4 mr-2" />
-              {t('peppol.settings')}
+        {/* ======== HEADER ======== */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent flex items-center gap-3">
+              <Globe className="w-8 h-8 text-orange-400" />
+              Peppol e-Invoicing
+            </h1>
+            <p className="text-gray-400 mt-1 text-sm">
+              {isPeppolConfigured
+                ? `${t('peppol.companyEndpoint')}: ${company.peppol_endpoint_id}`
+                : t('peppol.noEndpoint')}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              <a href="/peppol-guide#flow-accounting" target="_blank" rel="noopener noreferrer">
+                <FileCheck className="w-4 h-4 mr-2" />
+                {t('peppol.openGuideHtml', 'Guide opérationnel (HTML)')}
+              </a>
             </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* ======== CONNECTION STATUS CARD ======== */}
-      <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div
-              className={`w-3 h-3 rounded-full flex-shrink-0 ${isPeppolConfigured ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}
-            />
-            <div>
-              <p className="text-white font-medium">
-                {isPeppolConfigured ? 'Peppol Access Point Connected' : 'Peppol Not Configured'}
-              </p>
-              <div className="flex flex-wrap gap-x-6 gap-y-1 mt-1 text-sm text-gray-400">
-                {isPeppolConfigured && (
-                  <>
-                    <span>
-                      Endpoint: <span className="text-gray-300 font-mono">{company.peppol_endpoint_id}</span>
-                    </span>
-                    <span>
-                      {t('peppol.schemeId')}:{' '}
-                      <span className="text-gray-300 font-mono">{company.peppol_scheme_id || '0208'}</span>
-                    </span>
-                    <span>
-                      {t('peppol.apProvider')}:{' '}
-                      <span className="text-gray-300 capitalize">{company.peppol_ap_provider || 'scrada'}</span>
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {isPeppolConfigured ? (
-              <Badge className="bg-green-500/20 text-green-400 border-0">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Connected
-              </Badge>
-            ) : (
-              <Link to="/app/settings">
-                <Badge className="bg-red-500/20 text-red-400 border-0 cursor-pointer hover:bg-red-500/30">
-                  <XCircle className="w-3 h-3 mr-1" />
-                  Configure
-                </Badge>
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-5 space-y-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-white font-semibold">
-            {t('peppolPage.creditPolicy.title', 'Politique de credits Peppol')}
-          </h2>
-          <p className="text-sm text-gray-400">
-            {t(
-              'peppolPage.creditPolicy.subtitle',
-              'Peppol est visible pour tous. Chaque action reseau consomme des credits au moment ou elle est executee.'
-            )}
-          </p>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {creditPolicyItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div key={item.key} className="rounded-xl border border-white/10 bg-gray-900/40 p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="rounded-lg bg-white/5 p-2">
-                      <Icon className={`w-4 h-4 ${item.iconClass}`} />
-                    </div>
-                    <p className="text-sm font-medium text-white">{item.title}</p>
-                  </div>
-                  <Badge className={`${item.badgeClass} border-0 whitespace-nowrap`}>{item.costLabel}</Badge>
-                </div>
-                <p className="text-sm text-gray-400">{item.description}</p>
-              </div>
-            );
-          })}
-        </div>
-        <p className="text-xs text-gray-500">
-          {t('peppolPage.creditPolicy.saveFree', 'Enregistrer les champs seuls ne consomme pas de credits.')}
-        </p>
-      </div>
-
-      {/* ======== KPI CARDS ======== */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          {
-            label: 'Total envoyees',
-            value: kpis.total,
-            icon: Send,
-            color: 'text-blue-400',
-            bg: 'bg-blue-500/10',
-          },
-          {
-            label: 'Livrees',
-            value: kpis.delivered,
-            icon: CheckCircle,
-            color: 'text-green-400',
-            bg: 'bg-green-500/10',
-          },
-          {
-            label: 'En attente',
-            value: kpis.pending,
-            icon: Clock,
-            color: 'text-yellow-400',
-            bg: 'bg-yellow-500/10',
-          },
-          {
-            label: 'Erreurs',
-            value: kpis.errors,
-            icon: AlertTriangle,
-            color: 'text-red-400',
-            bg: 'bg-red-500/10',
-          },
-        ].map((kpi) => (
-          <div key={kpi.label} className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-400 text-sm">{kpi.label}</span>
-              <div className={`${kpi.bg} p-2 rounded-lg`}>
-                <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-white">{kpi.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ======== PEPPOL ID CHECK ======== */}
-      <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-5">
-        <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-          <Search className="w-4 h-4 text-orange-400" />
-          {t('peppol.checkPeppol')} Peppol ID
-        </h3>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Input
-            value={peppolIdInput}
-            onChange={(e) => {
-              setPeppolIdInput(e.target.value);
-              if (checkResult) resetCheck();
-            }}
-            placeholder="0208:0123456789 (BE) / 0009:12345678901234 (FR)"
-            className="bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500 flex-1"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCheckPeppolId();
-            }}
-          />
-          <Button
-            onClick={handleCheckPeppolId}
-            disabled={checking || !peppolIdInput.trim()}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            {checking ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
-            {t('peppol.checkPeppol')}
-          </Button>
-        </div>
-        {checkResult && (
-          <div
-            className={`mt-3 flex items-center gap-2 text-sm ${checkResult.registered ? 'text-green-400' : 'text-red-400'}`}
-          >
-            {checkResult.registered ? (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                {t('peppol.checkRegistered')} — {peppolIdInput}
-                {checkResult.name && <span className="text-gray-400 ml-2">({checkResult.name})</span>}
-              </>
-            ) : (
-              <>
-                <XCircle className="w-4 h-4" />
-                {t('peppol.checkNotRegistered')} — {peppolIdInput}
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ======== TABS ======== */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-gray-900/50 border border-gray-800">
-          <TabsTrigger
-            value="outbound"
-            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
-          >
-            <ArrowUpRight className="w-4 h-4 mr-2" />
-            Envoi
-          </TabsTrigger>
-          <TabsTrigger
-            value="inbound"
-            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
-          >
-            <ArrowDownLeft className="w-4 h-4 mr-2" />
-            Reception
-          </TabsTrigger>
-          <TabsTrigger
-            value="journal"
-            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
-          >
-            <Clock className="w-4 h-4 mr-2" />
-            Journal
-          </TabsTrigger>
-          <TabsTrigger
-            value="config"
-            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
-          >
-            <Wrench className="w-4 h-4 mr-2" />
-            Configuration
-          </TabsTrigger>
-        </TabsList>
-
-        {/* -------- TAB: OUTBOUND -------- */}
-        <TabsContent value="outbound" className="mt-4">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher par numero ou client..."
-                className="pl-10 bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48 bg-gray-900/50 border-gray-700 text-white">
-                <SelectValue placeholder="Filtrer par statut" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                <SelectItem value="all">Tous</SelectItem>
-                <SelectItem value="eligible">Eligible Peppol</SelectItem>
-                <SelectItem value="none">{t('peppol.status.none')}</SelectItem>
-                <SelectItem value="pending">{t('peppol.status.pending')}</SelectItem>
-                <SelectItem value="sent">{t('peppol.status.sent')}</SelectItem>
-                <SelectItem value="delivered">{t('peppol.status.delivered')}</SelectItem>
-                <SelectItem value="accepted">{t('peppol.status.accepted')}</SelectItem>
-                <SelectItem value="error">{t('peppol.status.error')}</SelectItem>
-                <SelectItem value="rejected">{t('peppol.status.rejected')}</SelectItem>
-                <SelectItem value="cancelled">{t('peppol.status.cancelled', 'Annule')}</SelectItem>
-              </SelectContent>
-            </Select>
             <Button
               variant="outline"
-              onClick={handlePurgeAllPeppolFromDb}
-              disabled={purgingPeppol || managingOutbound}
-              className="w-full sm:w-auto border-red-500/40 text-red-300 hover:bg-red-500/10"
+              size="sm"
+              onClick={openExternalSendDialog}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
             >
-              {purgingPeppol ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-              {t('peppol.purgeAllAction', 'Supprimer toutes les factures Peppol (DB)')}
+              <Upload className="w-4 h-4 mr-2" />
+              {t('peppol.externalImportSend', 'Importer UBL (GED / Disque)')}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncInbound}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              disabled={syncingInbound}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncingInbound ? 'animate-spin' : ''}`} />
+              {t('peppolPage.creditPolicy.syncButton', {
+                credits: CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE,
+                unit: creditUnit,
+                defaultValue: `Synchroniser (${CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE} ${creditUnit}/facture)`,
+              })}
+            </Button>
+            <Link to="/app/settings">
+              <Button variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                <Settings className="w-4 h-4 mr-2" />
+                {t('peppol.settings')}
+              </Button>
+            </Link>
           </div>
+        </div>
 
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Button
-              size="sm"
-              variant={outboundViewMode === 'list' ? 'default' : 'outline'}
-              onClick={() => setOutboundViewMode('list')}
-              className={
-                outboundViewMode === 'list'
-                  ? 'bg-orange-500 hover:bg-orange-600'
-                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
-              }
-            >
-              <List className="w-4 h-4 mr-2" /> {t('common.list', 'Liste')}
-            </Button>
-            <Button
-              size="sm"
-              variant={outboundViewMode === 'calendar' ? 'default' : 'outline'}
-              onClick={() => setOutboundViewMode('calendar')}
-              className={
-                outboundViewMode === 'calendar'
-                  ? 'bg-orange-500 hover:bg-orange-600'
-                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
-              }
-            >
-              <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar', 'Calendrier')}
-            </Button>
-            <Button
-              size="sm"
-              variant={outboundViewMode === 'agenda' ? 'default' : 'outline'}
-              onClick={() => setOutboundViewMode('agenda')}
-              className={
-                outboundViewMode === 'agenda'
-                  ? 'bg-orange-500 hover:bg-orange-600'
-                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
-              }
-            >
-              <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda', 'Agenda')}
-            </Button>
-            <Button
-              size="sm"
-              variant={outboundViewMode === 'kanban' ? 'default' : 'outline'}
-              onClick={() => setOutboundViewMode('kanban')}
-              className={
-                outboundViewMode === 'kanban'
-                  ? 'bg-orange-500 hover:bg-orange-600'
-                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
-              }
-            >
-              <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban', 'Kanban')}
-            </Button>
-          </div>
-
-          {/* Outbound table */}
-          {loadingInvoices ? (
-            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
-              <div className="flex items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+        {/* ======== CONNECTION STATUS CARD ======== */}
+        <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div
+                className={`w-3 h-3 rounded-full flex-shrink-0 ${isPeppolConfigured ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}
+              />
+              <div>
+                <p className="text-white font-medium">
+                  {isPeppolConfigured ? 'Peppol Access Point Connected' : 'Peppol Not Configured'}
+                </p>
+                <div className="flex flex-wrap gap-x-6 gap-y-1 mt-1 text-sm text-gray-400">
+                  {isPeppolConfigured && (
+                    <>
+                      <span>
+                        Endpoint: <span className="text-gray-300 font-mono">{company.peppol_endpoint_id}</span>
+                      </span>
+                      <span>
+                        {t('peppol.schemeId')}:{' '}
+                        <span className="text-gray-300 font-mono">{company.peppol_scheme_id || '0208'}</span>
+                      </span>
+                      <span>
+                        {t('peppol.apProvider')}:{' '}
+                        <span className="text-gray-300 capitalize">{company.peppol_ap_provider || 'scrada'}</span>
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          ) : filteredInvoices.length === 0 ? (
-            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
-              <div className="text-center py-16 text-gray-400">
-                <Send className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-                <p className="text-lg mb-1">Aucune facture a envoyer</p>
-                <p className="text-sm text-gray-500">Les factures finalisees avec un client Peppol apparaitront ici.</p>
-              </div>
+            <div className="flex items-center gap-2">
+              {isPeppolConfigured ? (
+                <Badge className="bg-green-500/20 text-green-400 border-0">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Connected
+                </Badge>
+              ) : (
+                <Link to="/app/settings">
+                  <Badge className="bg-red-500/20 text-red-400 border-0 cursor-pointer hover:bg-red-500/30">
+                    <XCircle className="w-3 h-3 mr-1" />
+                    Configure
+                  </Badge>
+                </Link>
+              )}
             </div>
-          ) : outboundViewMode !== 'list' ? (
-            outboundViewMode === 'calendar' ? (
-              <GenericCalendarView
-                events={outboundCalendarEvents}
-                statusColors={outboundCalendarStatusColors}
-                legend={outboundCalendarLegend}
-                onSelectEvent={(invoice) => handleViewInvoice(invoice)}
-              />
-            ) : outboundViewMode === 'agenda' ? (
-              <GenericAgendaView
-                items={outboundViewItems}
-                dateField="date"
-                paidStatuses={['paye']}
-                onView={(item) => {
-                  const invoice = (filteredInvoices || []).find((row) => row.id === item.id);
-                  if (invoice) handleViewInvoice(invoice);
-                }}
-              />
+          </div>
+        </div>
+
+        <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-5 space-y-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-white font-semibold">
+              {t('peppolPage.creditPolicy.title', 'Politique de credits Peppol')}
+            </h2>
+            <p className="text-sm text-gray-400">
+              {t(
+                'peppolPage.creditPolicy.subtitle',
+                'Peppol est visible pour tous. Chaque action reseau consomme des credits au moment ou elle est executee.'
+              )}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {creditPolicyItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.key} className="rounded-xl border border-white/10 bg-gray-900/40 p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="rounded-lg bg-white/5 p-2">
+                        <Icon className={`w-4 h-4 ${item.iconClass}`} />
+                      </div>
+                      <p className="text-sm font-medium text-white">{item.title}</p>
+                    </div>
+                    <Badge className={`${item.badgeClass} border-0 whitespace-nowrap`}>{item.costLabel}</Badge>
+                  </div>
+                  <p className="text-sm text-gray-400">{item.description}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-500">
+            {t('peppolPage.creditPolicy.saveFree', 'Enregistrer les champs seuls ne consomme pas de credits.')}
+          </p>
+        </div>
+
+        {/* ======== KPI CARDS ======== */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            {
+              label: 'Total envoyees',
+              value: kpis.total,
+              icon: Send,
+              color: 'text-blue-400',
+              bg: 'bg-blue-500/10',
+            },
+            {
+              label: 'Livrees',
+              value: kpis.delivered,
+              icon: CheckCircle,
+              color: 'text-green-400',
+              bg: 'bg-green-500/10',
+            },
+            {
+              label: 'En attente',
+              value: kpis.pending,
+              icon: Clock,
+              color: 'text-yellow-400',
+              bg: 'bg-yellow-500/10',
+            },
+            {
+              label: 'Erreurs',
+              value: kpis.errors,
+              icon: AlertTriangle,
+              color: 'text-red-400',
+              bg: 'bg-red-500/10',
+            },
+          ].map((kpi) => (
+            <div key={kpi.label} className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-400 text-sm">{kpi.label}</span>
+                <div className={`${kpi.bg} p-2 rounded-lg`}>
+                  <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-white">{kpi.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* ======== PEPPOL ID CHECK ======== */}
+        <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-5">
+          <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+            <Search className="w-4 h-4 text-orange-400" />
+            {t('peppol.checkPeppol')} Peppol ID
+          </h3>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Input
+              value={peppolIdInput}
+              onChange={(e) => {
+                setPeppolIdInput(e.target.value);
+                if (checkResult) resetCheck();
+              }}
+              placeholder="0208:0123456789 (BE) / 0009:12345678901234 (FR)"
+              className="bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500 flex-1"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCheckPeppolId();
+              }}
+            />
+            <Button
+              onClick={handleCheckPeppolId}
+              disabled={checking || !peppolIdInput.trim()}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              {checking ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+              {t('peppol.checkPeppol')}
+            </Button>
+          </div>
+          {checkResult && (
+            <div
+              className={`mt-3 flex items-center gap-2 text-sm ${checkResult.registered ? 'text-green-400' : 'text-red-400'}`}
+            >
+              {checkResult.registered ? (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  {t('peppol.checkRegistered')} — {peppolIdInput}
+                  {checkResult.name && <span className="text-gray-400 ml-2">({checkResult.name})</span>}
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4" />
+                  {t('peppol.checkNotRegistered')} — {peppolIdInput}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ======== TABS ======== */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="bg-gray-900/50 border border-gray-800">
+            <TabsTrigger
+              value="outbound"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
+              <ArrowUpRight className="w-4 h-4 mr-2" />
+              Envoi
+            </TabsTrigger>
+            <TabsTrigger
+              value="inbound"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
+              <ArrowDownLeft className="w-4 h-4 mr-2" />
+              Reception
+            </TabsTrigger>
+            <TabsTrigger
+              value="journal"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
+              <Clock className="w-4 h-4 mr-2" />
+              Journal
+            </TabsTrigger>
+            <TabsTrigger
+              value="config"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
+              <Wrench className="w-4 h-4 mr-2" />
+              Configuration
+            </TabsTrigger>
+          </TabsList>
+
+          {/* -------- TAB: OUTBOUND -------- */}
+          <TabsContent value="outbound" className="mt-4">
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher par numero ou client..."
+                  className="pl-10 bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-48 bg-gray-900/50 border-gray-700 text-white">
+                  <SelectValue placeholder="Filtrer par statut" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="eligible">Eligible Peppol</SelectItem>
+                  <SelectItem value="none">{t('peppol.status.none')}</SelectItem>
+                  <SelectItem value="pending">{t('peppol.status.pending')}</SelectItem>
+                  <SelectItem value="sent">{t('peppol.status.sent')}</SelectItem>
+                  <SelectItem value="delivered">{t('peppol.status.delivered')}</SelectItem>
+                  <SelectItem value="accepted">{t('peppol.status.accepted')}</SelectItem>
+                  <SelectItem value="error">{t('peppol.status.error')}</SelectItem>
+                  <SelectItem value="rejected">{t('peppol.status.rejected')}</SelectItem>
+                  <SelectItem value="cancelled">{t('peppol.status.cancelled', 'Annule')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                onClick={handlePurgeAllPeppolFromDb}
+                disabled={purgingPeppol || managingOutbound}
+                className="w-full sm:w-auto border-red-500/40 text-red-300 hover:bg-red-500/10"
+              >
+                {purgingPeppol ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                {t('peppol.purgeAllAction', 'Supprimer toutes les factures Peppol (DB)')}
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button
+                size="sm"
+                variant={outboundViewMode === 'list' ? 'default' : 'outline'}
+                onClick={() => setOutboundViewMode('list')}
+                className={
+                  outboundViewMode === 'list'
+                    ? 'bg-orange-500 hover:bg-orange-600'
+                    : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                }
+              >
+                <List className="w-4 h-4 mr-2" /> {t('common.list', 'Liste')}
+              </Button>
+              <Button
+                size="sm"
+                variant={outboundViewMode === 'calendar' ? 'default' : 'outline'}
+                onClick={() => setOutboundViewMode('calendar')}
+                className={
+                  outboundViewMode === 'calendar'
+                    ? 'bg-orange-500 hover:bg-orange-600'
+                    : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                }
+              >
+                <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar', 'Calendrier')}
+              </Button>
+              <Button
+                size="sm"
+                variant={outboundViewMode === 'agenda' ? 'default' : 'outline'}
+                onClick={() => setOutboundViewMode('agenda')}
+                className={
+                  outboundViewMode === 'agenda'
+                    ? 'bg-orange-500 hover:bg-orange-600'
+                    : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                }
+              >
+                <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda', 'Agenda')}
+              </Button>
+              <Button
+                size="sm"
+                variant={outboundViewMode === 'kanban' ? 'default' : 'outline'}
+                onClick={() => setOutboundViewMode('kanban')}
+                className={
+                  outboundViewMode === 'kanban'
+                    ? 'bg-orange-500 hover:bg-orange-600'
+                    : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                }
+              >
+                <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban', 'Kanban')}
+              </Button>
+            </div>
+
+            {/* Outbound table */}
+            {loadingInvoices ? (
+              <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+                <div className="flex items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+                </div>
+              </div>
+            ) : filteredInvoices.length === 0 ? (
+              <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+                <div className="text-center py-16 text-gray-400">
+                  <Send className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+                  <p className="text-lg mb-1">Aucune facture a envoyer</p>
+                  <p className="text-sm text-gray-500">
+                    Les factures finalisees avec un client Peppol apparaitront ici.
+                  </p>
+                </div>
+              </div>
+            ) : outboundViewMode !== 'list' ? (
+              outboundViewMode === 'calendar' ? (
+                <GenericCalendarView
+                  events={outboundCalendarEvents}
+                  statusColors={outboundCalendarStatusColors}
+                  legend={outboundCalendarLegend}
+                  onSelectEvent={(invoice) => handleViewInvoice(invoice)}
+                />
+              ) : outboundViewMode === 'agenda' ? (
+                <GenericAgendaView
+                  items={outboundViewItems}
+                  dateField="date"
+                  paidStatuses={['paye']}
+                  onView={(item) => {
+                    const invoice = (filteredInvoices || []).find((row) => row.id === item.id);
+                    if (invoice) handleViewInvoice(invoice);
+                  }}
+                />
+              ) : (
+                <GenericKanbanView
+                  columns={outboundKanbanColumns}
+                  items={outboundViewItems}
+                  onStatusChange={handleOutboundKanbanStatusChange}
+                  onView={(item) => {
+                    const invoice = (filteredInvoices || []).find((row) => row.id === item.id);
+                    if (invoice) handleViewInvoice(invoice);
+                  }}
+                />
+              )
             ) : (
-              <GenericKanbanView
-                columns={outboundKanbanColumns}
-                items={outboundViewItems}
-                onStatusChange={handleOutboundKanbanStatusChange}
-                onView={(item) => {
-                  const invoice = (filteredInvoices || []).find((row) => row.id === item.id);
-                  if (invoice) handleViewInvoice(invoice);
-                }}
-              />
-            )
-          ) : (
-            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
-              {
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-800 bg-gray-900/50">
-                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                          Facture
-                        </th>
-                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
-                          Client
-                        </th>
-                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden md:table-cell">
-                          Peppol ID
-                        </th>
-                        <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                          Montant
-                        </th>
-                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                          {t('peppol.peppolStatus')}
-                        </th>
-                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
-                          Statut metier
-                        </th>
-                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
-                          Envoye le
-                        </th>
-                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden xl:table-cell">
-                          Document ID
-                        </th>
-                        <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-800/50">
-                      {filteredInvoices.map((invoice) => {
-                        const client = invoice.client;
-                        const hasEndpoint = !!client?.peppol_endpoint_id;
-                        const isPeppolRow = isPeppolInvoiceRow(invoice);
-                        const rowBusy = managingOutbound && outboundActionInvoiceId === invoice.id;
-                        const inDispute = isBusinessDisputed(invoice);
-                        const canSend =
-                          hasEndpoint &&
-                          (!invoice.peppol_status ||
-                            invoice.peppol_status === 'none' ||
-                            invoice.peppol_status === 'error' ||
-                            invoice.peppol_status === 'cancelled');
+              <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+                {
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-800 bg-gray-900/50">
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                            Facture
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
+                            Client
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden md:table-cell">
+                            Peppol ID
+                          </th>
+                          <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                            Montant
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                            {t('peppol.peppolStatus')}
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
+                            Statut metier
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
+                            Envoye le
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden xl:table-cell">
+                            Document ID
+                          </th>
+                          <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800/50">
+                        {filteredInvoices.map((invoice) => {
+                          const client = invoice.client;
+                          const hasEndpoint = !!client?.peppol_endpoint_id;
+                          const isPeppolRow = isPeppolInvoiceRow(invoice);
+                          const rowBusy = managingOutbound && outboundActionInvoiceId === invoice.id;
+                          const inDispute = isBusinessDisputed(invoice);
+                          const canSend =
+                            hasEndpoint &&
+                            (!invoice.peppol_status ||
+                              invoice.peppol_status === 'none' ||
+                              invoice.peppol_status === 'error' ||
+                              invoice.peppol_status === 'cancelled');
 
-                        return (
-                          <tr key={invoice.id} className="hover:bg-gray-800/50 transition-colors">
-                            <td className="p-3 font-medium text-white whitespace-nowrap">{invoice.invoice_number}</td>
-                            <td className="p-3 text-gray-300 hidden sm:table-cell whitespace-nowrap">
-                              {client?.company_name || client?.contact_name || '-'}
-                            </td>
-                            <td className="p-3 hidden md:table-cell">
-                              {hasEndpoint ? (
-                                <span className="text-xs font-mono text-gray-400">{client.peppol_endpoint_id}</span>
-                              ) : (
-                                <span className="text-xs text-red-400">{t('peppol.clientNoEndpoint')}</span>
-                              )}
-                            </td>
-                            <td className="p-3 text-right text-gray-300 whitespace-nowrap">
-                              {formatAmount(invoice.total_ttc)}
-                            </td>
-                            <td className="p-3">
-                              {invoice.peppol_status && invoice.peppol_status !== 'none' ? (
-                                <PeppolStatusBadge
-                                  status={invoice.peppol_status}
-                                  errorMessage={invoice.peppol_error_message}
-                                />
-                              ) : (
-                                <Badge className="bg-gray-500/20 text-gray-400 border-0">
-                                  {t('peppol.status.none')}
-                                </Badge>
-                              )}
-                            </td>
-                            <td className="p-3 hidden lg:table-cell">
-                              {getBusinessStatusBadge(invoice, { outbound: true })}
-                            </td>
-                            <td className="p-3 text-gray-400 text-xs hidden lg:table-cell whitespace-nowrap">
-                              {formatDate(invoice.peppol_sent_at)}
-                            </td>
-                            <td className="p-3 hidden xl:table-cell">
-                              {invoice.peppol_document_id ? (
-                                <span
-                                  className="text-xs font-mono text-gray-500 truncate block max-w-[160px]"
-                                  title={invoice.peppol_document_id}
-                                >
-                                  {invoice.peppol_document_id}
-                                </span>
-                              ) : (
-                                <span className="text-gray-600">-</span>
-                              )}
-                            </td>
-                            <td className="p-3 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                {canSend && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleOpenSendDialog(invoice)}
-                                    disabled={sending || rowBusy}
-                                    className="bg-orange-500 hover:bg-orange-600 text-white text-xs"
-                                  >
-                                    <Send className="w-3 h-3 mr-1" />
-                                    {t('peppolPage.creditPolicy.tableSendLabel', {
-                                      credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
-                                      unit: creditUnit,
-                                      defaultValue: `Envoyer (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit})`,
-                                    })}
-                                  </Button>
+                          return (
+                            <tr key={invoice.id} className="hover:bg-gray-800/50 transition-colors">
+                              <td className="p-3 font-medium text-white whitespace-nowrap">{invoice.invoice_number}</td>
+                              <td className="p-3 text-gray-300 hidden sm:table-cell whitespace-nowrap">
+                                {client?.company_name || client?.contact_name || '-'}
+                              </td>
+                              <td className="p-3 hidden md:table-cell">
+                                {hasEndpoint ? (
+                                  <span className="text-xs font-mono text-gray-400">{client.peppol_endpoint_id}</span>
+                                ) : (
+                                  <span className="text-xs text-red-400">{t('peppol.clientNoEndpoint')}</span>
                                 )}
-                                {(invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
-                                  <Badge className="bg-yellow-500/20 text-yellow-400 border-0 gap-1">
-                                    <RefreshCw className="w-3 h-3 animate-spin" />
-                                    {t('peppol.pollingStatus')}
+                              </td>
+                              <td className="p-3 text-right text-gray-300 whitespace-nowrap">
+                                {formatAmount(invoice.total_ttc)}
+                              </td>
+                              <td className="p-3">
+                                {invoice.peppol_status && invoice.peppol_status !== 'none' ? (
+                                  <PeppolStatusBadge
+                                    status={invoice.peppol_status}
+                                    errorMessage={invoice.peppol_error_message}
+                                  />
+                                ) : (
+                                  <Badge className="bg-gray-500/20 text-gray-400 border-0">
+                                    {t('peppol.status.none')}
                                   </Badge>
                                 )}
+                              </td>
+                              <td className="p-3 hidden lg:table-cell">
+                                {getBusinessStatusBadge(invoice, { outbound: true })}
+                              </td>
+                              <td className="p-3 text-gray-400 text-xs hidden lg:table-cell whitespace-nowrap">
+                                {formatDate(invoice.peppol_sent_at)}
+                              </td>
+                              <td className="p-3 hidden xl:table-cell">
+                                {invoice.peppol_document_id ? (
+                                  <span
+                                    className="text-xs font-mono text-gray-500 truncate block max-w-[160px]"
+                                    title={invoice.peppol_document_id}
+                                  >
+                                    {invoice.peppol_document_id}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-600">-</span>
+                                )}
+                              </td>
+                              <td className="p-3 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  {canSend && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleOpenSendDialog(invoice)}
+                                      disabled={sending || rowBusy}
+                                      className="bg-orange-500 hover:bg-orange-600 text-white text-xs"
+                                    >
+                                      <Send className="w-3 h-3 mr-1" />
+                                      {t('peppolPage.creditPolicy.tableSendLabel', {
+                                        credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+                                        unit: creditUnit,
+                                        defaultValue: `Envoyer (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit})`,
+                                      })}
+                                    </Button>
+                                  )}
+                                  {(invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
+                                    <Badge className="bg-yellow-500/20 text-yellow-400 border-0 gap-1">
+                                      <RefreshCw className="w-3 h-3 animate-spin" />
+                                      {t('peppol.pollingStatus')}
+                                    </Badge>
+                                  )}
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50"
+                                      >
+                                        <MoreHorizontal className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                      align="end"
+                                      className="bg-gray-900 border-gray-700 text-gray-200"
+                                    >
+                                      <DropdownMenuItem
+                                        onClick={() => handleViewInvoice(invoice)}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <Eye className="w-4 h-4 text-blue-400" />
+                                        {t('common.view') || 'Visualiser'}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handlePrintInvoice(invoice)}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <Printer className="w-4 h-4 text-gray-400" />
+                                        {t('common.print') || 'Imprimer'}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleExportUBL(invoice)}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <Download className="w-4 h-4 text-emerald-400" />
+                                        {t('peppol.exportUBL')}
+                                      </DropdownMenuItem>
+                                      {invoice.peppol_document_id && (
+                                        <DropdownMenuItem
+                                          onClick={() => handleCopyDocumentId(invoice.peppol_document_id)}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
+                                        >
+                                          <Copy className="w-4 h-4 text-gray-400" />
+                                          {t('common.copy') || 'Copier'} Document ID
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuSeparator className="bg-gray-700" />
+                                      <DropdownMenuItem
+                                        onClick={() => handleSetOutboundBusinessStatus(invoice, 'envoye')}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <Send className="w-4 h-4 text-blue-400" />
+                                        Marquer Envoye
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleSetOutboundBusinessStatus(invoice, 'non_paye')}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <Clock className="w-4 h-4 text-amber-400" />
+                                        Marquer Non paye
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleSetOutboundBusinessStatus(invoice, 'echue')}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <Clock className="w-4 h-4 text-red-400" />
+                                        Marquer Echue
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleSetOutboundBusinessStatus(invoice, 'paye')}
+                                        className="gap-2 cursor-pointer hover:bg-gray-800"
+                                      >
+                                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                        Marquer Paye
+                                      </DropdownMenuItem>
+                                      {inDispute ? (
+                                        <DropdownMenuItem
+                                          onClick={() => handleToggleOutboundDispute(invoice, false)}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
+                                        >
+                                          <CheckCircle className="w-4 h-4 text-cyan-400" />
+                                          Lever litige
+                                        </DropdownMenuItem>
+                                      ) : (
+                                        <DropdownMenuItem
+                                          onClick={() => handleToggleOutboundDispute(invoice, true)}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
+                                        >
+                                          <AlertTriangle className="w-4 h-4 text-rose-400" />
+                                          Marquer en litige
+                                        </DropdownMenuItem>
+                                      )}
+                                      {invoice.peppol_document_id &&
+                                        (invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
+                                          <DropdownMenuItem
+                                            onClick={() => handleCancelOutboundNetwork(invoice)}
+                                            disabled={rowBusy}
+                                            className="gap-2 cursor-pointer hover:bg-gray-800 text-amber-400"
+                                          >
+                                            {rowBusy ? (
+                                              <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                              <Ban className="w-4 h-4" />
+                                            )}
+                                            {t('peppol.cancelNetworkAction', 'Annuler cote reseau')}
+                                          </DropdownMenuItem>
+                                        )}
+                                      {invoice.peppol_status && invoice.peppol_status !== 'none' && (
+                                        <DropdownMenuItem
+                                          onClick={() => handleDeleteOutboundLocal(invoice)}
+                                          disabled={rowBusy}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800 text-red-400"
+                                        >
+                                          {rowBusy ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                          ) : (
+                                            <Trash2 className="w-4 h-4" />
+                                          )}
+                                          {t('peppol.deleteLocalAction', 'Supprimer localement')}
+                                        </DropdownMenuItem>
+                                      )}
+                                      {isPeppolRow && (
+                                        <DropdownMenuItem
+                                          onClick={() => handleDeleteOutboundFromDb(invoice)}
+                                          disabled={rowBusy}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800 text-red-300"
+                                        >
+                                          {rowBusy ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                          ) : (
+                                            <Trash2 className="w-4 h-4" />
+                                          )}
+                                          {t('peppol.deleteDbAction', 'Supprimer de la base (DB + compta)')}
+                                        </DropdownMenuItem>
+                                      )}
+                                      {invoice.peppol_status === 'error' && (
+                                        <>
+                                          <DropdownMenuSeparator className="bg-gray-700" />
+                                          <DropdownMenuItem
+                                            onClick={() => handleOpenSendDialog(invoice)}
+                                            className="gap-2 cursor-pointer hover:bg-gray-800 text-orange-400"
+                                          >
+                                            <RotateCcw className="w-4 h-4" />
+                                            {t('peppol.retry') || 'Renvoyer'}
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
+            )}
+          </TabsContent>
+
+          {/* -------- TAB: INBOUND -------- */}
+          <TabsContent value="inbound" className="mt-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button
+                size="sm"
+                variant={inboundViewMode === 'list' ? 'default' : 'outline'}
+                onClick={() => setInboundViewMode('list')}
+                className={
+                  inboundViewMode === 'list'
+                    ? 'bg-orange-500 hover:bg-orange-600'
+                    : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                }
+              >
+                <List className="w-4 h-4 mr-2" /> {t('common.list', 'Liste')}
+              </Button>
+              <Button
+                size="sm"
+                variant={inboundViewMode === 'calendar' ? 'default' : 'outline'}
+                onClick={() => setInboundViewMode('calendar')}
+                className={
+                  inboundViewMode === 'calendar'
+                    ? 'bg-orange-500 hover:bg-orange-600'
+                    : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                }
+              >
+                <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar', 'Calendrier')}
+              </Button>
+              <Button
+                size="sm"
+                variant={inboundViewMode === 'agenda' ? 'default' : 'outline'}
+                onClick={() => setInboundViewMode('agenda')}
+                className={
+                  inboundViewMode === 'agenda'
+                    ? 'bg-orange-500 hover:bg-orange-600'
+                    : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                }
+              >
+                <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda', 'Agenda')}
+              </Button>
+              <Button
+                size="sm"
+                variant={inboundViewMode === 'kanban' ? 'default' : 'outline'}
+                onClick={() => setInboundViewMode('kanban')}
+                className={
+                  inboundViewMode === 'kanban'
+                    ? 'bg-orange-500 hover:bg-orange-600'
+                    : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                }
+              >
+                <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban', 'Kanban')}
+              </Button>
+            </div>
+
+            {loadingInbound ? (
+              <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+                <div className="flex items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+                </div>
+              </div>
+            ) : inboundDocuments.length === 0 ? (
+              <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+                <div className="text-center py-16 text-gray-400">
+                  <ArrowDownLeft className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+                  <p className="text-lg mb-1">{t('peppol.inboundDocuments')}</p>
+                  <p className="text-sm text-gray-500">Aucune facture recue via Peppol pour le moment.</p>
+                </div>
+              </div>
+            ) : inboundViewMode !== 'list' ? (
+              inboundViewMode === 'calendar' ? (
+                <GenericCalendarView
+                  events={inboundCalendarEvents}
+                  statusColors={inboundCalendarStatusColors}
+                  legend={inboundCalendarLegend}
+                  onSelectEvent={(doc) => handleViewInboundPdf(doc)}
+                />
+              ) : inboundViewMode === 'agenda' ? (
+                <GenericAgendaView
+                  items={inboundViewItems}
+                  dateField="date"
+                  paidStatuses={['paye', 'archivee']}
+                  onView={(item) => {
+                    const doc = (inboundDocuments || []).find((row) => row.id === item.id);
+                    if (doc) handleViewInboundPdf(doc);
+                  }}
+                />
+              ) : (
+                <GenericKanbanView
+                  columns={inboundKanbanColumns}
+                  items={inboundViewItems}
+                  onStatusChange={handleInboundKanbanStatusChange}
+                  onView={(item) => {
+                    const doc = (inboundDocuments || []).find((row) => row.id === item.id);
+                    if (doc) handleViewInboundPdf(doc);
+                  }}
+                />
+              )
+            ) : (
+              <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+                {
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-800 bg-gray-900/50">
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                            Date
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                            Expediteur
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
+                            Document ID
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                            Statuts
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                            Facture
+                          </th>
+                          <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800/50">
+                        {inboundDocuments.map((doc) => {
+                          const linkedSupplierInvoice = resolveInboundLinkedSupplierInvoice(doc);
+                          const actionKey = getInboundActionKey(doc);
+                          const rowBusy = inboundActionDocId === actionKey;
+                          const inDispute = isBusinessDisputed(linkedSupplierInvoice);
+                          return (
+                            <tr key={doc.id} className="hover:bg-gray-800/50 transition-colors">
+                              <td className="p-3 text-gray-300 whitespace-nowrap text-xs">
+                                {formatDateTime(doc.received_at || doc.created_at)}
+                              </td>
+                              <td className="p-3 text-gray-300 whitespace-nowrap">
+                                <span className="font-mono text-xs">
+                                  {doc.sender_name || doc.sender_peppol_id || '-'}
+                                </span>
+                              </td>
+                              <td className="p-3 hidden sm:table-cell">
+                                <span
+                                  className="text-xs font-mono text-gray-500 truncate block max-w-[200px]"
+                                  title={doc.scrada_document_id}
+                                >
+                                  {doc.scrada_document_id || '-'}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex flex-col gap-1 items-start">
+                                  {getInboundOperationalBadge(doc, linkedSupplierInvoice)}
+                                  {linkedSupplierInvoice?.id
+                                    ? getBusinessStatusBadge(linkedSupplierInvoice, { inboundHelp: true })
+                                    : null}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                {doc.invoice_number ? (
+                                  <span className="text-orange-400 text-sm font-medium">{doc.invoice_number}</span>
+                                ) : (
+                                  <span className="text-gray-600">
+                                    {doc.metadata?.internalNumber ? `#${doc.metadata.internalNumber}` : '-'}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 text-right">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="sm"
                                       className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50"
+                                      disabled={rowBusy}
                                     >
-                                      <MoreHorizontal className="w-4 h-4" />
+                                      {rowBusy ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <MoreHorizontal className="w-4 h-4" />
+                                      )}
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent
@@ -1867,250 +2253,130 @@ const PeppolPage = () => {
                                     className="bg-gray-900 border-gray-700 text-gray-200"
                                   >
                                     <DropdownMenuItem
-                                      onClick={() => handleViewInvoice(invoice)}
+                                      onClick={() => handleViewInboundPdf(doc)}
                                       className="gap-2 cursor-pointer hover:bg-gray-800"
                                     >
                                       <Eye className="w-4 h-4 text-blue-400" />
-                                      {t('common.view') || 'Visualiser'}
+                                      {t('common.view', 'Visualiser')} PDF
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                      onClick={() => handlePrintInvoice(invoice)}
-                                      className="gap-2 cursor-pointer hover:bg-gray-800"
-                                    >
-                                      <Printer className="w-4 h-4 text-gray-400" />
-                                      {t('common.print') || 'Imprimer'}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleExportUBL(invoice)}
+                                      onClick={() => handleDownloadInboundPdf(doc)}
                                       className="gap-2 cursor-pointer hover:bg-gray-800"
                                     >
                                       <Download className="w-4 h-4 text-emerald-400" />
-                                      {t('peppol.exportUBL')}
+                                      {t('peppol.exportPDF', 'Exporter en PDF')}
                                     </DropdownMenuItem>
-                                    {invoice.peppol_document_id && (
-                                      <DropdownMenuItem
-                                        onClick={() => handleCopyDocumentId(invoice.peppol_document_id)}
-                                        className="gap-2 cursor-pointer hover:bg-gray-800"
-                                      >
-                                        <Copy className="w-4 h-4 text-gray-400" />
-                                        {t('common.copy') || 'Copier'} Document ID
-                                      </DropdownMenuItem>
-                                    )}
                                     <DropdownMenuSeparator className="bg-gray-700" />
                                     <DropdownMenuItem
-                                      onClick={() => handleSetOutboundBusinessStatus(invoice, 'envoye')}
+                                      onClick={() => handleSendInboundToGed(doc)}
                                       className="gap-2 cursor-pointer hover:bg-gray-800"
                                     >
-                                      <Send className="w-4 h-4 text-blue-400" />
-                                      Marquer Envoye
+                                      <FolderOpen className="w-4 h-4 text-orange-400" />
+                                      {t('peppol.sendToGed', 'Envoyer vers GED')}
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleSetOutboundBusinessStatus(invoice, 'non_paye')}
-                                      className="gap-2 cursor-pointer hover:bg-gray-800"
-                                    >
-                                      <Clock className="w-4 h-4 text-amber-400" />
-                                      Marquer Non paye
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleSetOutboundBusinessStatus(invoice, 'echue')}
-                                      className="gap-2 cursor-pointer hover:bg-gray-800"
-                                    >
-                                      <Clock className="w-4 h-4 text-red-400" />
-                                      Marquer Echue
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleSetOutboundBusinessStatus(invoice, 'paye')}
-                                      className="gap-2 cursor-pointer hover:bg-gray-800"
-                                    >
-                                      <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                      Marquer Paye
-                                    </DropdownMenuItem>
-                                    {inDispute ? (
-                                      <DropdownMenuItem
-                                        onClick={() => handleToggleOutboundDispute(invoice, false)}
-                                        className="gap-2 cursor-pointer hover:bg-gray-800"
-                                      >
-                                        <CheckCircle className="w-4 h-4 text-cyan-400" />
-                                        Lever litige
-                                      </DropdownMenuItem>
-                                    ) : (
-                                      <DropdownMenuItem
-                                        onClick={() => handleToggleOutboundDispute(invoice, true)}
-                                        className="gap-2 cursor-pointer hover:bg-gray-800"
-                                      >
-                                        <AlertTriangle className="w-4 h-4 text-rose-400" />
-                                        Marquer en litige
-                                      </DropdownMenuItem>
-                                    )}
-                                    {invoice.peppol_document_id &&
-                                      (invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
-                                        <DropdownMenuItem
-                                          onClick={() => handleCancelOutboundNetwork(invoice)}
-                                          disabled={rowBusy}
-                                          className="gap-2 cursor-pointer hover:bg-gray-800 text-amber-400"
-                                        >
-                                          {rowBusy ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                          ) : (
-                                            <Ban className="w-4 h-4" />
-                                          )}
-                                          {t('peppol.cancelNetworkAction', 'Annuler cote reseau')}
-                                        </DropdownMenuItem>
-                                      )}
-                                    {invoice.peppol_status && invoice.peppol_status !== 'none' && (
-                                      <DropdownMenuItem
-                                        onClick={() => handleDeleteOutboundLocal(invoice)}
-                                        disabled={rowBusy}
-                                        className="gap-2 cursor-pointer hover:bg-gray-800 text-red-400"
-                                      >
-                                        {rowBusy ? (
-                                          <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                          <Trash2 className="w-4 h-4" />
-                                        )}
-                                        {t('peppol.deleteLocalAction', 'Supprimer localement')}
-                                      </DropdownMenuItem>
-                                    )}
-                                    {isPeppolRow && (
-                                      <DropdownMenuItem
-                                        onClick={() => handleDeleteOutboundFromDb(invoice)}
-                                        disabled={rowBusy}
-                                        className="gap-2 cursor-pointer hover:bg-gray-800 text-red-300"
-                                      >
-                                        {rowBusy ? (
-                                          <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                          <Trash2 className="w-4 h-4" />
-                                        )}
-                                        {t('peppol.deleteDbAction', 'Supprimer de la base (DB + compta)')}
-                                      </DropdownMenuItem>
-                                    )}
-                                    {invoice.peppol_status === 'error' && (
+                                    <DropdownMenuSeparator className="bg-gray-700" />
+                                    {linkedSupplierInvoice?.id ? (
                                       <>
-                                        <DropdownMenuSeparator className="bg-gray-700" />
                                         <DropdownMenuItem
-                                          onClick={() => handleOpenSendDialog(invoice)}
-                                          className="gap-2 cursor-pointer hover:bg-gray-800 text-orange-400"
+                                          onClick={() =>
+                                            handleSetInboundBusinessStatus(doc, linkedSupplierInvoice, 'non_paye')
+                                          }
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
                                         >
-                                          <RotateCcw className="w-4 h-4" />
-                                          {t('peppol.retry') || 'Renvoyer'}
+                                          <Clock className="w-4 h-4 text-amber-400" />
+                                          Marquer Non paye
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleSetInboundBusinessStatus(doc, linkedSupplierInvoice, 'echue')
+                                          }
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
+                                        >
+                                          <Clock className="w-4 h-4 text-red-400" />
+                                          Marquer Echue
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleSetInboundBusinessStatus(doc, linkedSupplierInvoice, 'paye')
+                                          }
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
+                                        >
+                                          <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                          Marquer Paye
+                                        </DropdownMenuItem>
+                                        {inDispute ? (
+                                          <DropdownMenuItem
+                                            onClick={() =>
+                                              handleToggleInboundDispute(doc, linkedSupplierInvoice, false)
+                                            }
+                                            className="gap-2 cursor-pointer hover:bg-gray-800"
+                                          >
+                                            <CheckCircle className="w-4 h-4 text-cyan-400" />
+                                            Lever litige
+                                          </DropdownMenuItem>
+                                        ) : (
+                                          <DropdownMenuItem
+                                            onClick={() => handleToggleInboundDispute(doc, linkedSupplierInvoice, true)}
+                                            className="gap-2 cursor-pointer hover:bg-gray-800"
+                                          >
+                                            <AlertTriangle className="w-4 h-4 text-rose-400" />
+                                            Marquer en litige
+                                          </DropdownMenuItem>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <DropdownMenuItem
+                                          onClick={() => handleSetInboundOperationalStatus(doc, 'a_traiter')}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
+                                        >
+                                          <Clock className="w-4 h-4 text-yellow-400" />
+                                          Mettre A traiter
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleSetInboundOperationalStatus(doc, 'en_revue')}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
+                                        >
+                                          <Activity className="w-4 h-4 text-cyan-400" />
+                                          Mettre En revue
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleSetInboundOperationalStatus(doc, 'archivee')}
+                                          className="gap-2 cursor-pointer hover:bg-gray-800"
+                                        >
+                                          <FileCheck className="w-4 h-4 text-gray-400" />
+                                          Mettre Archivee
                                         </DropdownMenuItem>
                                       </>
                                     )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
+            )}
+          </TabsContent>
+
+          {/* -------- TAB: JOURNAL -------- */}
+          <TabsContent value="journal" className="mt-4">
+            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
+              {loadingLogs ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
                 </div>
-              }
-            </div>
-          )}
-        </TabsContent>
-
-        {/* -------- TAB: INBOUND -------- */}
-        <TabsContent value="inbound" className="mt-4">
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Button
-              size="sm"
-              variant={inboundViewMode === 'list' ? 'default' : 'outline'}
-              onClick={() => setInboundViewMode('list')}
-              className={
-                inboundViewMode === 'list'
-                  ? 'bg-orange-500 hover:bg-orange-600'
-                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
-              }
-            >
-              <List className="w-4 h-4 mr-2" /> {t('common.list', 'Liste')}
-            </Button>
-            <Button
-              size="sm"
-              variant={inboundViewMode === 'calendar' ? 'default' : 'outline'}
-              onClick={() => setInboundViewMode('calendar')}
-              className={
-                inboundViewMode === 'calendar'
-                  ? 'bg-orange-500 hover:bg-orange-600'
-                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
-              }
-            >
-              <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar', 'Calendrier')}
-            </Button>
-            <Button
-              size="sm"
-              variant={inboundViewMode === 'agenda' ? 'default' : 'outline'}
-              onClick={() => setInboundViewMode('agenda')}
-              className={
-                inboundViewMode === 'agenda'
-                  ? 'bg-orange-500 hover:bg-orange-600'
-                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
-              }
-            >
-              <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda', 'Agenda')}
-            </Button>
-            <Button
-              size="sm"
-              variant={inboundViewMode === 'kanban' ? 'default' : 'outline'}
-              onClick={() => setInboundViewMode('kanban')}
-              className={
-                inboundViewMode === 'kanban'
-                  ? 'bg-orange-500 hover:bg-orange-600'
-                  : 'border-gray-700 text-gray-300 hover:bg-gray-800'
-              }
-            >
-              <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban', 'Kanban')}
-            </Button>
-          </div>
-
-          {loadingInbound ? (
-            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
-              <div className="flex items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
-              </div>
-            </div>
-          ) : inboundDocuments.length === 0 ? (
-            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
-              <div className="text-center py-16 text-gray-400">
-                <ArrowDownLeft className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-                <p className="text-lg mb-1">{t('peppol.inboundDocuments')}</p>
-                <p className="text-sm text-gray-500">Aucune facture recue via Peppol pour le moment.</p>
-              </div>
-            </div>
-          ) : inboundViewMode !== 'list' ? (
-            inboundViewMode === 'calendar' ? (
-              <GenericCalendarView
-                events={inboundCalendarEvents}
-                statusColors={inboundCalendarStatusColors}
-                legend={inboundCalendarLegend}
-                onSelectEvent={(doc) => handleViewInboundPdf(doc)}
-              />
-            ) : inboundViewMode === 'agenda' ? (
-              <GenericAgendaView
-                items={inboundViewItems}
-                dateField="date"
-                paidStatuses={['paye', 'archivee']}
-                onView={(item) => {
-                  const doc = (inboundDocuments || []).find((row) => row.id === item.id);
-                  if (doc) handleViewInboundPdf(doc);
-                }}
-              />
-            ) : (
-              <GenericKanbanView
-                columns={inboundKanbanColumns}
-                items={inboundViewItems}
-                onStatusChange={handleInboundKanbanStatusChange}
-                onView={(item) => {
-                  const doc = (inboundDocuments || []).find((row) => row.id === item.id);
-                  if (doc) handleViewInboundPdf(doc);
-                }}
-              />
-            )
-          ) : (
-            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
-              {
+              ) : allLogs.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">
+                  <Clock className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+                  <p className="text-lg mb-1">{t('peppol.transmissionLog')}</p>
+                  <p className="text-sm text-gray-500">Aucune transmission Peppol enregistree.</p>
+                </div>
+              ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -2119,784 +2385,587 @@ const PeppolPage = () => {
                           Date
                         </th>
                         <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                          Expediteur
+                          Direction
                         </th>
                         <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
-                          Document ID
-                        </th>
-                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                          Statuts
-                        </th>
-                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
                           Facture
                         </th>
-                        <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                          Actions
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                          Statut
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden md:table-cell">
+                          {t('peppol.apProvider')}
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
+                          Document ID
+                        </th>
+                        <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden xl:table-cell">
+                          Erreur
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800/50">
-                      {inboundDocuments.map((doc) => {
-                        const linkedSupplierInvoice = resolveInboundLinkedSupplierInvoice(doc);
-                        const actionKey = getInboundActionKey(doc);
-                        const rowBusy = inboundActionDocId === actionKey;
-                        const inDispute = isBusinessDisputed(linkedSupplierInvoice);
-                        return (
-                          <tr key={doc.id} className="hover:bg-gray-800/50 transition-colors">
-                            <td className="p-3 text-gray-300 whitespace-nowrap text-xs">
-                              {formatDateTime(doc.received_at || doc.created_at)}
-                            </td>
-                            <td className="p-3 text-gray-300 whitespace-nowrap">
-                              <span className="font-mono text-xs">
-                                {doc.sender_name || doc.sender_peppol_id || '-'}
-                              </span>
-                            </td>
-                            <td className="p-3 hidden sm:table-cell">
+                      {allLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-gray-800/50 transition-colors">
+                          <td className="p-3 text-gray-300 whitespace-nowrap text-xs">
+                            {formatDateTime(log.created_at)}
+                          </td>
+                          <td className="p-3">
+                            {log.direction === 'outbound' ? (
+                              <Badge className="bg-blue-500/20 text-blue-400 border-0 gap-1">
+                                <ArrowUpRight className="w-3 h-3" />
+                                Envoi
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-green-500/20 text-green-400 border-0 gap-1">
+                                <ArrowDownLeft className="w-3 h-3" />
+                                Reception
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="p-3 hidden sm:table-cell">
+                            {log.invoice?.invoice_number ? (
+                              <span className="text-orange-400 font-medium text-sm">{log.invoice.invoice_number}</span>
+                            ) : (
+                              <span className="text-gray-600">-</span>
+                            )}
+                          </td>
+                          <td className="p-3">{getLogStatusBadge(log.status)}</td>
+                          <td className="p-3 text-gray-400 text-xs capitalize hidden md:table-cell">
+                            {log.ap_provider || '-'}
+                          </td>
+                          <td className="p-3 hidden lg:table-cell">
+                            <span
+                              className="text-xs font-mono text-gray-500 truncate block max-w-[160px]"
+                              title={log.ap_document_id}
+                            >
+                              {log.ap_document_id || '-'}
+                            </span>
+                          </td>
+                          <td className="p-3 hidden xl:table-cell">
+                            {log.error_message ? (
                               <span
-                                className="text-xs font-mono text-gray-500 truncate block max-w-[200px]"
-                                title={doc.scrada_document_id}
+                                className="text-xs text-red-400 truncate block max-w-[200px]"
+                                title={log.error_message}
                               >
-                                {doc.scrada_document_id || '-'}
+                                {log.error_message}
                               </span>
-                            </td>
-                            <td className="p-3">
-                              <div className="flex flex-col gap-1 items-start">
-                                {getInboundOperationalBadge(doc, linkedSupplierInvoice)}
-                                {linkedSupplierInvoice?.id ? getBusinessStatusBadge(linkedSupplierInvoice) : null}
-                              </div>
-                            </td>
-                            <td className="p-3">
-                              {doc.invoice_number ? (
-                                <span className="text-orange-400 text-sm font-medium">{doc.invoice_number}</span>
-                              ) : (
-                                <span className="text-gray-600">
-                                  {doc.metadata?.internalNumber ? `#${doc.metadata.internalNumber}` : '-'}
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-3 text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50"
-                                    disabled={rowBusy}
-                                  >
-                                    {rowBusy ? (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                      <MoreHorizontal className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-gray-900 border-gray-700 text-gray-200">
-                                  <DropdownMenuItem
-                                    onClick={() => handleViewInboundPdf(doc)}
-                                    className="gap-2 cursor-pointer hover:bg-gray-800"
-                                  >
-                                    <Eye className="w-4 h-4 text-blue-400" />
-                                    {t('common.view', 'Visualiser')} PDF
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => handleDownloadInboundPdf(doc)}
-                                    className="gap-2 cursor-pointer hover:bg-gray-800"
-                                  >
-                                    <Download className="w-4 h-4 text-emerald-400" />
-                                    {t('peppol.exportPDF', 'Exporter en PDF')}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator className="bg-gray-700" />
-                                  <DropdownMenuItem
-                                    onClick={() => handleSendInboundToGed(doc)}
-                                    className="gap-2 cursor-pointer hover:bg-gray-800"
-                                  >
-                                    <FolderOpen className="w-4 h-4 text-orange-400" />
-                                    {t('peppol.sendToGed', 'Envoyer vers GED')}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator className="bg-gray-700" />
-                                  {linkedSupplierInvoice?.id ? (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleSetInboundBusinessStatus(doc, linkedSupplierInvoice, 'non_paye')
-                                        }
-                                        className="gap-2 cursor-pointer hover:bg-gray-800"
-                                      >
-                                        <Clock className="w-4 h-4 text-amber-400" />
-                                        Marquer Non paye
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleSetInboundBusinessStatus(doc, linkedSupplierInvoice, 'echue')
-                                        }
-                                        className="gap-2 cursor-pointer hover:bg-gray-800"
-                                      >
-                                        <Clock className="w-4 h-4 text-red-400" />
-                                        Marquer Echue
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleSetInboundBusinessStatus(doc, linkedSupplierInvoice, 'paye')
-                                        }
-                                        className="gap-2 cursor-pointer hover:bg-gray-800"
-                                      >
-                                        <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                        Marquer Paye
-                                      </DropdownMenuItem>
-                                      {inDispute ? (
-                                        <DropdownMenuItem
-                                          onClick={() => handleToggleInboundDispute(doc, linkedSupplierInvoice, false)}
-                                          className="gap-2 cursor-pointer hover:bg-gray-800"
-                                        >
-                                          <CheckCircle className="w-4 h-4 text-cyan-400" />
-                                          Lever litige
-                                        </DropdownMenuItem>
-                                      ) : (
-                                        <DropdownMenuItem
-                                          onClick={() => handleToggleInboundDispute(doc, linkedSupplierInvoice, true)}
-                                          className="gap-2 cursor-pointer hover:bg-gray-800"
-                                        >
-                                          <AlertTriangle className="w-4 h-4 text-rose-400" />
-                                          Marquer en litige
-                                        </DropdownMenuItem>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() => handleSetInboundOperationalStatus(doc, 'a_traiter')}
-                                        className="gap-2 cursor-pointer hover:bg-gray-800"
-                                      >
-                                        <Clock className="w-4 h-4 text-yellow-400" />
-                                        Mettre A traiter
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleSetInboundOperationalStatus(doc, 'en_revue')}
-                                        className="gap-2 cursor-pointer hover:bg-gray-800"
-                                      >
-                                        <Activity className="w-4 h-4 text-cyan-400" />
-                                        Mettre En revue
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleSetInboundOperationalStatus(doc, 'archivee')}
-                                        className="gap-2 cursor-pointer hover:bg-gray-800"
-                                      >
-                                        <FileCheck className="w-4 h-4 text-gray-400" />
-                                        Mettre Archivee
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                            ) : (
+                              <span className="text-gray-600">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
-              }
+              )}
             </div>
-          )}
-        </TabsContent>
+          </TabsContent>
 
-        {/* -------- TAB: JOURNAL -------- */}
-        <TabsContent value="journal" className="mt-4">
-          <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl overflow-hidden">
-            {loadingLogs ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
-              </div>
-            ) : allLogs.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
-                <Clock className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-                <p className="text-lg mb-1">{t('peppol.transmissionLog')}</p>
-                <p className="text-sm text-gray-500">Aucune transmission Peppol enregistree.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-800 bg-gray-900/50">
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">Date</th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                        Direction
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
-                        Facture
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                        Statut
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden md:table-cell">
-                        {t('peppol.apProvider')}
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
-                        Document ID
-                      </th>
-                      <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden xl:table-cell">
-                        Erreur
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800/50">
-                    {allLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-800/50 transition-colors">
-                        <td className="p-3 text-gray-300 whitespace-nowrap text-xs">
-                          {formatDateTime(log.created_at)}
-                        </td>
-                        <td className="p-3">
-                          {log.direction === 'outbound' ? (
-                            <Badge className="bg-blue-500/20 text-blue-400 border-0 gap-1">
-                              <ArrowUpRight className="w-3 h-3" />
-                              Envoi
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-green-500/20 text-green-400 border-0 gap-1">
-                              <ArrowDownLeft className="w-3 h-3" />
-                              Reception
-                            </Badge>
-                          )}
-                        </td>
-                        <td className="p-3 hidden sm:table-cell">
-                          {log.invoice?.invoice_number ? (
-                            <span className="text-orange-400 font-medium text-sm">{log.invoice.invoice_number}</span>
-                          ) : (
-                            <span className="text-gray-600">-</span>
-                          )}
-                        </td>
-                        <td className="p-3">{getLogStatusBadge(log.status)}</td>
-                        <td className="p-3 text-gray-400 text-xs capitalize hidden md:table-cell">
-                          {log.ap_provider || '-'}
-                        </td>
-                        <td className="p-3 hidden lg:table-cell">
-                          <span
-                            className="text-xs font-mono text-gray-500 truncate block max-w-[160px]"
-                            title={log.ap_document_id}
-                          >
-                            {log.ap_document_id || '-'}
-                          </span>
-                        </td>
-                        <td className="p-3 hidden xl:table-cell">
-                          {log.error_message ? (
-                            <span
-                              className="text-xs text-red-400 truncate block max-w-[200px]"
-                              title={log.error_message}
-                            >
-                              {log.error_message}
-                            </span>
-                          ) : (
-                            <span className="text-gray-600">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* -------- TAB: CONFIGURATION -------- */}
-        <TabsContent value="config" className="mt-4 space-y-6">
-          {/* --- AP Live Status --- */}
-          <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-white font-semibold flex items-center gap-2">
-                <Activity className="w-5 h-5 text-emerald-400" />
-                {t('peppolPage.apLiveStatus', "Statut du Point d'Accès")}
-              </h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchApInfo}
-                disabled={loadingApInfo}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
-              >
-                {loadingApInfo ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                )}
-                {t('common.refresh', 'Actualiser')}
-              </Button>
-            </div>
-
-            {loadingApInfo ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
-                <span className="ml-3 text-gray-400 text-sm">
-                  {t('peppolPage.fetchingApInfo', "Interrogation du point d'accès...")}
-                </span>
-              </div>
-            ) : !apInfo?.configured ? (
-              <div className="text-center py-6 text-gray-500">
-                <XCircle className="w-10 h-10 mx-auto mb-3 text-red-400/50" />
-                <p className="text-sm">
-                  {t(
-                    'peppolPage.apNotConfigured',
-                    'Credentials Scrada non configurés. Remplissez le formulaire ci-dessous.'
-                  )}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Registration Status */}
-                <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-3">
-                  <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-emerald-400" />
-                    {t('peppolPage.registrationStatus', 'Enregistrement Peppol')}
-                  </h4>
-                  {apInfo.registrationStatus ? (
-                    <div className="flex items-center gap-2">
-                      {apInfo.registrationStatus.registered ? (
-                        <>
-                          <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
-                          <span className="text-green-400 text-sm font-medium">
-                            {t('peppolPage.registeredOnNetwork', 'Enregistré sur le réseau Peppol')}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                          <span className="text-red-400 text-sm">
-                            {t('peppolPage.notRegisteredOnNetwork', 'Non enregistré sur le réseau Peppol')}
-                          </span>
-                        </>
-                      )}
-                    </div>
+          {/* -------- TAB: CONFIGURATION -------- */}
+          <TabsContent value="config" className="mt-4 space-y-6">
+            {/* --- AP Live Status --- */}
+            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-6 space-y-5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-emerald-400" />
+                  {t('peppolPage.apLiveStatus', "Statut du Point d'Accès")}
+                </h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchApInfo}
+                  disabled={loadingApInfo}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                >
+                  {loadingApInfo ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
-                    <p className="text-gray-500 text-sm">
-                      {t('peppolPage.registrationUnknown', 'Statut inconnu — vérifiez votre Endpoint ID')}
-                    </p>
+                    <RefreshCw className="w-4 h-4 mr-2" />
                   )}
-                  {apInfo.registrationStatus?.details && (
-                    <div className="text-xs text-gray-500 space-y-1 mt-2 border-t border-gray-800 pt-2">
-                      {Object.entries(apInfo.registrationStatus.details).map(([key, val]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-gray-500">{key}</span>
-                          <span className="text-gray-400 font-mono truncate max-w-[200px]">{String(val)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  {t('common.refresh', 'Actualiser')}
+                </Button>
+              </div>
 
-                {/* Company Profile from AP */}
-                <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-3">
-                  <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-blue-400" />
-                    {t('peppolPage.apCompanyProfile', 'Profil Access Point')}
-                  </h4>
-                  {apInfo.companyProfile ? (
-                    <div className="text-xs space-y-1.5">
-                      {apInfo.companyProfile.name && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">{t('peppolPage.companyName', 'Nom')}</span>
-                          <span className="text-white font-medium">{apInfo.companyProfile.name}</span>
-                        </div>
-                      )}
-                      {apInfo.companyProfile.vatNumber && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">{t('peppolPage.vatNumber', 'N° TVA')}</span>
-                          <span className="text-gray-300 font-mono">{apInfo.companyProfile.vatNumber}</span>
-                        </div>
-                      )}
-                      {apInfo.companyProfile.country && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">{t('peppolPage.country', 'Pays')}</span>
-                          <span className="text-gray-300">{apInfo.companyProfile.country}</span>
-                        </div>
-                      )}
-                      {apInfo.companyProfile.status && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">{t('peppolPage.accountStatus', 'Statut compte')}</span>
-                          <Badge
-                            className={`text-xs ${apInfo.companyProfile.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'} border-0`}
-                          >
-                            {apInfo.companyProfile.status}
-                          </Badge>
-                        </div>
-                      )}
-                      {/* Render any other fields generically */}
-                      {Object.entries(apInfo.companyProfile)
-                        .filter(([k]) => !['name', 'vatNumber', 'country', 'status', 'id'].includes(k))
-                        .slice(0, 6)
-                        .map(([key, val]) => (
+              {loadingApInfo ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                  <span className="ml-3 text-gray-400 text-sm">
+                    {t('peppolPage.fetchingApInfo', "Interrogation du point d'accès...")}
+                  </span>
+                </div>
+              ) : !apInfo?.configured ? (
+                <div className="text-center py-6 text-gray-500">
+                  <XCircle className="w-10 h-10 mx-auto mb-3 text-red-400/50" />
+                  <p className="text-sm">
+                    {t(
+                      'peppolPage.apNotConfigured',
+                      'Credentials Scrada non configurés. Remplissez le formulaire ci-dessous.'
+                    )}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Registration Status */}
+                  <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-3">
+                    <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-emerald-400" />
+                      {t('peppolPage.registrationStatus', 'Enregistrement Peppol')}
+                    </h4>
+                    {apInfo.registrationStatus ? (
+                      <div className="flex items-center gap-2">
+                        {apInfo.registrationStatus.registered ? (
+                          <>
+                            <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
+                            <span className="text-green-400 text-sm font-medium">
+                              {t('peppolPage.registeredOnNetwork', 'Enregistré sur le réseau Peppol')}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                            <span className="text-red-400 text-sm">
+                              {t('peppolPage.notRegisteredOnNetwork', 'Non enregistré sur le réseau Peppol')}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm">
+                        {t('peppolPage.registrationUnknown', 'Statut inconnu — vérifiez votre Endpoint ID')}
+                      </p>
+                    )}
+                    {apInfo.registrationStatus?.details && (
+                      <div className="text-xs text-gray-500 space-y-1 mt-2 border-t border-gray-800 pt-2">
+                        {Object.entries(apInfo.registrationStatus.details).map(([key, val]) => (
                           <div key={key} className="flex justify-between">
                             <span className="text-gray-500">{key}</span>
-                            <span className="text-gray-400 font-mono truncate max-w-[200px]">
-                              {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                            <span className="text-gray-400 font-mono truncate max-w-[200px]">{String(val)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Company Profile from AP */}
+                  <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-3">
+                    <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-blue-400" />
+                      {t('peppolPage.apCompanyProfile', 'Profil Access Point')}
+                    </h4>
+                    {apInfo.companyProfile ? (
+                      <div className="text-xs space-y-1.5">
+                        {apInfo.companyProfile.name && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">{t('peppolPage.companyName', 'Nom')}</span>
+                            <span className="text-white font-medium">{apInfo.companyProfile.name}</span>
+                          </div>
+                        )}
+                        {apInfo.companyProfile.vatNumber && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">{t('peppolPage.vatNumber', 'N° TVA')}</span>
+                            <span className="text-gray-300 font-mono">{apInfo.companyProfile.vatNumber}</span>
+                          </div>
+                        )}
+                        {apInfo.companyProfile.country && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">{t('peppolPage.country', 'Pays')}</span>
+                            <span className="text-gray-300">{apInfo.companyProfile.country}</span>
+                          </div>
+                        )}
+                        {apInfo.companyProfile.status && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">{t('peppolPage.accountStatus', 'Statut compte')}</span>
+                            <Badge
+                              className={`text-xs ${apInfo.companyProfile.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'} border-0`}
+                            >
+                              {apInfo.companyProfile.status}
+                            </Badge>
+                          </div>
+                        )}
+                        {/* Render any other fields generically */}
+                        {Object.entries(apInfo.companyProfile)
+                          .filter(([k]) => !['name', 'vatNumber', 'country', 'status', 'id'].includes(k))
+                          .slice(0, 6)
+                          .map(([key, val]) => (
+                            <div key={key} className="flex justify-between">
+                              <span className="text-gray-500">{key}</span>
+                              <span className="text-gray-400 font-mono truncate max-w-[200px]">
+                                {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm">
+                        {t('peppolPage.profileUnavailable', 'Profil non disponible')}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Supported Document Profiles */}
+                  <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-3">
+                    <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                      <FileCheck className="w-4 h-4 text-orange-400" />
+                      {t('peppolPage.supportedProfiles', 'Profils UBL supportés')}
+                    </h4>
+                    {apInfo.supportedProfiles?.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {apInfo.supportedProfiles.map((profile, idx) => (
+                          <div key={idx} className="flex items-start gap-2 text-xs">
+                            <CheckCircle className="w-3.5 h-3.5 text-green-400 mt-0.5 flex-shrink-0" />
+                            <span className="text-gray-300">
+                              {typeof profile === 'string'
+                                ? profile
+                                : profile.name ||
+                                  profile.profileId ||
+                                  profile.documentTypeId ||
+                                  JSON.stringify(profile)}
                             </span>
                           </div>
                         ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">
-                      {t('peppolPage.profileUnavailable', 'Profil non disponible')}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm">{t('peppolPage.noProfiles', 'Aucun profil trouvé')}</p>
+                    )}
+                  </div>
+
+                  {/* Recent AP Events / Documents */}
+                  <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-3">
+                    <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-yellow-400" />
+                      {t('peppolPage.recentApDocuments', 'Documents récents (AP)')}
+                    </h4>
+                    {apInfo.recentDocuments?.length > 0 ? (
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {apInfo.recentDocuments.slice(0, 10).map((doc, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between text-xs border-b border-gray-800/50 pb-1.5"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <ArrowUpRight className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                              <span className="text-gray-300 truncate">
+                                {doc.invoiceNumber || doc.id || doc.guid || `Doc ${idx + 1}`}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {doc.status && (
+                                <Badge
+                                  className={`text-[10px] border-0 ${
+                                    doc.status === 'Processed' || doc.status === 'delivered'
+                                      ? 'bg-green-500/20 text-green-400'
+                                      : doc.status === 'Error' || doc.status === 'error'
+                                        ? 'bg-red-500/20 text-red-400'
+                                        : 'bg-yellow-500/20 text-yellow-400'
+                                  }`}
+                                >
+                                  {doc.status}
+                                </Badge>
+                              )}
+                              {doc.createdAt && <span className="text-gray-500">{formatDate(doc.createdAt)}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm">{t('peppolPage.noRecentDocs', 'Aucun document récent')}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* --- Peppol Settings Form --- */}
+            <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-6">
+              <PeppolSettings />
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* ======== EXTERNAL UBL IMPORT + SEND ======== */}
+        <Dialog
+          open={externalSendDialogOpen}
+          onOpenChange={(open) => {
+            setExternalSendDialogOpen(open);
+            if (!open) {
+              setExternalFile(null);
+              setSelectedGedVersionId('');
+            }
+          }}
+        >
+          <DialogContent className="w-full sm:max-w-2xl bg-[#0f1528] border-white/10 text-white p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent flex items-center gap-2">
+                <Upload className="w-5 h-5 text-orange-400" />
+                {t('peppol.externalImportSend', 'Importer UBL externe et envoyer via Peppol')}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-gray-400">
+                  {t(
+                    'peppol.externalImportHint',
+                    'Le document UBL XML sera automatiquement enregistre en facture locale, journalise en comptabilite, puis envoye sur Peppol.'
+                  )}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant={externalSource === 'disk' ? 'default' : 'outline'}
+                  onClick={() => setExternalSource('disk')}
+                  className={
+                    externalSource === 'disk'
+                      ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                      : 'border-gray-700 text-gray-300'
+                  }
+                >
+                  <HardDrive className="w-4 h-4 mr-2" />
+                  {t('peppol.sourceDisk', 'Disque')}
+                </Button>
+                <Button
+                  type="button"
+                  variant={externalSource === 'ged' ? 'default' : 'outline'}
+                  onClick={() => setExternalSource('ged')}
+                  className={
+                    externalSource === 'ged'
+                      ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                      : 'border-gray-700 text-gray-300'
+                  }
+                >
+                  <FolderOpen className="w-4 h-4 mr-2" />
+                  {t('nav.gedHub', 'GED HUB')}
+                </Button>
+              </div>
+
+              {externalSource === 'disk' ? (
+                <div className="rounded-lg border border-gray-700 bg-gray-900/40 p-4 space-y-3">
+                  <p className="text-sm text-gray-300">{t('peppol.pickUblFile', 'Selectionnez un fichier UBL XML')}</p>
+                  <Input
+                    type="file"
+                    accept=".xml,text/xml,application/xml"
+                    onChange={(e) => setExternalFile(e.target.files?.[0] || null)}
+                    className="bg-gray-900/50 border-gray-700 text-gray-200"
+                  />
+                  {externalFile && (
+                    <p className="text-xs text-gray-400">
+                      {t('common.selected', 'Selectionne')} : <span className="font-mono">{externalFile.name}</span>
                     </p>
                   )}
                 </div>
-
-                {/* Supported Document Profiles */}
-                <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-3">
-                  <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                    <FileCheck className="w-4 h-4 text-orange-400" />
-                    {t('peppolPage.supportedProfiles', 'Profils UBL supportés')}
-                  </h4>
-                  {apInfo.supportedProfiles?.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {apInfo.supportedProfiles.map((profile, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-xs">
-                          <CheckCircle className="w-3.5 h-3.5 text-green-400 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-300">
-                            {typeof profile === 'string'
-                              ? profile
-                              : profile.name || profile.profileId || profile.documentTypeId || JSON.stringify(profile)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">{t('peppolPage.noProfiles', 'Aucun profil trouvé')}</p>
-                  )}
-                </div>
-
-                {/* Recent AP Events / Documents */}
-                <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-3">
-                  <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-yellow-400" />
-                    {t('peppolPage.recentApDocuments', 'Documents récents (AP)')}
-                  </h4>
-                  {apInfo.recentDocuments?.length > 0 ? (
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {apInfo.recentDocuments.slice(0, 10).map((doc, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between text-xs border-b border-gray-800/50 pb-1.5"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <ArrowUpRight className="w-3 h-3 text-blue-400 flex-shrink-0" />
-                            <span className="text-gray-300 truncate">
-                              {doc.invoiceNumber || doc.id || doc.guid || `Doc ${idx + 1}`}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {doc.status && (
-                              <Badge
-                                className={`text-[10px] border-0 ${
-                                  doc.status === 'Processed' || doc.status === 'delivered'
-                                    ? 'bg-green-500/20 text-green-400'
-                                    : doc.status === 'Error' || doc.status === 'error'
-                                      ? 'bg-red-500/20 text-red-400'
-                                      : 'bg-yellow-500/20 text-yellow-400'
-                                }`}
-                              >
-                                {doc.status}
-                              </Badge>
-                            )}
-                            {doc.createdAt && <span className="text-gray-500">{formatDate(doc.createdAt)}</span>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">{t('peppolPage.noRecentDocs', 'Aucun document récent')}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* --- Peppol Settings Form --- */}
-          <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-6">
-            <PeppolSettings />
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* ======== EXTERNAL UBL IMPORT + SEND ======== */}
-      <Dialog
-        open={externalSendDialogOpen}
-        onOpenChange={(open) => {
-          setExternalSendDialogOpen(open);
-          if (!open) {
-            setExternalFile(null);
-            setSelectedGedVersionId('');
-          }
-        }}
-      >
-        <DialogContent className="w-full sm:max-w-2xl bg-[#0f1528] border-white/10 text-white p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent flex items-center gap-2">
-              <Upload className="w-5 h-5 text-orange-400" />
-              {t('peppol.externalImportSend', 'Importer UBL externe et envoyer via Peppol')}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm text-gray-400">
-                {t(
-                  'peppol.externalImportHint',
-                  'Le document UBL XML sera automatiquement enregistre en facture locale, journalise en comptabilite, puis envoye sur Peppol.'
-                )}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={externalSource === 'disk' ? 'default' : 'outline'}
-                onClick={() => setExternalSource('disk')}
-                className={
-                  externalSource === 'disk'
-                    ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                    : 'border-gray-700 text-gray-300'
-                }
-              >
-                <HardDrive className="w-4 h-4 mr-2" />
-                {t('peppol.sourceDisk', 'Disque')}
-              </Button>
-              <Button
-                type="button"
-                variant={externalSource === 'ged' ? 'default' : 'outline'}
-                onClick={() => setExternalSource('ged')}
-                className={
-                  externalSource === 'ged'
-                    ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                    : 'border-gray-700 text-gray-300'
-                }
-              >
-                <FolderOpen className="w-4 h-4 mr-2" />
-                {t('nav.gedHub', 'GED HUB')}
-              </Button>
-            </div>
-
-            {externalSource === 'disk' ? (
-              <div className="rounded-lg border border-gray-700 bg-gray-900/40 p-4 space-y-3">
-                <p className="text-sm text-gray-300">{t('peppol.pickUblFile', 'Selectionnez un fichier UBL XML')}</p>
-                <Input
-                  type="file"
-                  accept=".xml,text/xml,application/xml"
-                  onChange={(e) => setExternalFile(e.target.files?.[0] || null)}
-                  className="bg-gray-900/50 border-gray-700 text-gray-200"
-                />
-                {externalFile && (
-                  <p className="text-xs text-gray-400">
-                    {t('common.selected', 'Selectionne')} : <span className="font-mono">{externalFile.name}</span>
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="rounded-lg border border-gray-700 bg-gray-900/40 p-4 space-y-3">
-                <p className="text-sm text-gray-300">{t('peppol.pickGedXml', 'Selectionnez un XML depuis GED')}</p>
-                {loadingGedXmlDocs ? (
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {t('common.loading', 'Chargement...')}
-                  </div>
-                ) : gedXmlDocuments.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    {t('peppol.noGedXmlFound', 'Aucun document XML trouve dans GED.')}
-                  </p>
-                ) : (
-                  <Select value={selectedGedVersionId} onValueChange={setSelectedGedVersionId}>
-                    <SelectTrigger className="w-full bg-gray-900/50 border-gray-700 text-white">
-                      <SelectValue placeholder={t('peppol.selectGedXml', 'Choisir un document XML')} />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-80">
-                      {gedXmlDocuments.map((doc) => (
-                        <SelectItem key={doc.id} value={doc.id}>
-                          {doc.file_name || `${doc.source_table} v${doc.version}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            )}
-
-            <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 p-3 text-sm text-orange-100">
-              {t('peppol.externalSendCreditNotice', {
-                credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
-                unit: creditUnit,
-                defaultValue: `L'envoi consomme ${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit}.`,
-              })}
-            </div>
-          </div>
-
-          <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setExternalSendDialogOpen(false)}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full sm:w-auto"
-              disabled={sendingExternal}
-            >
-              {t('common.cancel', 'Annuler')}
-            </Button>
-            <Button
-              onClick={handleExternalUblSend}
-              disabled={
-                sendingExternal ||
-                (externalSource === 'disk' && !externalFile) ||
-                (externalSource === 'ged' && !selectedGedVersionId)
-              }
-              className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
-            >
-              {sendingExternal ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t('peppol.sending')}
-                </>
               ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  {t('peppol.sendViaPeppol')}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ======== SEND CONFIRMATION DIALOG ======== */}
-      <Dialog open={sendDialogOpen} onOpenChange={handleCloseSendDialog}>
-        <DialogContent className="w-full sm:max-w-[90%] md:max-w-lg bg-[#0f1528] border-white/10 text-white p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent flex items-center gap-2">
-              <Send className="w-5 h-5 text-orange-400" />
-              {t('peppol.sendViaPeppol')}
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedInvoice && (
-            <div className="space-y-4 mt-2">
-              {/* Invoice summary */}
-              <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-800 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Facture</span>
-                  <span className="text-white font-medium">{selectedInvoice.invoice_number}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Client</span>
-                  <span className="text-white">
-                    {selectedInvoice.client?.company_name || selectedInvoice.client?.contact_name || '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Montant</span>
-                  <span className="text-white font-medium">{formatAmount(selectedInvoice.total_ttc)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Peppol ID destinataire</span>
-                  <span className="text-orange-400 font-mono text-sm">
-                    {selectedInvoice.client?.peppol_endpoint_id || '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">{t('peppol.schemeId')}</span>
-                  <span className="text-gray-300 font-mono text-sm">
-                    {selectedInvoice.client?.peppol_scheme_id || '0208'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Items preview */}
-              <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-800">
-                <p className="text-gray-400 text-sm mb-2">
-                  Lignes de facture ({loadingItems ? '...' : selectedInvoiceItems.length})
-                </p>
-                {loadingItems ? (
-                  <div className="flex items-center justify-center py-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500" />
-                  </div>
-                ) : selectedInvoiceItems.length === 0 ? (
-                  <p className="text-gray-500 text-sm">Aucune ligne trouvee</p>
-                ) : (
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {selectedInvoiceItems.map((item, idx) => (
-                      <div key={item.id || idx} className="flex justify-between text-xs text-gray-300">
-                        <span className="truncate mr-2">{item.description || item.name || `Ligne ${idx + 1}`}</span>
-                        <span className="whitespace-nowrap text-gray-400">
-                          {Number(item.quantity || 0)} x{' '}
-                          {formatNumber(Number(item.unit_price || 0), { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Warning if no items */}
-              {!loadingItems && selectedInvoiceItems.length === 0 && (
-                <div className="flex items-center gap-2 text-yellow-400 text-sm bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                  La facture ne contient aucune ligne. L envoi pourrait echouer.
+                <div className="rounded-lg border border-gray-700 bg-gray-900/40 p-4 space-y-3">
+                  <p className="text-sm text-gray-300">{t('peppol.pickGedXml', 'Selectionnez un XML depuis GED')}</p>
+                  {loadingGedXmlDocs ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t('common.loading', 'Chargement...')}
+                    </div>
+                  ) : gedXmlDocuments.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      {t('peppol.noGedXmlFound', 'Aucun document XML trouve dans GED.')}
+                    </p>
+                  ) : (
+                    <Select value={selectedGedVersionId} onValueChange={setSelectedGedVersionId}>
+                      <SelectTrigger className="w-full bg-gray-900/50 border-gray-700 text-white">
+                        <SelectValue placeholder={t('peppol.selectGedXml', 'Choisir un document XML')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-80">
+                        {gedXmlDocuments.map((doc) => (
+                          <SelectItem key={doc.id} value={doc.id}>
+                            {doc.file_name || `${doc.source_table} v${doc.version}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               )}
 
               <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 p-3 text-sm text-orange-100">
-                {t('peppolPage.creditPolicy.sendDialogNotice', {
+                {t('peppol.externalSendCreditNotice', {
                   credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
                   unit: creditUnit,
-                  defaultValue: `Cet envoi consomme ${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit}. Si le Point d'Acces rejette le document ou si le journal echoue, les credits sont rembourses automatiquement.`,
+                  defaultValue: `L'envoi consomme ${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit}.`,
                 })}
               </div>
             </div>
-          )}
 
-          <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={handleCloseSendDialog}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full sm:w-auto"
-            >
-              Annuler
-            </Button>
-            <Button
-              onClick={handleConfirmSend}
-              disabled={sending || loadingItems || selectedInvoiceItems.length === 0}
-              className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
-            >
-              {sending ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  {t('peppol.sending')}
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  {t('peppolPage.creditPolicy.sendButton', {
-                    credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
-                    unit: creditUnit,
-                    defaultValue: `Confirmer l envoi Peppol (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit})`,
-                  })}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* --- Invoice Preview Dialog --- */}
-      {viewingInvoice && (
-        <Dialog
-          open={!!viewingInvoice}
-          onOpenChange={(open) => {
-            if (!open) {
-              setViewingInvoice(null);
-              setViewingInvoiceItems([]);
-            }
-          }}
-        >
-          <DialogContent className="w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0f1528] border-white/10 text-white p-0">
-            <InvoicePreview invoice={viewingInvoice} client={viewingInvoice.client} items={viewingInvoiceItems} />
+            <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setExternalSendDialogOpen(false)}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full sm:w-auto"
+                disabled={sendingExternal}
+              >
+                {t('common.cancel', 'Annuler')}
+              </Button>
+              <Button
+                onClick={handleExternalUblSend}
+                disabled={
+                  sendingExternal ||
+                  (externalSource === 'disk' && !externalFile) ||
+                  (externalSource === 'ged' && !selectedGedVersionId)
+                }
+                className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
+              >
+                {sendingExternal ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {t('peppol.sending')}
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    {t('peppol.sendViaPeppol')}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
-      )}
-    </div>
+
+        {/* ======== SEND CONFIRMATION DIALOG ======== */}
+        <Dialog open={sendDialogOpen} onOpenChange={handleCloseSendDialog}>
+          <DialogContent className="w-full sm:max-w-[90%] md:max-w-lg bg-[#0f1528] border-white/10 text-white p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent flex items-center gap-2">
+                <Send className="w-5 h-5 text-orange-400" />
+                {t('peppol.sendViaPeppol')}
+              </DialogTitle>
+            </DialogHeader>
+
+            {selectedInvoice && (
+              <div className="space-y-4 mt-2">
+                {/* Invoice summary */}
+                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-800 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">Facture</span>
+                    <span className="text-white font-medium">{selectedInvoice.invoice_number}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">Client</span>
+                    <span className="text-white">
+                      {selectedInvoice.client?.company_name || selectedInvoice.client?.contact_name || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">Montant</span>
+                    <span className="text-white font-medium">{formatAmount(selectedInvoice.total_ttc)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">Peppol ID destinataire</span>
+                    <span className="text-orange-400 font-mono text-sm">
+                      {selectedInvoice.client?.peppol_endpoint_id || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">{t('peppol.schemeId')}</span>
+                    <span className="text-gray-300 font-mono text-sm">
+                      {selectedInvoice.client?.peppol_scheme_id || '0208'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Items preview */}
+                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-800">
+                  <p className="text-gray-400 text-sm mb-2">
+                    Lignes de facture ({loadingItems ? '...' : selectedInvoiceItems.length})
+                  </p>
+                  {loadingItems ? (
+                    <div className="flex items-center justify-center py-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500" />
+                    </div>
+                  ) : selectedInvoiceItems.length === 0 ? (
+                    <p className="text-gray-500 text-sm">Aucune ligne trouvee</p>
+                  ) : (
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {selectedInvoiceItems.map((item, idx) => (
+                        <div key={item.id || idx} className="flex justify-between text-xs text-gray-300">
+                          <span className="truncate mr-2">{item.description || item.name || `Ligne ${idx + 1}`}</span>
+                          <span className="whitespace-nowrap text-gray-400">
+                            {Number(item.quantity || 0)} x{' '}
+                            {formatNumber(Number(item.unit_price || 0), { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Warning if no items */}
+                {!loadingItems && selectedInvoiceItems.length === 0 && (
+                  <div className="flex items-center gap-2 text-yellow-400 text-sm bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    La facture ne contient aucune ligne. L envoi pourrait echouer.
+                  </div>
+                )}
+
+                <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 p-3 text-sm text-orange-100">
+                  {t('peppolPage.creditPolicy.sendDialogNotice', {
+                    credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+                    unit: creditUnit,
+                    defaultValue: `Cet envoi consomme ${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit}. Si le Point d'Acces rejette le document ou si le journal echoue, les credits sont rembourses automatiquement.`,
+                  })}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={handleCloseSendDialog}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full sm:w-auto"
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleConfirmSend}
+                disabled={sending || loadingItems || selectedInvoiceItems.length === 0}
+                className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
+              >
+                {sending ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    {t('peppol.sending')}
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    {t('peppolPage.creditPolicy.sendButton', {
+                      credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+                      unit: creditUnit,
+                      defaultValue: `Confirmer l envoi Peppol (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit})`,
+                    })}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* --- Invoice Preview Dialog --- */}
+        {viewingInvoice && (
+          <Dialog
+            open={!!viewingInvoice}
+            onOpenChange={(open) => {
+              if (!open) {
+                setViewingInvoice(null);
+                setViewingInvoiceItems([]);
+              }
+            }}
+          >
+            <DialogContent className="w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0f1528] border-white/10 text-white p-0">
+              <InvoicePreview invoice={viewingInvoice} client={viewingInvoice.client} items={viewingInvoiceItems} />
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+    </TooltipProvider>
   );
 };
 
