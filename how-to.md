@@ -15,7 +15,7 @@ Lors de l'audit de securite du projet, la **Task 1** a externalise les credentia
 ```js
 // AVANT (credentials en dur — risque de securite)
 const supabaseUrl = 'https://rfzvrezrcigzmldgvntz.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIs...';
+const supabaseAnonKey = '<SUPABASE_ANON_KEY_NON_VERSIONNEE>';
 ```
 
 a :
@@ -40,9 +40,7 @@ Le client Supabase retournait `null` car `import.meta.env.VITE_SUPABASE_URL` eta
 
 1. Le code dans `customSupabaseClient.js` verifie si `supabaseUrl` et `supabaseAnonKey` existent avant de creer le client :
    ```js
-   const customSupabaseClient = supabaseUrl && supabaseAnonKey
-     ? createClient(supabaseUrl, supabaseAnonKey)
-     : null;
+   const customSupabaseClient = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
    ```
 2. Sans ces variables, le client est `null`, ce qui fait echouer toute l'authentification.
 3. Verification via `vercel env ls` : aucune variable `VITE_*` n'etait configuree dans le projet Vercel.
@@ -116,6 +114,7 @@ Le build a reussi (0 erreurs, 13.26s) et le site a ete deploye sur `https://cash
 ### Lecon retenue
 
 > **Regle :** Quand on externalise des credentials hardcodees vers des variables d'environnement, il faut **configurer ces variables dans tous les environnements de deploiement AVANT de deployer le changement de code.** L'ordre correct est :
+>
 > 1. Ajouter les env vars dans Vercel (ou autre hebergeur)
 > 2. Commiter et pousser le code qui utilise `import.meta.env.*`
 > 3. Verifier que le deploiement fonctionne

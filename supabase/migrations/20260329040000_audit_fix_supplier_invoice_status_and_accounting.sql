@@ -207,7 +207,7 @@ END $$;
 -- payment_terms.company_id is intentionally NULL for system-wide default terms.
 -- These are user-scoped (via user_id) not company-scoped, which is by design
 -- since payment terms are typically set at company level but can be shared.
--- TODO: If per-company isolation is required, add company_id to all payment_terms
+-- NOTE: If per-company isolation is required, add company_id to all payment_terms
 -- and migrate the data accordingly.
 -- ============================================================================
 COMMENT ON TABLE payment_terms IS

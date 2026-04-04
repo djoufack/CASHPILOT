@@ -66,8 +66,9 @@ serve(async (req) => {
       throw new HttpError(400, 'Company SIRET is required for Chorus Pro submission');
     }
 
-    // ── Simulate Chorus Pro API submission ──
-    // TODO: Replace with actual Chorus Pro API integration
+    // ── Temporary submission adapter (non-production API bridge) ──
+    // Until Chorus Pro API credentials/contract are provisioned, we persist a
+    // deterministic local submission record instead of calling the external API.
     const submissionId = crypto.randomUUID();
     const submissionResult = {
       submission_id: submissionId,

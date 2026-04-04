@@ -163,7 +163,7 @@ Copy the URL and anon key to `.env.local`:
 
 ```
 VITE_SUPABASE_URL=https://xxxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
+VITE_SUPABASE_ANON_KEY=<SUPABASE_ANON_KEY_NON_VERSIONNEE>
 ```
 
 **Step 3: Write the migration file**

@@ -3840,7 +3840,7 @@
       "writeTitle": "Écriture",
       "writeDescription": "POST/PUT — créer factures, clients, paiements...",
       "deleteTitle": "Suppression",
-      "deleteDescription": "DELETE — supprimer des enregistrements",
+      "deleteDescription": "SUPPRIMER — supprimer des enregistrements",
       "generateButton": "Générer la clé API",
       "noKeys": "Aucune clé API. Créez-en une pour connecter ChatGPT, Zapier ou vos scripts.",
       "revoked": "Révoquée",
@@ -4468,7 +4468,7 @@
       "rateLimited": "Trop de tentatives. Réessayez dans {{seconds}} secondes.",
       "alreadyRegistered": "Cet e-mail est déjà enregistré. Veuillez vous connecter."
     },
-    "confirmationEmailSent": "Account created. Please check your email to confirm your account, then log in.",
+    "confirmationEmailSent": "Compte créé. Vérifiez votre e-mail pour confirmer votre compte, puis connectez-vous.",
     "confirmationEmailPending": "We sent a confirmation email. Please verify your inbox, then log in."
   },
   "notifications": {
@@ -4808,13 +4808,13 @@
     "transferDate": "Date",
     "notes": "Notes",
     "executeTransfer": "Effectuer le virement",
-    "cardCreated": "Card Created",
-    "cashAccountCreated": "Cash Account Created",
-    "transactionCreated": "Transaction Created",
+    "cardCreated": "Carte créée",
+    "cashAccountCreated": "Caisse créée",
+    "transactionCreated": "Transaction créée",
     "sameInstrumentError": "Same Instrument Error",
-    "transferCreated": "Transfer Created",
+    "transferCreated": "Virement créé",
     "transferCancelled": "Transfer Cancelled",
-    "portfolioCreated": "Portfolio Created",
+    "portfolioCreated": "Portefeuille créé",
     "confirmDelete": "Confirmer la suppression",
     "subtitle": "Gerez vos comptes bancaires, cartes et caisses"
   },
@@ -4893,7 +4893,7 @@
     "guidedActions": {
       "title": "Actions guidées CFO",
       "subtitle": "Déclenchez les actions financières les plus utiles en un clic, dans le périmètre de votre société active.",
-      "scopeHint": "Company-scoped",
+      "scopeHint": "Périmètre société",
       "loading": "Traitement...",
       "states": {
         "idle": "Disponible",
@@ -4914,7 +4914,7 @@
       },
       "scenario": {
         "title": "Scenario",
-        "description": "Créer un scénario brouillon company-scoped puis ouvrir son espace dédié.",
+        "description": "Créer un scénario brouillon au périmètre société puis ouvrir son espace dédié.",
         "cta": "Créer le scénario",
         "defaultName": "Scénario CFO guidé",
         "defaultDescription": "Scénario de travail créé depuis les actions guidées du CFO.",
@@ -6483,13 +6483,13 @@
     },
     "toast": {
       "error": "Erreur",
-      "positionCreated": "Position Created",
+      "positionCreated": "Poste créé",
       "positionUpdated": "Position Updated",
       "candidateAdded": "Candidate Added",
-      "applicationCreated": "Application Created",
+      "applicationCreated": "Candidature créée",
       "applicationMoved": "Application Moved",
       "interviewScheduled": "Interview Scheduled",
-      "onboardingPlanCreated": "Onboarding Plan Created",
+      "onboardingPlanCreated": "Plan d'intégration créé",
       "taskUpdated": "Task Updated"
     }
   },

@@ -1,11 +1,11 @@
-// TODO: These sets are now defined in DB table `invoice_status_config`.
+// NOTE: These sets are also defined in DB table `invoice_status_config`.
 // They are kept here as JS fallbacks for offline/loading states.
-// Once the frontend fetches from DB on init, these become the default values only.
+// Once the frontend fetches from DB on init, these become default fallback values.
 // Source of truth: DB `invoice_status_config` (is_billable, is_booked, is_collected columns)
-const BILLABLE_INVOICE_STATUSES = new Set(['sent', 'paid']);           // mirrors DB: is_billable = true
-const NON_BOOKED_INVOICE_STATUSES = new Set(['draft', 'cancelled']);   // mirrors DB: is_booked = false
-const COLLECTED_PAYMENT_STATUSES = new Set(['paid', 'overpaid']);      // mirrors DB: is_collected = true (payment-level)
-const COLLECTED_INVOICE_STATUSES = new Set(['paid']);                   // mirrors DB: is_collected = true (invoice-level)
+const BILLABLE_INVOICE_STATUSES = new Set(['sent', 'paid']); // mirrors DB: is_billable = true
+const NON_BOOKED_INVOICE_STATUSES = new Set(['draft', 'cancelled']); // mirrors DB: is_booked = false
+const COLLECTED_PAYMENT_STATUSES = new Set(['paid', 'overpaid']); // mirrors DB: is_collected = true (payment-level)
+const COLLECTED_INVOICE_STATUSES = new Set(['paid']); // mirrors DB: is_collected = true (invoice-level)
 
 const toNumber = (value) => {
   const n = Number(value);
@@ -14,7 +14,10 @@ const toNumber = (value) => {
 
 const round = (value, decimals = 2) => Number(toNumber(value).toFixed(decimals));
 
-const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
+const normalizeStatus = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase();
 
 export const getCanonicalInvoiceAmount = (invoice = {}) => {
   const totalTtc = toNumber(invoice.total_ttc);
@@ -37,17 +40,11 @@ const calculateProfitMargin = (revenue, expenses) => {
   return Number((((rev - exp) / rev) * 100).toFixed(1));
 };
 
-const resolveInvoiceDate = (invoice = {}) => (
-  invoice.date || invoice.invoice_date || invoice.created_at || null
-);
+const resolveInvoiceDate = (invoice = {}) => invoice.date || invoice.invoice_date || invoice.created_at || null;
 
-const resolveExpenseDate = (expense = {}) => (
-  expense.expense_date || expense.created_at || null
-);
+const resolveExpenseDate = (expense = {}) => expense.expense_date || expense.created_at || null;
 
-const resolveTimesheetDate = (timesheet = {}) => (
-  timesheet.date || timesheet.created_at || null
-);
+const resolveTimesheetDate = (timesheet = {}) => timesheet.date || timesheet.created_at || null;
 
 const classifyItem = (item = {}) => {
   if (item.item_type === 'product' || item.product_id) return 'product';
@@ -60,14 +57,12 @@ const getMonthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 
 const getMonthLabel = (date) => `${monthNames[date.getMonth()]} ${String(date.getFullYear()).slice(2)}`;
 const getStartOfDay = (date = new Date()) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-export const isCanonicalInvoiceBooked = (invoice = {}) => (
-  !NON_BOOKED_INVOICE_STATUSES.has(normalizeStatus(invoice.status))
-);
+export const isCanonicalInvoiceBooked = (invoice = {}) =>
+  !NON_BOOKED_INVOICE_STATUSES.has(normalizeStatus(invoice.status));
 
-export const isCanonicalInvoiceCollected = (invoice = {}) => (
-  COLLECTED_INVOICE_STATUSES.has(normalizeStatus(invoice.status))
-  || COLLECTED_PAYMENT_STATUSES.has(normalizeStatus(invoice.payment_status))
-);
+export const isCanonicalInvoiceCollected = (invoice = {}) =>
+  COLLECTED_INVOICE_STATUSES.has(normalizeStatus(invoice.status)) ||
+  COLLECTED_PAYMENT_STATUSES.has(normalizeStatus(invoice.payment_status));
 
 export const getCanonicalInvoiceBalanceDue = (invoice = {}) => {
   const rawBalance = invoice.balance_due;
@@ -112,14 +107,17 @@ export const buildCanonicalRevenueCollectionSnapshot = ({
 
   const bookedRevenue = bookedInvoices.reduce((sum, invoice) => sum + getCanonicalInvoiceAmount(invoice), 0);
   const collectedRevenue = collectedInvoices.reduce((sum, invoice) => sum + getCanonicalInvoiceAmount(invoice), 0);
-  const outstandingReceivables = outstandingInvoices.reduce((sum, invoice) => sum + getCanonicalInvoiceBalanceDue(invoice), 0);
+  const outstandingReceivables = outstandingInvoices.reduce(
+    (sum, invoice) => sum + getCanonicalInvoiceBalanceDue(invoice),
+    0
+  );
   const overdueReceivables = overdueInvoices.reduce((sum, invoice) => sum + getCanonicalInvoiceBalanceDue(invoice), 0);
   const totalExpenses = expenseRows.reduce((sum, expense) => sum + toNumber(expense.amount), 0);
   const paymentsRecorded = paymentRows.reduce((sum, payment) => sum + toNumber(payment.amount), 0);
 
   const grossMargin = collectedRevenue - totalExpenses;
-  const grossMarginPct = collectedRevenue > 0 ? ((grossMargin / collectedRevenue) * 100) : 0;
-  const collectionRate = bookedRevenue > 0 ? ((collectedRevenue / bookedRevenue) * 100) : 0;
+  const grossMarginPct = collectedRevenue > 0 ? (grossMargin / collectedRevenue) * 100 : 0;
+  const collectionRate = bookedRevenue > 0 ? (collectedRevenue / bookedRevenue) * 100 : 0;
 
   return {
     bookedRevenue: round(bookedRevenue),
@@ -151,7 +149,7 @@ export const buildCanonicalDashboardSnapshot = ({
   const netCashFlow = totalRevenue - totalExpenses;
 
   const totalDurationMinutes = timesheets.reduce((sum, ts) => sum + toNumber(ts.duration_minutes), 0);
-  const totalBudgetMinutes = projects.reduce((sum, p) => sum + (toNumber(p.budget_hours) * 60), 0);
+  const totalBudgetMinutes = projects.reduce((sum, p) => sum + toNumber(p.budget_hours) * 60, 0);
   let occupancyRate = 0;
   if (totalBudgetMinutes > 0) {
     occupancyRate = (totalDurationMinutes / totalBudgetMinutes) * 100;
@@ -205,7 +203,7 @@ export const buildCanonicalDashboardSnapshot = ({
 
   const marginTrend = calculateTrend(
     calculateProfitMargin(currentMonthRevenue, currentMonthExpenses),
-    calculateProfitMargin(prevMonthRevenue, prevMonthExpenses),
+    calculateProfitMargin(prevMonthRevenue, prevMonthExpenses)
   );
 
   const currentMonthDuration = timesheets
@@ -272,7 +270,7 @@ export const buildCanonicalDashboardSnapshot = ({
     }
 
     items.forEach((item) => {
-      const itemTotal = toNumber(item.total) || (toNumber(item.quantity) * toNumber(item.unit_price));
+      const itemTotal = toNumber(item.total) || toNumber(item.quantity) * toNumber(item.unit_price);
       const category = classifyItem(item);
       revenueByType[category] += itemTotal;
 
@@ -282,8 +280,7 @@ export const buildCanonicalDashboardSnapshot = ({
     });
   });
 
-  const revenueBreakdownData = Object.values(revenueByMonthType)
-    .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  const revenueBreakdownData = Object.values(revenueByMonthType).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
   return {
     metrics: {
