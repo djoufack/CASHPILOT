@@ -362,8 +362,8 @@
     "h1": ["Gestion du Stock"],
     "status": "Partiel",
     "problems": [
-      "console: WebSocket connection to 'wss://rfzvrezrcigzmldgvntz.supabase.co/realtime/v1/websocket?apikey=[SUPABASE_ANON_KEY_REDACTED]&vsn=2.0.0' failed: Establishing a tunnel via proxy server failed.",
-      "console: WebSocket connection to 'wss://rfzvrezrcigzmldgvntz.supabase.co/realtime/v1/websocket?apikey=[SUPABASE_ANON_KEY_REDACTED]&vsn=2.0.0' failed: Establishing a tunnel via proxy server failed."
+      "console: WebSocket connection to 'wss://rfzvrezrcigzmldgvntz.supabase.co/realtime/v1/websocket?apikey=[SUPABASE_ANON_KEY_NON_VERSIONNEE]&vsn=2.0.0' failed: Establishing a tunnel via proxy server failed.",
+      "console: WebSocket connection to 'wss://rfzvrezrcigzmldgvntz.supabase.co/realtime/v1/websocket?apikey=[SUPABASE_ANON_KEY_NON_VERSIONNEE]&vsn=2.0.0' failed: Establishing a tunnel via proxy server failed."
     ],
     "snippet": "Gestion du Stock Gérez votre inventaire, alertes et mouvements de stock. Toutes catégories Nouveau produit Exporter PDF (3) HTML (2) Cockpit stock Entrepôts Inventaire Historique Gestion stock Total Produits 10 10 produi"
   },

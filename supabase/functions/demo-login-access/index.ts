@@ -46,6 +46,9 @@ const toJsonResponse = (
       ...corsHeaders,
       ...extraHeaders,
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, max-age=0',
+      Pragma: 'no-cache',
+      Expires: '0',
     },
   });
 
@@ -62,6 +65,16 @@ const isDemoLoginEnabled = () => {
     return true;
   }
   return isTruthy(configured);
+};
+
+const normalizeOrigin = (value: string | null | undefined) => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return null;
+  }
 };
 
 const normalizeRegion = (value: unknown): DemoRegion => {
@@ -118,6 +131,18 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const allowNoOrigin = isTruthy(Deno.env.get('DEMO_LOGIN_ALLOW_NO_ORIGIN'));
+    const requestOrigin = normalizeOrigin(req.headers.get('origin'));
+    const allowedOrigin = getAllowedOrigin(req);
+
+    if (!requestOrigin && !allowNoOrigin) {
+      return toJsonResponse({ error: 'Origin required.' }, corsHeaders, 403);
+    }
+
+    if (requestOrigin && requestOrigin !== allowedOrigin) {
+      return toJsonResponse({ error: 'Origin not allowed.' }, corsHeaders, 403);
+    }
+
     if (!isDemoLoginEnabled()) {
       return toJsonResponse({ error: 'Demo access is temporarily disabled.' }, corsHeaders, 503);
     }
@@ -188,6 +213,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('demo-login-access error:', error);
     const status = error instanceof HttpError ? error.status : 500;
-    return toJsonResponse({ error: (error as Error).message || 'Unexpected error' }, corsHeaders, status);
+    const errorMessage = error instanceof HttpError ? error.message : 'Unexpected error';
+    return toJsonResponse({ error: errorMessage }, corsHeaders, status);
   }
 });

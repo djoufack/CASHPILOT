@@ -9,8 +9,16 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://rfzvrezrcigzmldgvntz.supabase.co';
-const SUPABASE_ANON_KEY = '[SUPABASE_ANON_KEY_REDACTED]';
+function requireFirstEnv(keys) {
+  for (const key of keys) {
+    const value = String(process.env[key] || '').trim();
+    if (value) return value;
+  }
+  throw new Error(`Missing required environment variable. Expected one of: ${keys.join(', ')}`);
+}
+
+const SUPABASE_URL = requireFirstEnv(['SUPABASE_URL', 'VITE_SUPABASE_URL']);
+const SUPABASE_ANON_KEY = requireFirstEnv(['SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY']);
 
 // ─── Accounts ────────────────────────────────────────────────────────────────
 const ACCOUNTS = [

@@ -17,6 +17,18 @@ const FORBIDDEN_PATTERNS = [
     label: 'Demo credential pair leaked in clear text',
     regex: /pilotage\.(?:fr|be|ohada)\.demo@cashpilot\.cloud\s*\/\s*(?!\[(?:SECRET|secret)_DEMO_NON_VERSIONNE\])[^\s\r\n]+/i,
   },
+  {
+    label: 'Hardcoded Supabase anon key assignment',
+    regex: /\b(?:SUPABASE_ANON_KEY|anonKey)\s*[:=]\s*['"`]eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+['"`]/i,
+  },
+  {
+    label: 'Supabase anon JWT exposed in docs',
+    regex: /\bAnon\s+Key\s*:\s*eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/i,
+  },
+  {
+    label: 'Supabase realtime URL leaks anon JWT',
+    regex: /apikey=eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/i,
+  },
 ];
 
 const IGNORED_PATH_PREFIXES = [

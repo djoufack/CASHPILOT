@@ -10,7 +10,7 @@
 ## Supabase
 
 - URL : https://rfzvrezrcigzmldgvntz.supabase.co
-- Anon Key : [SUPABASE_ANON_KEY_REDACTED]
+- Anon Key : [SUPABASE_ANON_KEY_NON_VERSIONNEE]
 
 ## Comptes Demo
 

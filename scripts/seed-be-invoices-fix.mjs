@@ -5,8 +5,6 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://rfzvrezrcigzmldgvntz.supabase.co';
-const SUPABASE_ANON_KEY = '[SUPABASE_ANON_KEY_REDACTED]';
 const DEMO_BE_EMAIL = (process.env.PILOTAGE_BE_EMAIL || 'pilotage.be.demo@cashpilot.cloud').trim();
 
 function requireEnv(key) {
@@ -16,6 +14,17 @@ function requireEnv(key) {
   }
   return value;
 }
+
+function requireFirstEnv(keys) {
+  for (const key of keys) {
+    const value = String(process.env[key] || '').trim();
+    if (value) return value;
+  }
+  throw new Error(`Missing required environment variable. Expected one of: ${keys.join(', ')}`);
+}
+
+const SUPABASE_URL = requireFirstEnv(['SUPABASE_URL', 'VITE_SUPABASE_URL']);
+const SUPABASE_ANON_KEY = requireFirstEnv(['SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY']);
 
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
