@@ -95,6 +95,9 @@ verify_jwt = true
 [functions.auth-rate-limit]
 verify_jwt = false
 
+[functions.demo-login-access]
+verify_jwt = false
+
 [functions.api-v1]
 verify_jwt = false
 

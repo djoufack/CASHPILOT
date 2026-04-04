@@ -14,7 +14,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Sparkles,
-  Copy,
   ArrowUpRight,
   ChevronLeft,
   TrendingUp,
@@ -60,14 +59,14 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState(null);
+  const [demoLoadingRegion, setDemoLoadingRegion] = useState(null);
 
-  /* ── Demo accounts (unchanged) ── */
+  /* ── Demo accounts (server-side access) ── */
   const demoAccounts = [
     {
       region: 'FR',
       flag: '\u{1F1EB}\u{1F1F7}',
       email: 'pilotage.fr.demo@cashpilot.cloud',
-      password: 'PilotageFR#2026!',
       labelKey: 'auth.demoRegionFR',
       tagKey: 'auth.demoTagFR',
     },
@@ -75,7 +74,6 @@ const LoginPage = () => {
       region: 'BE',
       flag: '\u{1F1E7}\u{1F1EA}',
       email: 'pilotage.be.demo@cashpilot.cloud',
-      password: 'PilotageBE#2026!',
       labelKey: 'auth.demoRegionBE',
       tagKey: 'auth.demoTagBE',
     },
@@ -83,7 +81,6 @@ const LoginPage = () => {
       region: 'OHADA',
       flag: '\u{1F30D}',
       email: 'pilotage.ohada.demo@cashpilot.cloud',
-      password: 'PilotageOHADA#2026!',
       labelKey: 'auth.demoRegionOHADA',
       tagKey: 'auth.demoTagOHADA',
     },
@@ -108,29 +105,50 @@ const LoginPage = () => {
   ];
 
   /* ── Auth handlers (100% preserved) ── */
-  const handleDemoLogin = (account) => {
-    setEmail(account.email);
-    setPassword(account.password);
+  const handleDemoLogin = async (account) => {
     setErrors({});
-  };
-
-  const copyDemoCredentials = async (account) => {
-    const payload = `${account.email} / ${account.password}`;
+    setDemoLoadingRegion(account.region);
     try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(payload);
-      }
-      toast({
-        title: t('auth.demoCredentialsCopied', 'Identifiants démo copiés'),
-        description: account.email,
-        className: 'bg-green-500 border-none text-white',
+      const { data, error } = await supabase.functions.invoke('demo-login-access', {
+        body: { region: account.region },
       });
-    } catch (_error) {
+
+      if (error) {
+        const payload = error.context?.json ? await error.context.json().catch(() => null) : null;
+        const serverMessage = String(payload?.error || error.message || '');
+        throw new Error(serverMessage || 'Unable to launch demo access.');
+      }
+
+      const redirectUrl = String(data?.redirectUrl || '').trim();
+      if (!redirectUrl) {
+        throw new Error('Unable to launch demo access.');
+      }
+
+      window.location.assign(redirectUrl);
+    } catch (demoError) {
+      const message = String(demoError?.message || '').toLowerCase();
+      let description = t('auth.demoAccessFailed', 'Impossible de lancer la session demo. Reessayez dans un instant.');
+
+      if (message.includes('temporarily disabled')) {
+        description = t(
+          'auth.demoAccessDisabled',
+          'Le mode demo est temporairement desactive. Merci de reessayer plus tard.'
+        );
+      } else if (message.includes('too many demo access attempts') || message.includes('rate')) {
+        description = t(
+          'auth.demoAccessRateLimited',
+          'Trop de tentatives demo detectees. Merci de patienter quelques minutes.'
+        );
+      }
+
       toast({
-        title: t('auth.copyFailed', 'Copie impossible'),
-        description: t('auth.copyManualHint', 'Copiez manuellement les identifiants affichés.'),
+        title: t('auth.demoAccessErrorTitle', 'Acces demo indisponible'),
+        description,
         variant: 'destructive',
       });
+      setErrors({ form: description });
+    } finally {
+      setDemoLoadingRegion(null);
     }
   };
 
@@ -557,6 +575,7 @@ const LoginPage = () => {
                   key={account.region}
                   type="button"
                   onClick={() => handleDemoLogin(account)}
+                  disabled={loading || Boolean(demoLoadingRegion)}
                   className="group relative w-full rounded-2xl p-[1px] transition-all duration-300"
                   style={{
                     background:
@@ -584,43 +603,28 @@ const LoginPage = () => {
                     </div>
 
                     <div className="mt-3 inline-flex items-center gap-1 rounded-md border border-violet-200/14 bg-violet-500/8 px-2 py-1 text-[10px] font-medium text-violet-200 transition-all group-hover:border-violet-300/25 group-hover:bg-violet-500/15 group-hover:text-white">
-                      {t('auth.demoQuickFill', 'Pré-remplir')}
-                      <ArrowUpRight className="h-3 w-3" />
+                      {demoLoadingRegion === account.region ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          {t('auth.demoLaunchingAccess', 'Connexion...')}
+                        </>
+                      ) : (
+                        <>
+                          {t('auth.demoInstantAccess', 'Acces instantane')}
+                          <ArrowUpRight className="h-3 w-3" />
+                        </>
+                      )}
                     </div>
                   </div>
                 </button>
               ))}
             </div>
 
-            {/* Credentials display */}
-            <div className="mt-4 space-y-2">
-              {demoAccounts.map((account) => (
-                <div
-                  key={`credentials-${account.region}`}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-violet-200/8 bg-black/20 px-2.5 py-2"
-                >
-                  <div className="min-w-0">
-                    <div className="text-[10px] uppercase tracking-wide text-violet-300/70">
-                      {t(account.labelKey)} · {t(account.tagKey)}
-                    </div>
-                    <div className="truncate font-mono text-[11px] text-[#9aa7cc]">
-                      {account.email} / {account.password}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => copyDemoCredentials(account)}
-                    className="inline-flex items-center justify-center rounded-md border border-violet-200/14 bg-violet-500/8 px-2 py-1 text-xs text-[#9aa7cc] transition-colors hover:bg-violet-500/15 hover:text-white"
-                    aria-label={`Copier les identifiants ${account.region}`}
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
             <p className="mt-3 text-center text-[11px] text-[#7a88ac]">
-              Connectez-vous puis ouvrez <span className="font-mono text-[#9aa7cc]">/app/pilotage</span>
+              {t(
+                'auth.demoAccessHint',
+                'Connexion securee via lien unique, sans mot de passe expose dans le frontend.'
+              )}
             </p>
           </motion.div>
         </motion.div>
