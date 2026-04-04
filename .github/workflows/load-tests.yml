@@ -1,0 +1,140 @@
+name: Enterprise Load Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: k6 script to run
+        required: true
+        default: scripts/load-test-cashpilot.js
+        type: choice
+        options:
+          - scripts/load-test-cashpilot.js
+          - scripts/load-test-soak.js
+      profile:
+        description: k6 profile
+        required: true
+        default: peak
+        type: choice
+        options:
+          - light
+          - peak
+          - soak
+      base_url:
+        description: Target base URL
+        required: false
+        default: https://cashpilot.tech
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: enterprise-load-tests
+  cancel-in-progress: true
+
+jobs:
+  weekly-light-load-test:
+    if: ${{ github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BASE_URL: https://cashpilot.tech
+      K6_PROFILE: light
+      SCRIPT_PATH: scripts/load-test-cashpilot.js
+      LOAD_TEST_REPORT_DIR: artifacts/load-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare report directory
+        run: mkdir -p "$LOAD_TEST_REPORT_DIR"
+
+      - name: Run k6 load test
+        run: |
+          docker run --rm \
+            -e BASE_URL="$BASE_URL" \
+            -e K6_PROFILE="$K6_PROFILE" \
+            -e LOAD_TEST_REPORT_DIR="/work/$LOAD_TEST_REPORT_DIR" \
+            -e LOAD_TEST_P95_MS=3000 \
+            -e LOAD_TEST_P99_MS=5000 \
+            -e LOAD_TEST_HTTP_FAILED_RATE=0.05 \
+            -e LOAD_TEST_APP_ERROR_RATE=0.05 \
+            -v "${{ github.workspace }}:/work" \
+            -w /work \
+            grafana/k6:0.53.0 run "$SCRIPT_PATH"
+
+      - name: Summarize run
+        if: always()
+        run: |
+          {
+            echo "## Enterprise Load Test"
+            echo ""
+            echo "- Script: $SCRIPT_PATH"
+            echo "- Profile: $K6_PROFILE"
+            echo "- Base URL: $BASE_URL"
+            echo "- Report dir: $LOAD_TEST_REPORT_DIR"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload load test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-load-tests-weekly
+          path: artifacts/load-tests
+          if-no-files-found: warn
+
+  manual-load-test:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      BASE_URL: ${{ github.event.inputs.base_url }}
+      K6_PROFILE: ${{ github.event.inputs.profile }}
+      SCRIPT_PATH: ${{ github.event.inputs.script }}
+      LOAD_TEST_REPORT_DIR: artifacts/load-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare report directory
+        run: mkdir -p "$LOAD_TEST_REPORT_DIR"
+
+      - name: Run k6 load test
+        run: |
+          docker run --rm \
+            -e BASE_URL="$BASE_URL" \
+            -e K6_PROFILE="$K6_PROFILE" \
+            -e LOAD_TEST_REPORT_DIR="/work/$LOAD_TEST_REPORT_DIR" \
+            -e LOAD_TEST_P95_MS=2000 \
+            -e LOAD_TEST_P99_MS=5000 \
+            -e LOAD_TEST_HTTP_FAILED_RATE=0.02 \
+            -e LOAD_TEST_APP_ERROR_RATE=0.01 \
+            -e K6_TARGET_VUS=100 \
+            -e K6_RAMP_UP_MINUTES=2 \
+            -e K6_SOAK_MINUTES=26 \
+            -e K6_RAMP_DOWN_MINUTES=2 \
+            -v "${{ github.workspace }}:/work" \
+            -w /work \
+            grafana/k6:0.53.0 run "$SCRIPT_PATH"
+
+      - name: Summarize run
+        if: always()
+        run: |
+          {
+            echo "## Enterprise Load Test"
+            echo ""
+            echo "- Script: $SCRIPT_PATH"
+            echo "- Profile: $K6_PROFILE"
+            echo "- Base URL: $BASE_URL"
+            echo "- Report dir: $LOAD_TEST_REPORT_DIR"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload load test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-load-tests-manual
+          path: artifacts/load-tests
+          if-no-files-found: warn
