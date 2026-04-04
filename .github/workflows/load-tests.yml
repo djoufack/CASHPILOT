@@ -46,7 +46,7 @@ jobs:
       LOAD_TEST_REPORT_DIR: artifacts/load-tests
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Prepare report directory
         run: mkdir -p "$LOAD_TEST_REPORT_DIR"
@@ -96,7 +96,7 @@ jobs:
       LOAD_TEST_REPORT_DIR: artifacts/load-tests
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Prepare report directory
         run: mkdir -p "$LOAD_TEST_REPORT_DIR"
