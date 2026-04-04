@@ -35,6 +35,18 @@ describe('guardTableWritePayload', () => {
       expect(error.guard.table).toBe('receivables');
     }
   });
+
+  it('guards arrays and preserves array payload shape', () => {
+    const payload = [
+      { amount: '100', currency: 'eur' },
+      { amount: '200', currency: 'usd' },
+    ];
+    const result = guardTableWritePayload('payables', 'update', payload);
+    expect(Array.isArray(result.guardedValues)).toBe(true);
+    expect(result.guardedValues).toHaveLength(2);
+    expect(result.guardedValues[0].amount).toBe(100);
+    expect(result.guardedValues[1].currency).toBe('USD');
+  });
 });
 
 describe('buildGuardEventDetail', () => {
@@ -55,5 +67,55 @@ describe('buildGuardEventDetail', () => {
     expect(detail.table).toBe('payables');
     expect(['warning', 'info']).toContain(detail.level);
     expect(typeof detail.message).toBe('string');
+  });
+
+  it('returns null when summary is missing or empty', () => {
+    expect(
+      buildGuardEventDetail({
+        table: 'payables',
+        operation: 'create',
+        summary: null,
+        reports: [],
+      })
+    ).toBeNull();
+
+    expect(
+      buildGuardEventDetail({
+        table: 'payables',
+        operation: 'create',
+        summary: { warnings: 0, corrections: 0, blocking: 0 },
+        reports: [],
+      })
+    ).toBeNull();
+  });
+
+  it('prioritizes correction and warning messages and computes error level', () => {
+    const detail = buildGuardEventDetail({
+      table: 'invoices',
+      operation: 'update',
+      summary: { warnings: 1, corrections: 1, blocking: 1 },
+      reports: [
+        {
+          warnings: [{ message: 'warning message' }],
+          corrections: [{ message: 'correction message' }],
+        },
+      ],
+    });
+
+    expect(detail.level).toBe('error');
+    expect(detail.message).toContain('correction message');
+    expect(detail.message).toContain('warning message');
+  });
+
+  it('uses fallback message when no warning/correction message exists', () => {
+    const detail = buildGuardEventDetail({
+      table: 'expenses',
+      operation: 'create',
+      summary: { warnings: 1, corrections: 0, blocking: 0 },
+      reports: [{ warnings: [{}], corrections: [] }],
+    });
+
+    expect(detail.level).toBe('warning');
+    expect(detail.message).toBe('Controle de saisie applique.');
   });
 });

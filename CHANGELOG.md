@@ -10,12 +10,14 @@ All notable changes to this project are documented in this file.
 - Added pre-commit enforcement for staged env files via `.husky/pre-commit`.
 - Added `scripts/guard-i18n-language-quality.mjs` to detect EN/FR language regressions in locale files.
 - Added `scripts/guard-git-history-env.mjs` to fail if `.env*` files (except `.env.example`) exist in Git history.
+- Added `test:coverage:enterprise` command with enforced 100% line coverage on enterprise-critical guard/snapshot modules.
 
 ### Changed
 
 - Integrated `guard:env-files` into the global `npm run guard` pipeline.
 - Integrated `guard:i18n-language-quality` into the global `npm run guard` pipeline.
 - Integrated `guard:git-history-env` into the global `npm run guard` pipeline.
+- Integrated `test:coverage:enterprise` into the global `npm run guard` pipeline.
 - Corrected critical FR/EN locale entries in:
   - `src/i18n/locales/en.json`
   - `src/i18n/locales/fr.json`

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildCanonicalOperationsSnapshot } from '@/shared/canonicalOperationsSnapshot';
+import {
+  buildCanonicalOperationsSnapshot,
+  EMPTY_CANONICAL_OPERATIONS_SNAPSHOT,
+} from '@/shared/canonicalOperationsSnapshot';
 
 describe('canonicalOperationsSnapshot', () => {
   it('computes supplier and purchase amounts from canonical fallbacks', () => {
@@ -58,5 +61,50 @@ describe('canonicalOperationsSnapshot', () => {
     expect(snapshot.bank.totalBalance).toBe(1000);
     expect(snapshot.bank.balanceCurrencies).toEqual(['EUR']);
     expect(snapshot.bank.syncableConnectionIds).toEqual(['b-1']);
+  });
+
+  it('covers zero-first-finite fallback amounts and unknown statuses', () => {
+    const snapshot = buildCanonicalOperationsSnapshot({
+      supplierOrders: [
+        { id: 'ord-zero', order_status: null, total_amount: 0, total_ttc: null, total: null, amount: null },
+      ],
+      supplierInvoices: [
+        { id: 'sinv-zero', payment_status: null, total_amount: 0, total_ttc: null, total: null, amount: null },
+      ],
+      bankConnections: [
+        { id: 'b-active-eur', status: 'active', account_id: 'acc-eur', account_balance: 100, account_currency: 'eur' },
+        { id: 'b-active-usd', status: 'active', account_id: 'acc-usd', account_balance: 50, account_currency: 'usd' },
+        {
+          id: 'b-active-null-balance',
+          status: 'active',
+          account_id: 'acc-null',
+          account_balance: null,
+          account_currency: 'eur',
+        },
+        { id: 'b-revoked', status: 'revoked', account_id: 'acc-r', account_balance: 10, account_currency: 'eur' },
+        { id: 'b-expired', status: 'expired', account_id: 'acc-x', account_balance: 10, account_currency: 'eur' },
+        { id: 'b-error', status: 'error', account_id: 'acc-e', account_balance: 10, account_currency: 'eur' },
+      ],
+    });
+
+    expect(snapshot.purchases.totalAmount).toBe(0);
+    expect(snapshot.purchases.statusCounts.unknown).toBe(1);
+    expect(snapshot.suppliers.supplierInvoices.totalAmount).toBe(0);
+    expect(snapshot.suppliers.supplierInvoices.statusCounts.unknown).toBe(1);
+
+    expect(snapshot.bank.totalConnections).toBe(6);
+    expect(snapshot.bank.revokedConnections).toBe(1);
+    expect(snapshot.bank.expiredConnections).toBe(1);
+    expect(snapshot.bank.errorConnections).toBe(1);
+    expect(snapshot.bank.syncableConnections).toBe(3);
+    expect(snapshot.bank.balanceByCurrency).toEqual({ EUR: 100, USD: 50 });
+    expect(snapshot.bank.balanceCurrencies).toEqual(['EUR', 'USD']);
+    expect(snapshot.bank.hasMixedCurrencies).toBe(true);
+    expect(snapshot.bank.syncableConnectionIds).toEqual(['b-active-eur', 'b-active-usd', 'b-active-null-balance']);
+  });
+
+  it('returns canonical empty shape when called without input', () => {
+    const snapshot = buildCanonicalOperationsSnapshot();
+    expect(snapshot).toEqual(EMPTY_CANONICAL_OPERATIONS_SNAPSHOT);
   });
 });
