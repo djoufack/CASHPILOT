@@ -1,0 +1,97 @@
+area,module,route,tabs,entitlement_key,role_gate,country_gate,menu_visibility,source
+Public,Landing,/,none,none,public,none,no,src/routes.jsx
+Public,Login,/login,none,none,public,none,no,src/routes.jsx
+Public,Signup,/signup,none,none,public,none,no,src/routes.jsx
+Public,Forgot Password,/forgot-password,none,none,public,none,no,src/routes.jsx
+Public,Reset Password,/reset-password,none,none,public,none,no,src/routes.jsx
+Public,Pricing,/pricing,none,none,public,none,no,src/routes.jsx
+Public,Peppol Guide,/peppol-guide,none,none,public,none,no,src/routes.jsx
+Public,Privacy,/privacy,none,none,public,none,no,src/routes.jsx
+Public,Legal,/legal,none,none,public,none,no,src/routes.jsx
+Public,Quote Sign,/quote-sign/:token,none,none,public,none,no,src/routes.jsx
+Public,Payment Success,/payment-success,none,none,public,none,no,src/routes.jsx
+Public,Shared Snapshot,/shared/:token,none,none,public,none,no,src/routes.jsx
+Public,Status,/status,none,none,public,none,no,src/routes.jsx
+Protected,Onboarding,/app/onboarding,none,none,authenticated,none,no,src/routes.jsx
+Navigation,Dashboard,/app,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Pilotage,/app/pilotage,overview;accounting;financial;taxValuation;simulator;aiAudit;dataAvailability;analytics,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,CFO Agent,/app/cfo-agent,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Cockpit Conformité,/app/company-compliance-cockpit,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Portfolio sociétés,/app/portfolio,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Instruments financiers,/app/financial-instruments,bank_accounts;cards;cash;stats,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Peppol,/app/peppol,config;outbound;inbound;journal,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,PDP Compliance,/app/pdp-compliance,audit;archives,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Inter-Company,/app/inter-company,links;transactions;pricing;eliminations,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Consolidation,/app/consolidation,pnl;balance;cash;intercompany;entities,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Regulatory Intel,/app/regulatory-intel,updates;checklists;subscriptions,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,GED HUB,/app/ged-hub,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Clients,/app/clients,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Protected,Client Profile,/app/clients/:id,overview,none,authenticated,none,no,src/routes.jsx
+Navigation,Devis,/app/quotes,list;gallery;calendar;agenda;kanban,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Factures,/app/invoices,list;gallery;calendar;agenda;kanban,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Avoirs,/app/credit-notes,list;calendar;agenda;kanban,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Factures récurrentes,/app/recurring-invoices,recurring;reminders;list;calendar;agenda;kanban,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Bons de livraison,/app/delivery-notes,list;calendar;agenda;kanban,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Relances IA,/app/smart-dunning,pipeline;campaigns;scores,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Fournisseurs,/app/suppliers,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Protected,Profil fournisseur,/app/suppliers/:id,overview;services;products;invoices,none,authenticated,none,no,src/routes.jsx
+Protected,Rapports fournisseurs,/app/suppliers/reports,spending;orders;delivery;scores,none,authenticated,none,no,src/routes.jsx
+Navigation,Commandes fournisseurs,/app/purchase-orders,list;calendar;agenda;kanban,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Factures fournisseurs,/app/supplier-invoices,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Achats,/app/purchases,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Dépenses,/app/expenses,list;calendar;agenda,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Cartographie fournisseurs,/app/suppliers/map,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Trésorerie,/app/cash-flow,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Prévisions IA,/app/cash-flow-forecast,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Recouvrement,/app/debt-manager,dashboard;receivables;payables;calendar;agenda;kanban,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Connexions bancaires,/app/bank-connections,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Embedded Banking,/app/embedded-banking,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Rapprochement IA,/app/recon-ia,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Comptabilité,/app/suppliers/accounting,dashboard;coa;balance;income;diagnostic;annexes;vat;tax;mappings;rates;reconciliation;fixedAssets;closing;analytique;init;generalLedger;journal,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,SYSCOHADA Bilan,/app/syscohada/balance-sheet,none,none,authenticated,OHADA_ONLY,yes,src/routes.jsx+Sidebar.jsx
+Navigation,SYSCOHADA Résultat,/app/syscohada/income-statement,none,none,authenticated,OHADA_ONLY,yes,src/routes.jsx+Sidebar.jsx
+Navigation,TAFIRE,/app/tafire,none,none,authenticated,OHADA_ONLY,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Télédéclaration,/app/tax-filing,vat;corporate;history,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Audit comptable,/app/audit-comptable,balance;fiscal;anomalies,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Scénarios,/app/scenarios,scenarios;comparison,scenarios.financial,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Protected,Détail scénario,/app/scenarios/:scenarioId,assumptions;results;info,scenarios.financial,authenticated,none,no,src/routes.jsx
+Navigation,Produits & Stock,/app/stock,cockpit;warehouses;inventory;history;adjustments,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Prestations,/app/services,services;categories,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Catégories,/app/categories,products;services,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Scanner barcode,/app/products/barcode,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Projets,/app/projects,list;gallery;calendar;agenda;kanban,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Protected,Détail projet,/app/projects/:projectId,kanban;gantt;calendar;agenda;list;stats;profitability;control,none,authenticated,none,no,src/routes.jsx
+Navigation,CRM,/app/crm,overview;accounts;leads;opportunities;activities;quotes-contracts;support;automation;reports,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Protected,CRM section,/app/crm/:section,overview;accounts;leads;opportunities;activities;quotes-contracts;support;automation;reports,none,authenticated,none,no,src/routes.jsx
+Navigation,Timesheets,/app/timesheets,list;calendar;agenda;kanban,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Ressources,/app/hr-material,resources;allocation;tasks;payroll;accounting,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Générateur rapports,/app/reports/generator,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Employés,/app/rh/employes,list;detail;org;form,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Paie,/app/rh/paie,periodes;calcul;bulletins;historique;connecteurs-pays,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Absences,/app/rh/absences,demandes;calendrier;soldes;nouvelle,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Recrutement,/app/rh/recrutement,positions;pipeline;candidates;interviews,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Onboarding RH,/app/rh/onboarding,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Formation,/app/rh/formation,catalogue;inscriptions,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Compétences,/app/rh/competences,matrice;radar;gaps,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Entretiens,/app/rh/entretiens,reviews;campaigns;manager-workflow;form,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,People Review,/app/rh/people-review,ninebox;succession;budget;hipot,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,QVT,/app/rh/qvt,surveys;results;prevention;duerp,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Bilan social,/app/rh/bilan-social,none,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Analytics RH,/app/rh/analytics,turnover;absenteeism;headcount;salary,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Navigation,Portail employé,/app/employee-portal,leave;expenses;payslips,none,authenticated,none,yes,src/routes.jsx+Sidebar.jsx
+Protected,Analytics,/app/analytics,none,analytics.reports,authenticated,none,no,src/routes.jsx
+Navigation,Integrations Hub,/app/integrations,api;webhooks;mcp,none,authenticated,none,no,src/routes.jsx
+Protected,API MCP,/app/api-mcp,api;mcp;tools,developer.webhooks,authenticated,none,no,src/routes.jsx
+Protected,Open API,/app/open-api,keys;marketplace,none,authenticated,none,no,src/routes.jsx
+Protected,Webhooks,/app/webhooks,endpoints;logs;integrations,developer.webhooks,authenticated,none,no,src/routes.jsx
+Protected,Mobile Money,/app/mobile-money,none,none,authenticated,none,no,src/routes.jsx
+Protected,Accountant Portal,/app/accountant-portal,none,none,authenticated,none,no,src/routes.jsx
+Protected,Accountant Dashboard,/app/accountant-dashboard,none,none,authenticated,none,no,src/routes.jsx
+Protected,Security,/app/security,none,none,authenticated,none,no,src/routes.jsx
+Protected,Settings,/app/settings,profile;company;billing;team;notifications;security;invoices;credits;backup;sync;connections;peppol;personal-data;danger,none,authenticated,none,no,src/routes.jsx
+Protected,Notifications,/app/notifications,none,none,authenticated,none,no,src/routes.jsx
+Protected,Bank Callback,/app/bank-callback,none,none,authenticated,none,no,src/routes.jsx
+Protected,GoCardless Callback,/app/gocardless-callback,none,none,authenticated,none,no,src/routes.jsx
+Admin,Admin Root,/admin,dashboard;users;clients;roles;billing;feature-flags;ops-health;traceability;audit,none,isAdmin,none,no,src/routes.jsx
+Admin,Seed Data,/admin/seed-data,none,none,isAdmin,none,no,src/routes.jsx
+Protected,Admin Ops,/app/admin-ops,none,none,authenticated,none,no,src/routes.jsx
