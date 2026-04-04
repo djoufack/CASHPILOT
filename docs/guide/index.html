@@ -1479,7 +1479,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
     <div class="reveal">
       <div class="section-badge">Chapitre 04</div>
       <h2 class="section-title">Cycle de <span class="gradient-text">Facturation</span></h2>
-      <p class="section-subtitle">Du devis &agrave; l'avoir, g&eacute;rez le cycle complet de facturation avec des vues multiples.</p>
+      <p class="section-subtitle">Du devis &agrave; l'avoir, g&eacute;rez le cycle complet de facturation (e-mail + Peppol) avec des vues multiples.</p>
     </div>
 
     <!-- MOCKUP: Invoices multi-view -->
@@ -1554,8 +1554,8 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       </div>
       <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon" style="background:rgba(6,182,212,0.1);color:var(--cyan);">&#128233;</div>
-        <h3 id="envoi-email">Envoi par e-mail</h3>
-        <p>Envoyez vos factures directement par e-mail depuis CashPilot. Le PDF est joint automatiquement au message.</p>
+        <h3 id="envoi-email">Envoi e-mail &amp; Peppol</h3>
+        <p>Choisissez le canal adapt&eacute; : e-mail (PDF) ou Peppol (UBL 2.1 via Scrada). CashPilot valide EN16931, envoie, puis suit le statut de livraison.</p>
       </div>
     </div>
 
@@ -1577,6 +1577,12 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       <div class="step">
         <div class="step-number">4</div>
         <div class="step-content"><h4>G&eacute;n&eacute;rer et envoyer</h4><p>Cliquez sur &laquo; G&eacute;n&eacute;rer la facture &raquo;, puis exportez en PDF ou envoyez par e-mail.</p></div>
+      </div>
+    </div>
+    <div class="pro-tip reveal" style="margin-top:20px;">
+      <div class="pro-tip-icon">!</div>
+      <div class="pro-tip-text">
+        <strong>Peppol :</strong> pour les clients compatibles, activez l'identifiant Peppol dans la fiche client puis utilisez l'envoi Peppol pour b&eacute;n&eacute;ficier de la tra&ccedil;abilit&eacute; r&eacute;seau (en attente, livr&eacute;, erreur).
       </div>
     </div>
   </div>
@@ -2082,7 +2088,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
     <div class="reveal">
       <div class="section-badge">Chapitre 10</div>
       <h2 class="section-title">Banque &amp; <span class="gradient-text">Int&eacute;grations</span></h2>
-      <p class="section-subtitle">Connectez vos comptes bancaires, rapprochez vos transactions et int&eacute;grez CashPilot &agrave; votre &eacute;cosyst&egrave;me.</p>
+      <p class="section-subtitle">Pilotez vos comptes bancaires et instruments financiers, importez vos relev&eacute;s, rapprochez vos transactions et int&eacute;grez CashPilot &agrave; votre &eacute;cosyst&egrave;me.</p>
     </div>
 
     <!-- MOCKUP: Bank Reconciliation -->
@@ -2094,33 +2100,34 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
           <div class="mockup-sb-item"><span class="dot"></span>Comptabilit&eacute;</div>
           <div class="mockup-sb-sep">Finance</div>
           <div class="mockup-sb-item"><span class="dot"></span>Connexions Bancaires</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Instruments financiers</div>
           <div class="mockup-sb-item active"><span class="dot"></span>Rapprochement</div>
           <div class="mockup-sb-item"><span class="dot"></span>Tr&eacute;sorerie</div>
         </div>
         <div class="mockup-body">
           <div class="mockup-header">
-            <h3 class="gradient-text">Rapprochement Bancaire</h3>
+            <h3 class="gradient-text">Comptes &amp; Transactions</h3>
             <div style="display:flex;gap:6px;">
-              <span class="mockup-btn mockup-btn-primary">Rapprochement auto</span>
-              <span class="mockup-btn mockup-btn-outline">&#8595; PDF</span>
+              <span class="mockup-btn mockup-btn-primary">Import relev&eacute;</span>
+              <span class="mockup-btn mockup-btn-outline">Rapprochement auto</span>
             </div>
           </div>
           <div class="mockup-stats">
             <div class="mockup-stat">
-              <div class="mockup-stat-val" style="color:#fff;font-size:16px;">48</div>
-              <div class="mockup-stat-label">Total lignes</div>
+              <div class="mockup-stat-val" style="color:#fff;font-size:16px;">7</div>
+              <div class="mockup-stat-label">Instruments actifs</div>
             </div>
             <div class="mockup-stat">
-              <div class="mockup-stat-val" style="color:var(--green);font-size:16px;">35</div>
-              <div class="mockup-stat-label">Rapproch&eacute;es</div>
+              <div class="mockup-stat-val" style="color:var(--green);font-size:16px;">124</div>
+              <div class="mockup-stat-label">Transactions import&eacute;es</div>
             </div>
             <div class="mockup-stat">
-              <div class="mockup-stat-val" style="color:var(--amber);font-size:16px;">10</div>
-              <div class="mockup-stat-label">Non rapproch&eacute;es</div>
+              <div class="mockup-stat-val" style="color:var(--amber);font-size:16px;">26</div>
+              <div class="mockup-stat-label">A contr&ocirc;ler</div>
             </div>
             <div class="mockup-stat">
-              <div class="mockup-stat-val gradient-text" style="font-size:16px;">73%</div>
-              <div class="mockup-stat-label">Taux</div>
+              <div class="mockup-stat-val gradient-text" style="font-size:16px;">81%</div>
+              <div class="mockup-stat-label">Taux rapproch&eacute;</div>
             </div>
           </div>
           <div class="mockup-tabs">
@@ -2144,18 +2151,24 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
     <div class="features-grid">
       <div class="feature-card reveal">
         <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#127974;</div>
-        <h3 id="connexions-bancaires">Connexions Bancaires</h3>
-        <p>Connectez vos comptes bancaires pour synchroniser automatiquement vos transactions. Support multi-banques.</p>
+        <h3 id="connexions-bancaires">Comptes bancaires &amp; instruments</h3>
+        <p>G&eacute;rez comptes bancaires, cartes et caisses dans <code>/app/financial-instruments</code>, avec soldes, statuts et vues consolid&eacute;es.</p>
       </div>
       <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#8596;</div>
-        <h3 id="rapprochement-intelligent">Rapprochement Intelligent</h3>
-        <p>L'algorithme de matching automatique rapproche vos relev&eacute;s avec vos factures et d&eacute;penses avec un score de confiance.</p>
+        <h3 id="rapprochement-intelligent">Registre, transferts &amp; rapprochement</h3>
+        <p>Saisissez les transactions, ex&eacute;cutez les virements internes d&eacute;bit/cr&eacute;dit, importez vos relev&eacute;s et rapprochez avec un score de confiance.</p>
       </div>
       <div class="feature-card reveal reveal-delay-2">
         <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">{ }</div>
         <h3 id="api-mcp">API REST &amp; MCP</h3>
-        <p>Int&eacute;grez CashPilot dans votre &eacute;cosyst&egrave;me via l'API REST (OpenAPI 3.1) ou le protocole MCP pour les LLMs.</p>
+        <p>Int&eacute;grez vos flux bancaires et financiers via l'API REST (OpenAPI 3.1) ou le protocole MCP pour vos agents IA et automatisations.</p>
+      </div>
+    </div>
+    <div class="pro-tip reveal" style="margin-top:20px;">
+      <div class="pro-tip-icon">!</div>
+      <div class="pro-tip-text">
+        <strong>Proc&eacute;dure recommand&eacute;e :</strong> (1) d&eacute;clarer les instruments, (2) importer les relev&eacute;s, (3) valider le registre des transactions, (4) lancer le rapprochement puis contr&ocirc;ler les &eacute;critures.
       </div>
     </div>
   </div>

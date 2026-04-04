@@ -214,8 +214,28 @@ export const landingPageContent = {
       badge: 'Nouveautés CashPilot 2026',
       title: 'Modules stratégiques disponibles',
       description:
-        'Les dernières briques majeures de CashPilot sont actives dans la plateforme et documentées dans le guide.',
+        'Les dernières mises à jour Peppol et comptes bancaires sont actives dans la plateforme et documentées dans le guide.',
       cards: [
+        {
+          title: 'Peppol opérationnel de bout en bout',
+          description:
+            'Configuration Scrada, validation EN16931, envoi UBL 2.1, suivi des statuts et réception des factures fournisseurs depuis un seul flux.',
+        },
+        {
+          title: 'Comptes bancaires & instruments financiers',
+          description:
+            'Pilotage unifié des comptes bancaires, cartes et caisses avec soldes, statuts et suivi des mouvements par instrument.',
+        },
+        {
+          title: 'Registre de transactions & virements internes',
+          description:
+            'Saisie, filtres et édition des transactions, transferts internes automatiques (débit/crédit) et visibilité nette en temps réel.',
+        },
+        {
+          title: 'Import relevés & rapprochement',
+          description:
+            'Import de relevés bancaires, intégration des lignes, et rapprochement comptable pour accélérer la clôture et fiabiliser les soldes.',
+        },
         {
           title: 'GED HUB fédérée',
           description:
@@ -230,11 +250,6 @@ export const landingPageContent = {
           title: 'Gestion des projets',
           description:
             'Projets, tâches, ressources humaines et matérielles, coûts, timesheets et tableaux de bord pilotés par période.',
-        },
-        {
-          title: 'CRM complet',
-          description:
-            'Leads, opportunités, activités, tickets SLA et suivi client unifié, rattachés à chaque société.',
         },
         {
           title: 'CFO Agent IA',
@@ -342,7 +357,7 @@ export const landingPageContent = {
       badge: 'Peppol & e-invoicing',
       title: 'Facturation électronique via Peppol',
       description:
-        'Envoyez et recevez vos factures sur le réseau européen Peppol directement depuis CashPilot, grâce à Scrada, Access Point certifié belge. Conforme EN16931 & UBL 2.1.',
+        'Gérez le cycle Peppol complet dans CashPilot : configuration Scrada, validation EN16931, envoi UBL 2.1, suivi de statut et réception fournisseurs.',
       cards: [
         {
           title: 'Configuration en 5 minutes',
@@ -351,15 +366,15 @@ export const landingPageContent = {
           tag: 'Dès 2 €/mois',
         },
         {
-          title: 'Envoi Peppol automatique',
+          title: 'Envoi Peppol avec suivi de statut',
           description:
-            "CashPilot valide votre facture (13 règles EN16931), génère le XML UBL conforme, et l'envoie via Scrada sur le réseau Peppol. Suivi du statut en temps réel.",
+            "CashPilot valide votre facture (13 règles EN16931), génère le XML UBL conforme, l'envoie via Scrada, puis suit automatiquement le statut (en attente, livré, erreur).",
           tag: 'UBL 2.1 / BIS Billing 3.0',
         },
         {
-          title: 'Réception & vérification',
+          title: 'Réception, intégration & comptabilité',
           description:
-            'Recevez les factures entrantes via Peppol et vérifiez si vos clients sont enregistrés sur le réseau — en un clic depuis leur fiche.',
+            'Synchronisez les factures entrantes Peppol, intégrez-les dans le flux fournisseurs/GED et alimentez automatiquement la comptabilité.',
           tag: 'B2G & B2B',
         },
       ],
@@ -612,8 +627,28 @@ export const landingPageContent = {
     latest: {
       badge: 'CashPilot 2026 updates',
       title: 'Strategic modules now live',
-      description: 'These major capabilities are now available in-app and documented in the user guide.',
+      description: 'The latest Peppol and banking-account updates are live in-app and documented in the guide.',
       cards: [
+        {
+          title: 'End-to-end Peppol operations',
+          description:
+            'Scrada setup, EN16931 validation, UBL 2.1 sending, delivery-status tracking, and inbound supplier invoices in one flow.',
+        },
+        {
+          title: 'Bank accounts & financial instruments',
+          description:
+            'Unified management of bank accounts, cards, and cash registers with balances, statuses, and per-instrument activity.',
+        },
+        {
+          title: 'Transaction ledger & internal transfers',
+          description:
+            'Create, filter, and edit transactions, with automatic dual-entry internal transfers and real-time net visibility.',
+        },
+        {
+          title: 'Statement import & reconciliation',
+          description:
+            'Upload bank statements, import parsed lines, and speed up accounting close with structured reconciliation.',
+        },
         {
           title: 'Federated GED HUB',
           description:
@@ -627,11 +662,6 @@ export const landingPageContent = {
         {
           title: 'Project management',
           description: 'Projects, tasks, human/material resources, costs, timesheets, and period-based dashboards.',
-        },
-        {
-          title: 'Full CRM',
-          description:
-            'Leads, opportunities, activities, SLA tickets, and unified client follow-up scoped to each company.',
         },
         {
           title: 'AI CFO Agent',
@@ -737,7 +767,7 @@ export const landingPageContent = {
       badge: 'Peppol & e-invoicing',
       title: 'Electronic invoicing through Peppol',
       description:
-        'Send and receive invoices on the European Peppol network directly from CashPilot, thanks to Scrada, a certified Belgian access point. Compliant with EN16931 & UBL 2.1.',
+        'Run the full Peppol lifecycle in CashPilot: Scrada setup, EN16931 validation, UBL 2.1 sending, status tracking, and inbound processing.',
       cards: [
         {
           title: 'Setup in 5 minutes',
@@ -746,15 +776,15 @@ export const landingPageContent = {
           tag: 'From €2/month',
         },
         {
-          title: 'Automatic Peppol sending',
+          title: 'Peppol sending with status tracking',
           description:
-            'CashPilot validates your invoice (13 EN16931 rules), generates compliant UBL XML, and sends it through Scrada on the Peppol network. Live status tracking included.',
+            'CashPilot validates your invoice (13 EN16931 rules), generates compliant UBL XML, sends it through Scrada, then tracks pending/delivered/error states automatically.',
           tag: 'UBL 2.1 / BIS Billing 3.0',
         },
         {
-          title: 'Receiving & verification',
+          title: 'Inbound, integration & accounting',
           description:
-            'Receive incoming invoices through Peppol and verify whether your clients are registered on the network — directly from their profile in one click.',
+            'Sync inbound Peppol invoices, integrate them into supplier/GED workflows, and feed accounting with a controlled process.',
           tag: 'B2G & B2B',
         },
       ],
@@ -1016,8 +1046,28 @@ export const landingPageContent = {
     latest: {
       badge: 'CashPilot 2026-nieuwigheden',
       title: 'Strategische modules nu beschikbaar',
-      description: 'Deze grote uitbreidingen zijn live op het platform en opgenomen in de gebruikersgids.',
+      description: 'De nieuwste Peppol- en bankrekening-updates zijn live op het platform en opgenomen in de gids.',
       cards: [
+        {
+          title: 'End-to-end Peppol-operaties',
+          description:
+            'Scrada-configuratie, EN16931-validatie, UBL 2.1-verzending, statusopvolging en inkomende leveranciersfacturen in één flow.',
+        },
+        {
+          title: 'Bankrekeningen & financiële instrumenten',
+          description:
+            'Geünificeerd beheer van bankrekeningen, kaarten en kasregisters met saldi, statussen en opvolging per instrument.',
+        },
+        {
+          title: 'Transactieregister & interne transfers',
+          description:
+            'Transacties aanmaken, filteren en bewerken, met automatische dubbele boeking voor interne overboekingen en realtime netto-zicht.',
+        },
+        {
+          title: 'Afschriften importeren & reconciliatie',
+          description:
+            'Bankafschriften uploaden, regels importeren en de boekhoudafsluiting versnellen met gestructureerde reconciliatie.',
+        },
         {
           title: 'Gefedereerde GED HUB',
           description:
@@ -1032,10 +1082,6 @@ export const landingPageContent = {
           title: 'Projectbeheer',
           description:
             'Projecten, taken, menselijke en materiële resources, kosten, timesheets en dashboards per periode.',
-        },
-        {
-          title: 'Volledige CRM',
-          description: 'Leads, opportuniteiten, activiteiten, SLA-tickets en uniforme klantopvolging per vennootschap.',
         },
         {
           title: 'AI CFO Agent',
@@ -1142,7 +1188,7 @@ export const landingPageContent = {
       badge: 'Peppol & e-invoicing',
       title: 'Elektronische facturatie via Peppol',
       description:
-        'Verzend en ontvang uw facturen op het Europese Peppol-netwerk rechtstreeks vanuit CashPilot, dankzij Scrada, een gecertificeerd Belgisch access point. Conform EN16931 & UBL 2.1.',
+        'Beheer de volledige Peppol-cyclus in CashPilot: Scrada-configuratie, EN16931-validatie, UBL 2.1-verzending, statusopvolging en inkomende verwerking.',
       cards: [
         {
           title: 'Opzet in 5 minuten',
@@ -1151,15 +1197,15 @@ export const landingPageContent = {
           tag: 'Vanaf €2/maand',
         },
         {
-          title: 'Automatisch Peppol-verzenden',
+          title: 'Peppol-verzending met statusopvolging',
           description:
-            'CashPilot valideert uw factuur (13 EN16931-regels), genereert conforme UBL-XML en verstuurt die via Scrada op het Peppol-netwerk. Inclusief realtime statusopvolging.',
+            'CashPilot valideert uw factuur (13 EN16931-regels), genereert conforme UBL-XML, verstuurt via Scrada en volgt automatisch pending/geleverd/fout op.',
           tag: 'UBL 2.1 / BIS Billing 3.0',
         },
         {
-          title: 'Ontvangst & verificatie',
+          title: 'Ontvangst, integratie & boekhouding',
           description:
-            'Ontvang inkomende facturen via Peppol en controleer of uw klanten op het netwerk geregistreerd zijn — met één klik vanuit hun fiche.',
+            'Synchroniseer inkomende Peppol-facturen, integreer ze in leveranciers/GED-flow en voed de boekhouding via een gecontroleerd proces.',
           tag: 'B2G & B2B',
         },
       ],

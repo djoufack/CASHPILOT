@@ -386,7 +386,7 @@
       // Section 4
       s4_title_1: 'Invoicing ',
       s4_title_2: 'Cycle',
-      s4_subtitle: 'From quote to credit note, manage the complete invoicing cycle with multiple views.',
+      s4_subtitle: 'From quote to credit note, manage the full invoicing cycle (email + Peppol) with multiple views.',
       s4_devis_title: 'Quote \u2192 Invoice',
       s4_devis_desc:
         'Create a quote, have it validated by the client, then convert it to an invoice in one click. All data is transferred automatically.',
@@ -401,9 +401,9 @@
       s4_modes_title: '4 display modes',
       s4_modes_desc:
         'Switch between <strong style="color:#fff;">List</strong>, <strong style="color:#fff;">Calendar</strong>, <strong style="color:#fff;">Agenda</strong> and <strong style="color:#fff;">Kanban</strong> views to organize your invoices as you wish.',
-      s4_email_title: 'Email sending',
+      s4_email_title: 'Email & Peppol sending',
       s4_email_desc:
-        'Send your invoices directly by email from CashPilot. The PDF is automatically attached to the message.',
+        'Choose the right channel: email (PDF) or Peppol (UBL 2.1 via Scrada). CashPilot validates EN16931, sends, then tracks delivery status.',
       s4_creer_title: 'Create an invoice step by step',
       s4_step1_title: 'Select the client',
       s4_step1_desc: 'Choose an existing client or create a new one directly.',
@@ -517,15 +517,16 @@
       s10_title_1: 'Banking & ',
       s10_title_2: 'Integrations',
       s10_subtitle:
-        'Connect your bank accounts, reconcile your transactions and integrate CashPilot into your ecosystem.',
-      s10_connexions_title: 'Bank Connections',
+        'Manage bank accounts and financial instruments, import statements, reconcile transactions, and integrate CashPilot into your ecosystem.',
+      s10_connexions_title: 'Bank Accounts & Instruments',
       s10_connexions_desc:
-        'Connect your bank accounts to automatically synchronize your transactions. Multi-bank support.',
-      s10_rapprochement_title: 'Smart Reconciliation',
+        'Manage bank accounts, cards, and cash registers from /app/financial-instruments with balances, statuses, and consolidated views.',
+      s10_rapprochement_title: 'Ledger, Transfers & Reconciliation',
       s10_rapprochement_desc:
-        'The automatic matching algorithm reconciles your statements with your invoices and expenses with a confidence score.',
+        'Create transaction entries, run internal debit/credit transfers, import statements, and reconcile with confidence scoring.',
       s10_api_title: 'REST API & MCP',
-      s10_api_desc: 'Integrate CashPilot into your ecosystem via the REST API (OpenAPI 3.1) or MCP protocol for LLMs.',
+      s10_api_desc:
+        'Integrate banking and finance flows via the REST API (OpenAPI 3.1) or MCP protocol for your AI agents and automations.',
       // Section 11
       s11_title_1: 'Settings & ',
       s11_title_2: 'Administration',
@@ -777,7 +778,8 @@
         '<strong>Multi-valuta:</strong> CashPilot ondersteunt EUR, USD en GBP. De voorkeursvaluta van de klant wordt automatisch toegepast bij het aanmaken van facturen.',
       s4_title_1: 'Facturatie',
       s4_title_2: 'cyclus',
-      s4_subtitle: 'Van offerte tot creditnota, beheer de volledige facturatiecyclus met meerdere weergaven.',
+      s4_subtitle:
+        'Van offerte tot creditnota, beheer de volledige facturatiecyclus (e-mail + Peppol) met meerdere weergaven.',
       s4_devis_title: 'Offerte \u2192 Factuur',
       s4_devis_desc:
         'Maak een offerte aan, laat deze goedkeuren door de klant en converteer deze met \u00e9\u00e9n klik naar een factuur. Alle gegevens worden automatisch overgedragen.',
@@ -793,9 +795,9 @@
       s4_modes_title: '4 weergavemodi',
       s4_modes_desc:
         'Schakel tussen <strong style="color:#fff;">Lijst</strong>, <strong style="color:#fff;">Kalender</strong>, <strong style="color:#fff;">Agenda</strong> en <strong style="color:#fff;">Kanban</strong> weergaven om uw facturen naar wens te organiseren.',
-      s4_email_title: 'E-mail verzenden',
+      s4_email_title: 'E-mail & Peppol verzenden',
       s4_email_desc:
-        'Verzend uw facturen rechtstreeks per e-mail vanuit CashPilot. De PDF wordt automatisch bijgevoegd.',
+        'Kies het juiste kanaal: e-mail (PDF) of Peppol (UBL 2.1 via Scrada). CashPilot valideert EN16931, verzendt en volgt de leverstatus op.',
       s4_creer_title: 'Stap voor stap een factuur aanmaken',
       s4_step1_title: 'Klant selecteren',
       s4_step1_desc: 'Kies een bestaande klant of maak direct een nieuwe aan.',
@@ -903,16 +905,17 @@
         '<strong>Ultieme automatisering:</strong> Verbind CashPilot met <strong>Rube.app</strong> of elk automatiseringsplatform. Voorbeeld: leveranciersfactuur e-mail ontvangen \u2192 AI-extractie \u2192 automatische aanmaak in CashPilot \u2192 Slack-melding. Uw financieel beheer wordt een bouwsteen in uw geautomatiseerde pipeline.',
       s10_title_1: 'Bank & ',
       s10_title_2: 'Integraties',
-      s10_subtitle: 'Verbind uw bankrekeningen, reconcilieer uw transacties en integreer CashPilot in uw ecosysteem.',
-      s10_connexions_title: 'Bankverbindingen',
+      s10_subtitle:
+        'Beheer bankrekeningen en financiële instrumenten, importeer afschriften, reconcilieer transacties en integreer CashPilot in uw ecosysteem.',
+      s10_connexions_title: 'Bankrekeningen & Instrumenten',
       s10_connexions_desc:
-        'Verbind uw bankrekeningen om uw transacties automatisch te synchroniseren. Multi-bank ondersteuning.',
-      s10_rapprochement_title: 'Slimme reconciliatie',
+        'Beheer bankrekeningen, kaarten en kasregisters via /app/financial-instruments, met saldi, statussen en geünificeerde views.',
+      s10_rapprochement_title: 'Register, Transfers & Reconciliatie',
       s10_rapprochement_desc:
-        'Het automatische matching-algoritme reconcilieert uw afschriften met uw facturen en uitgaven met een betrouwbaarheidsscore.',
+        'Boek transacties, voer interne debet/credit-transfers uit, importeer afschriften en reconcilieer met een betrouwbaarheidsscore.',
       s10_api_title: 'REST API & MCP',
       s10_api_desc:
-        "Integreer CashPilot in uw ecosysteem via de REST API (OpenAPI 3.1) of het MCP-protocol voor LLM's.",
+        'Integreer bank- en financiële stromen via de REST API (OpenAPI 3.1) of het MCP-protocol voor uw AI-agents en automatiseringen.',
       s11_title_1: 'Instellingen & ',
       s11_title_2: 'Beheer',
       s11_subtitle: 'Pas CashPilot aan, beheer uw team en beveilig uw gegevens.',
