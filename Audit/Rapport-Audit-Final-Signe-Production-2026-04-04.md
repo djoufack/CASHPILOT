@@ -30,10 +30,10 @@ Le 10/10 est prononce sur le perimetre enterprise-critique bloqueur:
 ## 3) Hashes de release (preuve)
 
 - Branche: `main`
-- Commit release final: `068d9b00b7c6b6582f086514bd5e4033d491f5e0`
+- Commit release final: `ab45c7fca6f628852be8034017d78f0c4c1ca69c`
 - Commit precedent (reference): `3803a4f`
-- Deployment Vercel production ID: `dpl_A3depyYFg9PgWF2U2RrSZy3X7PZS`
-- URL deployment prod: `https://cashpilot-86tfwc2b2-djoufack-gmailcoms-projects.vercel.app`
+- Deployment Vercel production ID: `dpl_3wzuGgiGzF91Z8osXB7QAqU9DwSe`
+- URL deployment prod: `https://cashpilot-isoy3incn-djoufack-gmailcoms-projects.vercel.app`
 - Alias prod: `https://cashpilot.tech`
 
 ## 4) Preuves de commandes (CLI)
@@ -117,18 +117,18 @@ npm run vercel:prebuilt:prod
 
 Resultat cle:
 
-- Production URL: `https://cashpilot-86tfwc2b2-djoufack-gmailcoms-projects.vercel.app`
+- Production URL: `https://cashpilot-isoy3incn-djoufack-gmailcoms-projects.vercel.app`
 - Alias: `https://cashpilot.tech`
 
 Commande:
 
 ```powershell
-npx vercel inspect cashpilot-86tfwc2b2-djoufack-gmailcoms-projects.vercel.app
+npx vercel inspect cashpilot-isoy3incn-djoufack-gmailcoms-projects.vercel.app
 ```
 
 Resultat cle:
 
-- `id: dpl_A3depyYFg9PgWF2U2RrSZy3X7PZS`
+- `id: dpl_3wzuGgiGzF91Z8osXB7QAqU9DwSe`
 - `status: Ready`
 
 Commande:
@@ -151,4 +151,4 @@ Resultat cle:
 
 Signe electroniquement par: Codex (GPT-5)
 Horodatage: 2026-04-04 Europe/Brussels
-Reference release: `068d9b00b7c6b6582f086514bd5e4033d491f5e0`
+Reference release: `ab45c7fca6f628852be8034017d78f0c4c1ca69c`
