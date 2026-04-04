@@ -14,7 +14,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getLocale, formatNumber } from '@/utils/dateLocale';
+import { formatDisplayCurrency, formatDisplayDate } from '@/utils/displayFormatting';
 
 const CHANNEL_ICONS = {
   email: Mail,
@@ -51,25 +51,23 @@ const URGENCY_CONFIG = {
 };
 
 const formatMoney = (value) => {
-  if (value == null) return '0,00';
-  return formatNumber(Number(value), {
+  return formatDisplayCurrency(value, {
+    style: 'decimal',
+    fallback: '0,00',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 };
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-';
-  try {
-    return new Intl.DateTimeFormat(getLocale(), {
+const formatDate = (dateStr) =>
+  formatDisplayDate(dateStr, {
+    fallback: '-',
+    options: {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
-    }).format(new Date(dateStr));
-  } catch {
-    return dateStr;
-  }
-};
+    },
+  });
 
 /**
  * DunningSuggestionCard - AI suggestion card for a single overdue invoice.

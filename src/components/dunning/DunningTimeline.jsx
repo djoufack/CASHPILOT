@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { getLocale, formatNumber } from '@/utils/dateLocale';
+import { formatDisplayCurrency, formatDisplayDateTime } from '@/utils/displayFormatting';
 import {
   Mail,
   MessageSquare,
@@ -74,24 +74,22 @@ const STATUS_CONFIG = {
   },
 };
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-';
-  try {
-    return new Intl.DateTimeFormat(getLocale(), {
+const formatDate = (dateStr) =>
+  formatDisplayDateTime(dateStr, {
+    fallback: '-',
+    options: {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateStr));
-  } catch {
-    return dateStr;
-  }
-};
+    },
+  });
 
 const formatMoney = (value) => {
-  if (value == null) return '0,00';
-  return formatNumber(Number(value), {
+  return formatDisplayCurrency(value, {
+    style: 'decimal',
+    fallback: '0,00',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

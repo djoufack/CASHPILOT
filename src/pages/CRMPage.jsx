@@ -24,7 +24,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getLocale, formatDate as formatDateLocale, formatDateTime as formatDateTimeLocale } from '@/utils/dateLocale';
+import { formatDisplayCurrency, formatDisplayDate, formatDisplayDateTime } from '@/utils/displayFormatting';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -67,26 +67,11 @@ const openOpportunityStatuses = new Set(['draft', 'sent', 'pending', 'open']);
 const closedWonQuoteStatuses = new Set(['accepted', 'approved', 'signed']);
 
 const formatMoney = (amount, currency = 'EUR') =>
-  new Intl.NumberFormat(getLocale(), {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(amount || 0));
+  formatDisplayCurrency(amount, { currency, fallback: '0,00', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const formatDate = (rawDate) => {
-  if (!rawDate) return '-';
-  const parsed = new Date(rawDate);
-  if (Number.isNaN(parsed.getTime())) return '-';
-  return formatDateLocale(parsed);
-};
+const formatDate = (rawDate) => formatDisplayDate(rawDate, { fallback: '-' });
 
-const formatDateTime = (rawDate) => {
-  if (!rawDate) return '-';
-  const parsed = new Date(rawDate);
-  if (Number.isNaN(parsed.getTime())) return '-';
-  return formatDateTimeLocale(parsed);
-};
+const formatDateTime = (rawDate) => formatDisplayDateTime(rawDate, { fallback: '-' });
 
 const statusBadgeClass = (status = '') => {
   const normalized = String(status).toLowerCase();

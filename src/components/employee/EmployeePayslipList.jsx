@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getLocale, formatDate } from '@/utils/dateLocale';
+import { formatDate } from '@/utils/dateLocale';
+import { formatDisplayCurrency } from '@/utils/displayFormatting';
 import { FileText, Download, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 
 const formatPeriod = (start, end) => {
@@ -25,13 +26,12 @@ const formatPeriod = (start, end) => {
 };
 
 const formatMoney = (value, currency = 'EUR') => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return '---';
-  return new Intl.NumberFormat(getLocale(), {
-    style: 'currency',
+  return formatDisplayCurrency(value, {
     currency,
+    fallback: '---',
     minimumFractionDigits: 2,
-  }).format(num);
+    maximumFractionDigits: 2,
+  });
 };
 
 const StatusBadge = ({ status }) => {

@@ -5,7 +5,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { exportSupplierProductPDF, exportSupplierProductHTML } from '@/services/exportSupplierRecords';
 import { Button } from '@/components/ui/button';
-import { getLocale } from '@/utils/dateLocale';
+import { formatDisplayCurrency } from '@/utils/displayFormatting';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -40,15 +40,8 @@ const SupplierProducts = ({ supplierId, supplier }) => {
 
   const currency = supplier?.currency || company?.accounting_currency || 'EUR';
 
-  const formatMoney = (value) => {
-    const amount = Number(value || 0);
-    return new Intl.NumberFormat(getLocale(), {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(Number.isFinite(amount) ? amount : 0);
-  };
+  const formatMoney = (value) =>
+    formatDisplayCurrency(value, { currency, fallback: '0,00', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const getStockSnapshot = (product) => {
     const stock = Number(product?.stock_quantity || 0);

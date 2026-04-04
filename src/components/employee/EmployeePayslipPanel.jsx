@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { getLocale, formatDate } from '@/utils/dateLocale';
+import { formatDate } from '@/utils/dateLocale';
+import { formatDisplayCurrency } from '@/utils/displayFormatting';
 import { FileText, Briefcase, Loader2 } from 'lucide-react';
 
 const CONTRACT_TYPE_COLORS = {
@@ -13,13 +14,12 @@ const CONTRACT_TYPE_COLORS = {
 };
 
 const formatMoney = (value, currency = 'EUR') => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return '---';
-  return new Intl.NumberFormat(getLocale(), {
-    style: 'currency',
+  return formatDisplayCurrency(value, {
     currency,
+    fallback: '---',
     minimumFractionDigits: 2,
-  }).format(num);
+    maximumFractionDigits: 2,
+  });
 };
 
 const EmployeePayslipPanel = ({ contracts, loading }) => {

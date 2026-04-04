@@ -20,22 +20,12 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccountantView } from '@/hooks/useAccountantView';
 import AccountantNotes from '@/components/accountant/AccountantNotes';
-import { getLocale, formatDate as formatDateLocale } from '@/utils/dateLocale';
+import { formatDisplayCurrency, formatDisplayDate } from '@/utils/displayFormatting';
 
 const formatMoney = (amount, currency = 'EUR') =>
-  new Intl.NumberFormat(getLocale(), {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(amount || 0));
+  formatDisplayCurrency(amount, { currency, fallback: '0,00', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return '-';
-  return formatDateLocale(d);
-};
+const formatDate = (dateStr) => formatDisplayDate(dateStr, { fallback: '-' });
 
 export default function AccountantDashboardPage() {
   const { t } = useTranslation();

@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { selectDunningRuleForDays, useSmartDunning } from '@/hooks/useSmartDunning';
-import { formatNumber } from '@/utils/dateLocale';
+import { formatDisplayCurrency } from '@/utils/displayFormatting';
 import { useCompany } from '@/hooks/useCompany';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import DunningPipeline from '@/components/dunning/DunningPipeline';
@@ -34,8 +34,9 @@ const TAB_ICONS = {
 };
 
 const formatMoney = (value) => {
-  if (value == null) return '0,00';
-  return formatNumber(Number(value), {
+  return formatDisplayCurrency(value, {
+    style: 'decimal',
+    fallback: '0,00',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

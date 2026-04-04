@@ -14,7 +14,8 @@ import {
   Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getLocale, formatDate } from '@/utils/dateLocale';
+import { formatDate } from '@/utils/dateLocale';
+import { formatDisplayCurrency } from '@/utils/displayFormatting';
 
 const EXPENSE_CATEGORIES = [
   'transport',
@@ -28,13 +29,12 @@ const EXPENSE_CATEGORIES = [
 ];
 
 const formatMoney = (value, currency = 'EUR') => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return '---';
-  return new Intl.NumberFormat(getLocale(), {
-    style: 'currency',
+  return formatDisplayCurrency(value, {
     currency,
+    fallback: '---',
     minimumFractionDigits: 2,
-  }).format(num);
+    maximumFractionDigits: 2,
+  });
 };
 
 const StatusIcon = ({ status }) => {
