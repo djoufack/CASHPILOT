@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,7 +27,8 @@ import MFAVerifyStep from '@/components/MFAVerifyStep';
 import { supabase } from '@/lib/supabase';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { sanitizeText } from '@/utils/sanitize';
-import Login3DBackground from '@/components/Login3DBackground';
+
+const Login3DBackground = lazy(() => import('@/components/Login3DBackground'));
 
 /* ── Animation variants (DMG design system) ── */
 const fadeUp = {
@@ -260,7 +261,19 @@ const LoginPage = () => {
       </Helmet>
 
       {/* ── 3D Constellation Background ── */}
-      <Login3DBackground />
+      <Suspense
+        fallback={
+          <div
+            aria-hidden="true"
+            className="pointer-events-none fixed inset-0 z-0"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 40%, rgba(123,97,255,0.18) 0%, rgba(10,10,30,0.95) 70%)',
+            }}
+          />
+        }
+      >
+        <Login3DBackground />
+      </Suspense>
 
       {/* ── Floating Orbs (DMG signature) ── */}
       <div className="pointer-events-none fixed inset-0 z-[1]" aria-hidden="true">

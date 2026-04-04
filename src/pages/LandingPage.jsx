@@ -2,9 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import * as THREE from 'three';
 import DemoBanner from '@/components/DemoBanner';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { landingPageContent } from '@/content/landingPageContent';
@@ -53,8 +50,18 @@ import {
 } from 'lucide-react';
 import '../styles/landing.css';
 
-// Register GSAP plugins
-gsap.registerPlugin(ScrollTrigger);
+let gsapModulePromise;
+const loadGsapModules = () => {
+  if (!gsapModulePromise) {
+    gsapModulePromise = Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
+      ([gsapModule, scrollTriggerModule]) => ({
+        gsap: gsapModule.gsap || gsapModule.default || gsapModule,
+        ScrollTrigger: scrollTriggerModule.ScrollTrigger || scrollTriggerModule.default || scrollTriggerModule,
+      })
+    );
+  }
+  return gsapModulePromise;
+};
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -190,119 +197,137 @@ const LandingPage = () => {
 
   // Three.js 3D Background
   useEffect(() => {
-    if (!heroCanvasRef.current || typeof THREE === 'undefined') return;
+    if (!heroCanvasRef.current) return;
 
-    const canvas = heroCanvasRef.current;
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      alpha: true,
-      antialias: true,
-    });
+    let cancelled = false;
+    let cleanup = () => {};
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    (async () => {
+      const THREE = await import('three');
+      if (cancelled || !heroCanvasRef.current) return;
 
-    // Particles
-    const particlesGeometry = new THREE.BufferGeometry();
-    const particlesCount = 2000;
-    const posArray = new Float32Array(particlesCount * 3);
+      const canvas = heroCanvasRef.current;
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({
+        canvas,
+        alpha: true,
+        antialias: true,
+      });
 
-    for (let i = 0; i < particlesCount * 3; i++) {
-      posArray[i] = (Math.random() - 0.5) * 10;
-    }
-
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-
-    const particlesMaterial = new THREE.PointsMaterial({
-      size: 0.02,
-      color: 0x8b5cf6,
-      transparent: true,
-      opacity: 0.8,
-      blending: THREE.AdditiveBlending,
-    });
-
-    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-    scene.add(particlesMesh);
-
-    // Lines
-    const linesGeometry = new THREE.BufferGeometry();
-    const linesCount = 100;
-    const linesPositions = new Float32Array(linesCount * 6);
-
-    for (let i = 0; i < linesCount * 6; i += 6) {
-      const x1 = (Math.random() - 0.5) * 8;
-      const y1 = (Math.random() - 0.5) * 8;
-      const z1 = (Math.random() - 0.5) * 8;
-      const x2 = x1 + (Math.random() - 0.5) * 2;
-      const y2 = y1 + (Math.random() - 0.5) * 2;
-      const z2 = z1 + (Math.random() - 0.5) * 2;
-
-      linesPositions[i] = x1;
-      linesPositions[i + 1] = y1;
-      linesPositions[i + 2] = z1;
-      linesPositions[i + 3] = x2;
-      linesPositions[i + 4] = y2;
-      linesPositions[i + 5] = z2;
-    }
-
-    linesGeometry.setAttribute('position', new THREE.BufferAttribute(linesPositions, 3));
-
-    const linesMaterial = new THREE.LineBasicMaterial({
-      color: 0x3b82f6,
-      transparent: true,
-      opacity: 0.2,
-    });
-
-    const linesMesh = new THREE.LineSegments(linesGeometry, linesMaterial);
-    scene.add(linesMesh);
-
-    camera.position.z = 3;
-
-    let mouseX = 0,
-      mouseY = 0;
-
-    const handleMouseMove = (e) => {
-      mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-      mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-
-    const animate = () => {
-      requestAnimationFrame(animate);
-
-      particlesMesh.rotation.x += 0.0003;
-      particlesMesh.rotation.y += 0.0005;
-
-      linesMesh.rotation.x += 0.0002;
-      linesMesh.rotation.y += 0.0003;
-
-      particlesMesh.rotation.x += mouseY * 0.0005;
-      particlesMesh.rotation.y += mouseX * 0.0005;
-
-      const time = Date.now() * 0.001;
-      const hue = (Math.sin(time * 0.5) + 1) * 0.5 * 60 + 240;
-      particlesMaterial.color.setHSL(hue / 360, 0.7, 0.6);
-
-      renderer.render(scene, camera);
-    };
-
-    animate();
-
-    const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-    };
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    window.addEventListener('resize', handleResize);
+      const particlesGeometry = new THREE.BufferGeometry();
+      const particlesCount = 2000;
+      const posArray = new Float32Array(particlesCount * 3);
+
+      for (let i = 0; i < particlesCount * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 10;
+      }
+
+      particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+      const particlesMaterial = new THREE.PointsMaterial({
+        size: 0.02,
+        color: 0x8b5cf6,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending,
+      });
+
+      const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+      scene.add(particlesMesh);
+
+      const linesGeometry = new THREE.BufferGeometry();
+      const linesCount = 100;
+      const linesPositions = new Float32Array(linesCount * 6);
+
+      for (let i = 0; i < linesCount * 6; i += 6) {
+        const x1 = (Math.random() - 0.5) * 8;
+        const y1 = (Math.random() - 0.5) * 8;
+        const z1 = (Math.random() - 0.5) * 8;
+        const x2 = x1 + (Math.random() - 0.5) * 2;
+        const y2 = y1 + (Math.random() - 0.5) * 2;
+        const z2 = z1 + (Math.random() - 0.5) * 2;
+
+        linesPositions[i] = x1;
+        linesPositions[i + 1] = y1;
+        linesPositions[i + 2] = z1;
+        linesPositions[i + 3] = x2;
+        linesPositions[i + 4] = y2;
+        linesPositions[i + 5] = z2;
+      }
+
+      linesGeometry.setAttribute('position', new THREE.BufferAttribute(linesPositions, 3));
+
+      const linesMaterial = new THREE.LineBasicMaterial({
+        color: 0x3b82f6,
+        transparent: true,
+        opacity: 0.2,
+      });
+
+      const linesMesh = new THREE.LineSegments(linesGeometry, linesMaterial);
+      scene.add(linesMesh);
+
+      camera.position.z = 3;
+
+      let mouseX = 0;
+      let mouseY = 0;
+
+      const handleMouseMove = (e) => {
+        mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+        mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+
+      const animate = () => {
+        if (cancelled) return;
+
+        requestAnimationFrame(animate);
+
+        particlesMesh.rotation.x += 0.0003;
+        particlesMesh.rotation.y += 0.0005;
+
+        linesMesh.rotation.x += 0.0002;
+        linesMesh.rotation.y += 0.0003;
+
+        particlesMesh.rotation.x += mouseY * 0.0005;
+        particlesMesh.rotation.y += mouseX * 0.0005;
+
+        const time = Date.now() * 0.001;
+        const hue = (Math.sin(time * 0.5) + 1) * 0.5 * 60 + 240;
+        particlesMaterial.color.setHSL(hue / 360, 0.7, 0.6);
+
+        renderer.render(scene, camera);
+      };
+
+      animate();
+
+      const handleResize = () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      };
+
+      window.addEventListener('resize', handleResize);
+
+      cleanup = () => {
+        cancelled = true;
+        document.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('resize', handleResize);
+        renderer.dispose();
+        particlesGeometry.dispose();
+        particlesMaterial.dispose();
+        linesGeometry.dispose();
+        linesMaterial.dispose();
+      };
+    })();
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('resize', handleResize);
-      renderer.dispose();
+      cancelled = true;
+      cleanup();
     };
   }, []);
 
@@ -310,66 +335,84 @@ const LandingPage = () => {
   useEffect(() => {
     if (!isLoaded) return;
 
-    // Section headers
-    gsap.utils.toArray('.section-header').forEach((header) => {
-      gsap.from(header, {
-        opacity: 0,
-        y: 60,
-        duration: 1,
-        ease: 'power3.out',
-        scrollTrigger: {
-          trigger: header,
-          start: 'top 80%',
-          toggleActions: 'play none none reverse',
-        },
-      });
-    });
+    let cancelled = false;
+    const cleanupHandlers = [];
+    let scrollTriggerApi = null;
 
-    // Accounting cards
-    gsap.utils.toArray('.accounting-card').forEach((card, index) => {
-      gsap.from(card, {
-        opacity: 0,
-        y: 80,
-        rotationX: -15,
-        duration: 0.8,
-        delay: index * 0.15,
-        ease: 'power3.out',
-        scrollTrigger: {
-          trigger: card,
-          start: 'top 85%',
-          toggleActions: 'play none none reverse',
-        },
-      });
-    });
+    (async () => {
+      const { gsap, ScrollTrigger } = await loadGsapModules();
+      if (cancelled) return;
 
-    // Magnetic buttons
-    const buttons = document.querySelectorAll('.magnetic-btn');
-    buttons.forEach((button) => {
-      button.addEventListener('mousemove', (e) => {
-        const rect = button.getBoundingClientRect();
-        const x = e.clientX - rect.left - rect.width / 2;
-        const y = e.clientY - rect.top - rect.height / 2;
+      gsap.registerPlugin(ScrollTrigger);
+      scrollTriggerApi = ScrollTrigger;
 
-        gsap.to(button, {
-          x: x * 0.3,
-          y: y * 0.3,
-          duration: 0.3,
-          ease: 'power2.out',
+      gsap.utils.toArray('.section-header').forEach((header) => {
+        gsap.from(header, {
+          opacity: 0,
+          y: 60,
+          duration: 1,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: header,
+            start: 'top 80%',
+            toggleActions: 'play none none reverse',
+          },
         });
       });
 
-      button.addEventListener('mouseleave', () => {
-        gsap.to(button, {
-          x: 0,
-          y: 0,
-          duration: 0.5,
-          ease: 'elastic.out(1, 0.3)',
+      gsap.utils.toArray('.accounting-card').forEach((card, index) => {
+        gsap.from(card, {
+          opacity: 0,
+          y: 80,
+          rotationX: -15,
+          duration: 0.8,
+          delay: index * 0.15,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: card,
+            start: 'top 85%',
+            toggleActions: 'play none none reverse',
+          },
         });
       });
-    });
+
+      const buttons = document.querySelectorAll('.magnetic-btn');
+      buttons.forEach((button) => {
+        const handleMove = (e) => {
+          const rect = button.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+
+          gsap.to(button, {
+            x: x * 0.3,
+            y: y * 0.3,
+            duration: 0.3,
+            ease: 'power2.out',
+          });
+        };
+
+        const handleLeave = () => {
+          gsap.to(button, {
+            x: 0,
+            y: 0,
+            duration: 0.5,
+            ease: 'elastic.out(1, 0.3)',
+          });
+        };
+
+        button.addEventListener('mousemove', handleMove);
+        button.addEventListener('mouseleave', handleLeave);
+        cleanupHandlers.push(() => {
+          button.removeEventListener('mousemove', handleMove);
+          button.removeEventListener('mouseleave', handleLeave);
+        });
+      });
+    })();
 
     return () => {
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+      cancelled = true;
+      cleanupHandlers.forEach((fn) => fn());
+      scrollTriggerApi?.getAll?.().forEach((trigger) => trigger.kill());
     };
   }, [isLoaded]);
 
