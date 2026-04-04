@@ -1,157 +1,229 @@
 import { describe, expect, it } from 'vitest';
 import FinancialSimulationEngine from '@/utils/scenarioSimulationEngine';
 
-// ── fixtures ────────────────────────────────────────────────────────────────
-
-const baseFinancialState = {
-  monthly_revenue: 10000,
-  monthly_expenses: 6000,
-  cash_balance: 20000,
-  accounts_receivable: 15000,
-  accounts_payable: 5000,
-  monthly_payroll: 3000,
-  monthly_fixed_costs: 2000,
-  monthly_variable_costs: 1000,
-};
+const buildState = () => ({
+  revenue: 120000,
+  expenses: 72000,
+  fixedExpenses: 36000,
+  variableExpenses: 24000,
+  salaries: 12000,
+  avgPrice: 100,
+  volume: 1200,
+  cash: 50000,
+  receivables: 10000,
+  payables: 8000,
+  inventory: 6000,
+  fixedAssets: 40000,
+  equity: 70000,
+  debt: 15000,
+  bfr: 12000,
+});
 
 const baseScenario = {
-  id: 'sc-1',
-  name: 'Base Test Scenario',
   base_date: '2026-01-01',
-  end_date: '2026-03-31',  // 3 months
+  end_date: '2026-03-31',
 };
 
-const baseAssumptions = [];
+describe('FinancialSimulationEngine', () => {
+  it('simulates monthly outputs with valid assumptions', async () => {
+    const engine = new FinancialSimulationEngine();
+    const results = await engine.simulateScenario(
+      baseScenario,
+      [
+        { category: 'revenue', assumption_type: 'growth_rate', parameters: { rate: 5 } },
+        { category: 'pricing', assumption_type: 'percentage_change', parameters: { rate: 2 } },
+        {
+          category: 'working_capital',
+          assumption_type: 'payment_terms',
+          parameters: { customer_days: 60, supplier_days: 45 },
+        },
+        {
+          category: 'investment',
+          assumption_type: 'one_time',
+          start_date: '2026-02-01',
+          parameters: { date: '2026-02-01', amount: 5000 },
+        },
+      ],
+      buildState()
+    );
 
-const engine = new FinancialSimulationEngine();
-
-// ── simulateScenario ─────────────────────────────────────────────────────────
-
-describe('FinancialSimulationEngine.simulateScenario', () => {
-  it('returns array of monthly results', async () => {
-    const results = await engine.simulateScenario(baseScenario, baseAssumptions, baseFinancialState);
-    expect(Array.isArray(results)).toBe(true);
-    expect(results.length).toBe(3); // Jan, Feb, Mar 2026
+    expect(results).toHaveLength(3);
+    expect(results[0]).toMatchObject({
+      revenue: expect.any(Number),
+      netIncome: expect.any(Number),
+      cashBalance: expect.any(Number),
+      customerPaymentDays: expect.any(Number),
+      supplierPaymentDays: expect.any(Number),
+    });
   });
 
-  it('each result has required date fields', async () => {
-    const results = await engine.simulateScenario(baseScenario, baseAssumptions, baseFinancialState);
-    for (const r of results) {
-      expect(r).toHaveProperty('date');
-      expect(r).toHaveProperty('period_label');
-    }
-  });
-
-  it('throws if scenario is null', async () => {
-    await expect(engine.simulateScenario(null, [], baseFinancialState)).rejects.toThrow();
-  });
-
-  it('throws if currentFinancialState is null', async () => {
+  it('throws when required simulation inputs are missing', async () => {
+    const engine = new FinancialSimulationEngine();
+    await expect(engine.simulateScenario(null, [], buildState())).rejects.toThrow();
     await expect(engine.simulateScenario(baseScenario, [], null)).rejects.toThrow();
   });
 
-  it('handles 1-month scenario', async () => {
-    const sc = { ...baseScenario, base_date: '2026-06-01', end_date: '2026-06-30' };
-    const results = await engine.simulateScenario(sc, [], baseFinancialState);
-    expect(results.length).toBe(1);
+  it('applies rate assumptions for all categories', () => {
+    const engine = new FinancialSimulationEngine();
+    const state = engine.initializeState(buildState());
+    const baseline = {
+      revenue: state.monthlyRevenue,
+      fixed: state.monthlyFixedExpenses,
+      salary: state.monthlySalaries,
+      price: state.avgPrice,
+      bfrAdj: state.bfrManualAdjustment,
+    };
+
+    engine.applyRateToCategory(state, 'pricing', 10);
+    engine.applyRateToCategory(state, 'expense_reduction', 10);
+    engine.applyRateToCategory(state, 'expense', 10);
+    engine.applyRateToCategory(state, 'social_charges', 10);
+    engine.applyRateToCategory(state, 'salaries', 10);
+    engine.applyRateToCategory(state, 'working_capital', 10);
+    engine.applyRateToCategory(state, 'revenue', 10);
+
+    expect(state.avgPrice).toBeGreaterThan(baseline.price);
+    expect(state.monthlyFixedExpenses).toBeGreaterThan(0);
+    expect(state.monthlySalaries).toBeGreaterThan(baseline.salary);
+    expect(state.bfrManualAdjustment).toBeGreaterThan(baseline.bfrAdj);
+    expect(state.monthlyRevenue).toBeGreaterThan(0);
+    expect(state.monthlyRevenue).not.toBe(baseline.revenue);
+    expect(state.monthlyFixedExpenses).not.toBe(baseline.fixed);
   });
 
-  it('handles revenue growth assumption', async () => {
-    const assumptions = [
-      { type: 'revenue_growth', category: 'revenue', rate: 0.1, mode: 'percent' },
-    ];
-    const results = await engine.simulateScenario(baseScenario, assumptions, baseFinancialState);
-    expect(results.length).toBe(3);
+  it('applies amount assumptions for set and add modes', () => {
+    const engine = new FinancialSimulationEngine();
+    const state = engine.initializeState(buildState());
+
+    engine.applyAmountToCategory(state, 'pricing', 200, 'set');
+    engine.applyAmountToCategory(state, 'pricing', 1000, 'add');
+    engine.applyAmountToCategory(state, 'expense_reduction', 200, 'set');
+    engine.applyAmountToCategory(state, 'expense', 500, 'set');
+    engine.applyAmountToCategory(state, 'expense', 100, 'add');
+    engine.applyAmountToCategory(state, 'social_charges', 100, 'add');
+    engine.applyAmountToCategory(state, 'salaries', 400, 'set');
+    engine.applyAmountToCategory(state, 'salaries', 50, 'add');
+    engine.applyAmountToCategory(state, 'working_capital', 300, 'set');
+    engine.applyAmountToCategory(state, 'working_capital', 50, 'add');
+    engine.applyAmountToCategory(state, 'revenue', 1000, 'set');
+    engine.applyAmountToCategory(state, 'revenue', 100, 'add');
+
+    expect(state.avgPrice).toBe(200);
+    expect(state.monthlyRevenue).toBe(1100);
+    expect(state.monthlyFixedExpenses).toBeGreaterThan(0);
+    expect(state.monthlySalaries).toBe(450);
+    expect(state.bfrManualAdjustment).toBe(350);
   });
 
-  it('handles expense reduction assumption', async () => {
-    const assumptions = [
-      { type: 'cost_reduction', category: 'variable_costs', rate: -0.05, mode: 'percent' },
-    ];
-    const results = await engine.simulateScenario(baseScenario, assumptions, baseFinancialState);
-    expect(results.length).toBe(3);
+  it('handles fixed amount ramps and one-time period impacts', () => {
+    const engine = new FinancialSimulationEngine();
+    const state = engine.initializeState(buildState());
+    state.cashAdjustment = 0;
+    const assumption = {
+      category: 'revenue',
+      start_date: '2026-01-01',
+      end_date: '2026-03-01',
+    };
+    const date = new Date('2026-02-01');
+
+    const target = engine.resolveFixedAmountTarget(state, assumption, 20000, date);
+    expect(target).toBeGreaterThan(0);
+
+    engine.applyFixedAmountToCategory(state, { ...assumption, category: 'expense_reduction' }, 1000, date);
+    engine.applyOneTimePeriodImpact(state, 'working_capital', 500);
+    engine.applyOneTimePeriodImpact(state, 'expense', 400);
+    engine.applyOneTimePeriodImpact(state, 'social_charges', 50);
+    engine.applyOneTimePeriodImpact(state, 'salaries', 250);
+    engine.applyOneTimePeriodImpact(state, 'revenue', 700);
+    engine.applyOneTimePeriodImpact(state, 'investment', 999);
+    engine.applyOneTimePeriodImpact(state, 'equipment', 999);
+
+    expect(state.cashAdjustment).toBeLessThan(0);
+    expect(state.bfrManualAdjustment).toBeGreaterThan(0);
   });
 
-  it('handles one-time impact assumption', async () => {
-    const assumptions = [
-      { type: 'one_time', category: 'revenue', amount: 5000, month: '2026-02', mode: 'add' },
-    ];
-    const results = await engine.simulateScenario(baseScenario, assumptions, baseFinancialState);
-    expect(results.length).toBe(3);
-  });
-});
-
-// ── initializeState ──────────────────────────────────────────────────────────
-
-describe('FinancialSimulationEngine.initializeState', () => {
-  it('returns a state object with expected keys', () => {
-    const state = engine.initializeState(baseFinancialState);
-    expect(state).toBeDefined();
-    expect(typeof state).toBe('object');
+  it('supports applicability checks and date helpers', () => {
+    const engine = new FinancialSimulationEngine();
+    expect(engine.isApplicable({}, new Date())).toBe(true);
+    expect(engine.isApplicable({ start_date: '2026-01-01', end_date: '2026-12-31' }, new Date('2026-05-01'))).toBe(
+      true
+    );
+    expect(engine.isApplicable({ start_date: '2027-01-01' }, new Date('2026-05-01'))).toBe(false);
+    expect(engine.isApplicable({ end_date: '2025-12-31' }, new Date('2026-05-01'))).toBe(false);
+    expect(engine.isSameMonth('2026-01-15', '2026-01-01')).toBe(true);
+    expect(engine.isSameMonth('2026-01-15', '2026-02-01')).toBe(false);
+    expect(engine.isSameMonth(null, '2026-02-01')).toBe(false);
   });
 
-  it('copies revenue into state (uses annualRevenue / 12 internally)', () => {
-    const state = engine.initializeState(baseFinancialState);
-    // State uses camelCase internally
-    expect(state.monthlyRevenue ?? state.revenue ?? state.monthly_revenue).toBeGreaterThanOrEqual(0);
-  });
+  it('calculates metrics and next state transitions', () => {
+    const engine = new FinancialSimulationEngine();
+    const state = engine.initializeState(buildState());
+    state.customerPaymentDays = 50;
+    state.supplierPaymentDays = 30;
+    const metrics = engine.calculateMetrics(state, new Date('2026-01-01'));
 
-  it('handles state with zero values', () => {
-    const zeroState = Object.fromEntries(Object.keys(baseFinancialState).map(k => [k, 0]));
-    expect(() => engine.initializeState(zeroState)).not.toThrow();
-  });
-
-  it('handles partial state (missing some keys)', () => {
-    const partial = { monthly_revenue: 5000 };
-    expect(() => engine.initializeState(partial)).not.toThrow();
-  });
-});
-
-// ── calculateMetrics ─────────────────────────────────────────────────────────
-
-describe('FinancialSimulationEngine.calculateMetrics', () => {
-  it('returns metrics object from period state', async () => {
-    const results = await engine.simulateScenario(baseScenario, [], baseFinancialState);
-    const r = results[0];
-    // Should have numeric financial metrics
-    expect(typeof r.date).toBe('string');
-  });
-
-  it('cash_balance trends correctly over months without assumptions', async () => {
-    const sc = { ...baseScenario, end_date: '2026-06-30' };
-    const results = await engine.simulateScenario(sc, [], baseFinancialState);
-    expect(results.length).toBe(6);
-    // Each month should have a cash value
-    results.forEach(r => {
-      const cash = r.cash_balance ?? r.cashBalance ?? r.ending_cash ?? r.endingCash;
-      expect(cash !== undefined).toBe(true);
+    expect(metrics).toMatchObject({
+      revenue: expect.any(Number),
+      expenses: expect.any(Number),
+      ebitda: expect.any(Number),
+      cashBalance: expect.any(Number),
+      currentRatio: expect.any(Number),
+      roce: expect.any(Number),
     });
-  });
-});
 
-// ── calculateAverageGrowth / calculateAverage (utility methods) ──────────────
-
-describe('FinancialSimulationEngine utility calculations', () => {
-  it('calculateAverage returns mean of metric across results', async () => {
-    const results = await engine.simulateScenario(baseScenario, [], baseFinancialState);
-    // These are internal but exercised via full simulation — just verify no crash
-    expect(results).toBeDefined();
+    const next = engine.updateStateForNextMonth(state, metrics, {
+      customerPaymentDays: 55,
+      supplierPaymentDays: 35,
+    });
+    expect(next.cash).toBe(metrics.cashBalance);
+    expect(next.customerPaymentDays).toBe(55);
+    expect(next.supplierPaymentDays).toBe(35);
   });
 
-  it('handles long scenario (12 months)', async () => {
-    const sc = { ...baseScenario, end_date: '2026-12-31' };
-    const results = await engine.simulateScenario(sc, [], baseFinancialState);
-    expect(results.length).toBe(12);
-  });
-
-  it('handles scenario with all assumption types mixed', async () => {
-    const sc = { ...baseScenario, end_date: '2026-06-30' };
-    const assumptions = [
-      { type: 'revenue_growth', category: 'revenue', rate: 0.05, mode: 'percent' },
-      { type: 'fixed_amount', category: 'fixed_costs', amount: 500, mode: 'add' },
-      { type: 'payroll_change', category: 'payroll', rate: 0.03, mode: 'percent' },
+  it('compares scenarios and computes aggregate helpers', () => {
+    const engine = new FinancialSimulationEngine();
+    const a = [
+      { date: '2026-01-01', revenue: 100, cashBalance: 10, netIncome: 5, operatingCashFlow: 7, netMargin: 5 },
+      { date: '2026-02-01', revenue: 120, cashBalance: 20, netIncome: 8, operatingCashFlow: 9, netMargin: 6 },
     ];
-    const results = await engine.simulateScenario(sc, assumptions, baseFinancialState);
-    expect(results.length).toBe(6);
+    const b = [
+      { date: '2026-01-01', revenue: 80, cashBalance: 12, netIncome: 4, operatingCashFlow: 5, netMargin: 4 },
+      { date: '2026-02-01', revenue: 100, cashBalance: 15, netIncome: 6, operatingCashFlow: 6, netMargin: 5 },
+    ];
+
+    const comparison = engine.compareScenarios(a, b);
+    expect(comparison.summary.finalRevenueDiff).toBe(20);
+    expect(comparison.revenueDifference).toHaveLength(2);
+
+    expect(engine.calculateAverageGrowth(a, 'revenue')).toBeGreaterThan(0);
+    expect(engine.calculateAverageGrowth([{ revenue: 1 }], 'revenue')).toBe(0);
+    expect(engine.sumMetric(a, 'operatingCashFlow')).toBe(16);
+    expect(engine.calculateAverage(a, 'netMargin')).toBe(5.5);
+    expect(engine.calculateAverage([], 'netMargin')).toBe(0);
+  });
+
+  it('runs sensitivity analysis with assumption mutations', async () => {
+    const engine = new FinancialSimulationEngine();
+    const scenario = { ...baseScenario, end_date: '2026-02-28' };
+    const assumptions = [
+      { category: 'revenue', assumption_type: 'growth_rate', parameters: { rate: 3 } },
+      { category: 'pricing', assumption_type: 'percentage_change', parameters: { rate: 1 } },
+    ];
+
+    const output = await engine.sensitivityAnalysis(
+      scenario,
+      assumptions,
+      buildState(),
+      { category: 'revenue', type: 'growth_rate', field: 'rate' },
+      [2, 5]
+    );
+
+    expect(output).toHaveLength(2);
+    expect(output[0]).toMatchObject({
+      parameterValue: 2,
+      finalCash: expect.any(Number),
+      finalRevenue: expect.any(Number),
+      avgMargin: expect.any(Number),
+    });
   });
 });

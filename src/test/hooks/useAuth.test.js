@@ -13,6 +13,9 @@ const {
   mockFromFn,
   mockRpc,
   mockFunctionsInvoke,
+  mockAssertRateLimitAllowed,
+  mockRecordRateLimitFailure,
+  mockRecordRateLimitSuccess,
 } = vi.hoisted(() => {
   const mockSignOut = vi.fn().mockResolvedValue({ error: null });
   const mockMfa = {
@@ -34,6 +37,9 @@ const {
     mockFromFn: vi.fn(),
     mockRpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     mockFunctionsInvoke: vi.fn().mockResolvedValue({ data: { allowed: true }, error: null }),
+    mockAssertRateLimitAllowed: vi.fn(),
+    mockRecordRateLimitFailure: vi.fn(),
+    mockRecordRateLimitSuccess: vi.fn(),
   };
 });
 
@@ -60,9 +66,9 @@ vi.mock('@/utils/sanitize', () => ({
 }));
 
 vi.mock('@/utils/authRateLimit', () => ({
-  assertRateLimitAllowed: vi.fn(),
-  recordRateLimitFailure: vi.fn(),
-  recordRateLimitSuccess: vi.fn(),
+  assertRateLimitAllowed: mockAssertRateLimitAllowed,
+  recordRateLimitFailure: mockRecordRateLimitFailure,
+  recordRateLimitSuccess: mockRecordRateLimitSuccess,
 }));
 
 vi.mock('@/utils/validation', () => ({
@@ -224,6 +230,128 @@ describe('useAuthSource', () => {
     ).rejects.toThrow('Invalid credentials');
   });
 
+  it('signIn is blocked by server-side rate limit response', async () => {
+    mockFunctionsInvoke.mockResolvedValueOnce({
+      data: { allowed: false, error: 'Too many attempts.', retryAfterSeconds: 30 },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuthSource());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await expect(
+      act(async () => {
+        await result.current.signIn('rate@test.com', 'Passw0rd!1234');
+      })
+    ).rejects.toThrow('Try again in 30 seconds.');
+
+    expect(mockSignInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('signIn fails open when auth-rate-limit function is unreachable', async () => {
+    mockFunctionsInvoke.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'edge unavailable' },
+    });
+    mockSignInWithPassword.mockResolvedValue({
+      data: {
+        user: { id: 'uid-edge', email: 'edge@test.com' },
+        session: { access_token: 'tok-edge' },
+      },
+      error: null,
+    });
+    mockFromFn.mockImplementation((table) => {
+      if (table === 'profiles') return createChain({ data: { id: 'p-edge', full_name: 'Edge User' }, error: null });
+      if (table === 'user_roles') return createChain({ data: { role: 'admin' }, error: null });
+      if (table === 'company') return createChain({ data: [], error: null });
+      if (table === 'company_security_settings') return createChain({ data: [], error: null });
+      return createChain();
+    });
+
+    const { result } = renderHook(() => useAuthSource());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.signIn('edge@test.com', 'Passw0rd!1234');
+    });
+
+    expect(mockSignInWithPassword).toHaveBeenCalled();
+    expect(result.current.user?.id).toBe('uid-edge');
+  });
+
+  it('signIn enforces SSO-only workspace policy', async () => {
+    mockSignInWithPassword.mockResolvedValue({
+      data: {
+        user: { id: 'uid-sso', email: 'user@company.com' },
+        session: { access_token: 'tok-sso' },
+      },
+      error: null,
+    });
+    mockFromFn.mockImplementation((table) => {
+      if (table === 'profiles') return createChain({ data: { id: 'p-sso' }, error: null });
+      if (table === 'user_roles') return createChain({ data: { role: 'user' }, error: null });
+      if (table === 'company') return createChain({ data: [{ id: 'company-1' }], error: null });
+      if (table === 'company_security_settings') {
+        return createChain({
+          data: [{ company_id: 'company-1', sso_enforced: true, sso_provider: 'google' }],
+          error: null,
+        });
+      }
+      return createChain();
+    });
+
+    const { result } = renderHook(() => useAuthSource());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await expect(
+      act(async () => {
+        await result.current.signIn('user@company.com', 'Passw0rd!1234');
+      })
+    ).rejects.toThrow('enforces SSO');
+
+    expect(mockSignOut).toHaveBeenCalled();
+  });
+
+  it('signIn enforces allowed email domains policy', async () => {
+    mockSignInWithPassword.mockResolvedValue({
+      data: {
+        user: { id: 'uid-domain', email: 'user@outside.com' },
+        session: { access_token: 'tok-domain' },
+      },
+      error: null,
+    });
+    mockFromFn.mockImplementation((table) => {
+      if (table === 'profiles') return createChain({ data: { id: 'p-domain' }, error: null });
+      if (table === 'user_roles') return createChain({ data: { role: 'user' }, error: null });
+      if (table === 'company') return createChain({ data: [{ id: 'company-1' }], error: null });
+      if (table === 'company_security_settings') {
+        return createChain({
+          data: [
+            {
+              company_id: 'company-1',
+              sso_enforced: true,
+              sso_provider: 'none',
+              allowed_email_domains: ['company.com'],
+            },
+          ],
+          error: null,
+        });
+      }
+      return createChain();
+    });
+
+    const { result } = renderHook(() => useAuthSource());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await expect(
+      act(async () => {
+        await result.current.signIn('user@outside.com', 'Passw0rd!1234');
+      })
+    ).rejects.toThrow('approved email domains');
+
+    expect(mockSignOut).toHaveBeenCalled();
+  });
+
   // ---------- signUp ----------
 
   it('signUp validates password strength', async () => {
@@ -281,6 +409,25 @@ describe('useAuthSource', () => {
     expect(mockSignUp.mock.calls[0][0].email).toBe('new@test.com');
   });
 
+  it('signUp records failure metadata when Supabase signUp fails', async () => {
+    validatePasswordStrength.mockReturnValue(true);
+    mockSignUp.mockResolvedValue({
+      data: null,
+      error: { message: 'Email already registered' },
+    });
+
+    const { result } = renderHook(() => useAuthSource());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await expect(
+      act(async () => {
+        await result.current.signUp('existing@test.com', 'StrongPass123!', 'Existing User', 'Acme');
+      })
+    ).rejects.toThrow('Email already registered');
+
+    expect(mockRecordRateLimitFailure).toHaveBeenCalled();
+  });
+
   // ---------- logout ----------
 
   it('logout clears user and session', async () => {
@@ -308,6 +455,47 @@ describe('useAuthSource', () => {
     expect(result.current.session).toBeNull();
     expect(result.current.isAuthenticated).toBe(false);
     expect(mockSignOut).toHaveBeenCalled();
+  });
+
+  it('logout clears auth storage and runtime caches when available', async () => {
+    const mockSession = {
+      user: { id: 'uid-1', email: 'test@test.com' },
+      access_token: 'token',
+    };
+    mockGetSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+    mockFromFn.mockImplementation((table) => {
+      if (table === 'profiles') return createChain({ data: { id: 'p1', full_name: 'Test' }, error: null });
+      if (table === 'user_roles') return createChain({ data: null, error: null });
+      return createChain();
+    });
+
+    localStorage.setItem('sb-test', '1');
+    localStorage.setItem('keep-pref', 'fr');
+
+    const postMessage = vi.fn();
+    const getRegistration = vi.fn().mockResolvedValue({ active: { postMessage } });
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { getRegistration },
+    });
+
+    const deleteCache = vi.fn().mockResolvedValue(true);
+    const keys = vi.fn().mockResolvedValue(['c1', 'c2']);
+    vi.stubGlobal('caches', { keys, delete: deleteCache });
+
+    const { result } = renderHook(() => useAuthSource());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(getRegistration).toHaveBeenCalledWith('/');
+    expect(postMessage).toHaveBeenCalledWith({ type: 'CLEAR_RUNTIME_CACHES' });
+    expect(keys).toHaveBeenCalled();
+    expect(deleteCache).toHaveBeenCalledTimes(2);
+    expect(localStorage.getItem('sb-test')).toBeNull();
+    expect(localStorage.getItem('keep-pref')).toBe('fr');
   });
 
   // ---------- updateProfile ----------
@@ -413,6 +601,20 @@ describe('useAuthSource', () => {
     expect(status.factors).toHaveLength(1);
   });
 
+  it('getMFAStatus gracefully handles provider errors', async () => {
+    mockMfa.listFactors.mockResolvedValueOnce({ data: null, error: { message: 'MFA unavailable' } });
+
+    const { result } = renderHook(() => useAuthSource());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let status;
+    await act(async () => {
+      status = await result.current.getMFAStatus();
+    });
+
+    expect(status).toEqual({ enabled: false, factors: [] });
+  });
+
   it('enrollMFA calls supabase.auth.mfa.enroll', async () => {
     const { result } = renderHook(() => useAuthSource());
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -445,6 +647,21 @@ describe('useAuthSource', () => {
     });
   });
 
+  it('verifyMFA reports failure when Supabase verification fails', async () => {
+    mockMfa.verify.mockResolvedValueOnce({ data: null, error: { message: 'Invalid MFA code' } });
+
+    const { result } = renderHook(() => useAuthSource());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await expect(
+      act(async () => {
+        await result.current.verifyMFA('f1', '000000');
+      })
+    ).rejects.toThrow('Invalid MFA code');
+
+    expect(mockRecordRateLimitFailure).toHaveBeenCalled();
+  });
+
   it('unenrollMFA calls supabase.auth.mfa.unenroll', async () => {
     const { result } = renderHook(() => useAuthSource());
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -466,5 +683,30 @@ describe('useAuthSource', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.error).toContain('Network failure');
+  });
+
+  it('reacts to auth state change events (SIGNED_IN then SIGNED_OUT)', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+    mockFromFn.mockImplementation((table) => {
+      if (table === 'profiles') return createChain({ data: { id: 'p2', full_name: 'Auth Event' }, error: null });
+      if (table === 'user_roles') return createChain({ data: { role: 'admin' }, error: null });
+      return createChain();
+    });
+
+    const { result } = renderHook(() => useAuthSource());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+
+    await act(async () => {
+      await authCallback('SIGNED_IN', { user: { id: 'uid-auth', email: 'auth@test.com' } });
+    });
+    expect(result.current.user?.id).toBe('uid-auth');
+
+    await act(async () => {
+      await authCallback('SIGNED_OUT', null);
+    });
+    expect(result.current.user).toBeNull();
+    expect(result.current.session).toBeNull();
   });
 });

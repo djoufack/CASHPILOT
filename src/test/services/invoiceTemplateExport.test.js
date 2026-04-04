@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const { templateRenderSpy } = vi.hoisted(() => ({
+  templateRenderSpy: vi.fn(() => null),
+}));
+
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     auth: {
@@ -33,15 +37,25 @@ vi.mock('@/components/invoice-templates/ModernTemplate', () => ({ default: () =>
 vi.mock('@/components/invoice-templates/MinimalTemplate', () => ({ default: () => null }));
 vi.mock('@/components/invoice-templates/BoldTemplate', () => ({ default: () => null }));
 vi.mock('@/components/invoice-templates/ProfessionalTemplate', () => ({ default: () => null }));
-vi.mock('@/components/invoice-templates/DMGDefaultTemplate', () => ({ default: () => null }));
+vi.mock('@/components/invoice-templates/DMGDefaultTemplate', () => ({
+  default: (props) => {
+    templateRenderSpy(props);
+    return null;
+  },
+}));
 
-import { resolveInvoiceExportSettings, buildStandaloneTemplateHtml } from '@/services/invoiceTemplateExport';
+import {
+  resolveInvoiceExportSettings,
+  buildStandaloneTemplateHtml,
+  renderInvoiceTemplateContent,
+} from '@/services/invoiceTemplateExport';
 
 describe('invoiceTemplateExport', () => {
   let supabase;
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    templateRenderSpy.mockClear();
     const mod = await import('@/lib/supabase');
     supabase = mod.supabase;
   });
@@ -152,6 +166,79 @@ describe('invoiceTemplateExport', () => {
       const html = buildStandaloneTemplateHtml(null, '<div>test</div>');
       expect(html).toContain('<title>');
       expect(html).toContain('<div>test</div>');
+    });
+  });
+
+  describe('renderInvoiceTemplateContent', () => {
+    it('normalizes supplier invoice payload and renders fallback template', async () => {
+      const result = await renderInvoiceTemplateContent({
+        invoice: {
+          invoiceNumber: 'INV-001',
+          issueDate: '2026-04-01',
+          total_amount: '200',
+          line_items: [{ name: 'Audit', qty: 2, rate: 100 }],
+        },
+        company: { company_name: 'CashPilot' },
+        supplier: { company_name: 'Supplier SA', currency: 'EUR' },
+        settingsOverride: {
+          template_id: 'unknown_template',
+          color_theme: 'default',
+        },
+      });
+
+      expect(result.settings.template_id).toBe('dmg_default');
+      expect(templateRenderSpy).toHaveBeenCalled();
+
+      const renderProps = templateRenderSpy.mock.calls[0][0];
+      expect(renderProps.invoice.invoice_number).toBe('INV-001');
+      expect(renderProps.invoice.total_ttc).toBe(200);
+      expect(renderProps.invoice.items).toHaveLength(1);
+      expect(renderProps.invoice.items[0].description).toBe('Audit');
+      expect(renderProps.client.company_name).toBe('Supplier SA');
+    });
+
+    it('adds a synthetic fallback item when invoice has no lines but has total', async () => {
+      await renderInvoiceTemplateContent({
+        invoice: {
+          reference: 'INV-002',
+          subtotal: 500,
+          total_ttc: 500,
+          tax_rate: 20,
+        },
+        company: { company_name: 'CashPilot' },
+        settingsOverride: {
+          template_id: 'dmg_default',
+          color_theme: 'default',
+        },
+      });
+
+      const renderProps = templateRenderSpy.mock.calls[0][0];
+      expect(renderProps.invoice.items).toHaveLength(1);
+      expect(renderProps.invoice.items[0]).toMatchObject({
+        description: 'Ligne facture',
+        quantity: 1,
+        unit_price: 500,
+      });
+    });
+
+    it('resolves settings via current user when no override is provided', async () => {
+      supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-42' } } });
+      supabase.from.mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { template_id: 'classic', color_theme: 'default' },
+          error: null,
+        }),
+      });
+
+      const result = await renderInvoiceTemplateContent({
+        invoice: { total: 1000 },
+        company: { company_name: 'CashPilot' },
+      });
+
+      expect(supabase.auth.getUser).toHaveBeenCalled();
+      expect(result.settings.template_id).toBe('classic');
     });
   });
 });

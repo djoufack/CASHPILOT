@@ -366,4 +366,157 @@ describe('useInterCompany', () => {
 
     expect(delChain.delete).toHaveBeenCalled();
   });
+
+  it('computeEliminations inserts a new elimination row and marks transactions as eliminated', async () => {
+    const { result } = renderHook(() => useInterCompany());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let eliminationCalls = 0;
+    let transactionCalls = 0;
+    mockFromFn.mockImplementation((table) => {
+      if (table === 'intercompany_transactions') {
+        transactionCalls += 1;
+        if (transactionCalls === 1) {
+          return createChain({
+            data: [
+              { id: 'tx-1', amount: 100 },
+              { id: 'tx-2', amount: 50 },
+            ],
+            error: null,
+          });
+        }
+        return createChain({ data: null, error: null });
+      }
+
+      if (table === 'intercompany_eliminations') {
+        eliminationCalls += 1;
+        if (eliminationCalls === 1) {
+          return createChain({ data: null, error: null });
+        }
+        return createChain({
+          data: {
+            id: 'elim-1',
+            entries_count: 2,
+            eliminated_amount: 150,
+            status: 'applied',
+          },
+          error: null,
+        });
+      }
+
+      if (table === 'intercompany_links') return createChain({ data: [], error: null });
+      if (table === 'transfer_pricing_rules') return createChain({ data: [], error: null });
+      if (table === 'company') return createChain({ data: [], error: null });
+      return createChain();
+    });
+
+    await act(async () => {
+      const output = await result.current.computeEliminations('2026-03-01', '2026-03-31', null);
+      expect(output.entriesCount).toBe(2);
+      expect(output.totalEliminated).toBe(150);
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Eliminations appliquees' }));
+  });
+
+  it('computeEliminations updates existing period elimination when row already exists', async () => {
+    let eliminationCalls = 0;
+
+    mockFromFn.mockImplementation((table) => {
+      if (table === 'intercompany_transactions') {
+        return createChain({
+          data: [{ id: 'tx-1', amount: 80 }],
+          error: null,
+        });
+      }
+
+      if (table === 'intercompany_eliminations') {
+        eliminationCalls += 1;
+        if (eliminationCalls === 1) {
+          return createChain({ data: { id: 'elim-existing' }, error: null });
+        }
+        return createChain({
+          data: { id: 'elim-existing', eliminated_amount: 80, entries_count: 1 },
+          error: null,
+        });
+      }
+
+      if (table === 'intercompany_links') return createChain({ data: [], error: null });
+      if (table === 'transfer_pricing_rules') return createChain({ data: [], error: null });
+      if (table === 'company') return createChain({ data: [], error: null });
+      return createChain();
+    });
+
+    const { result } = renderHook(() => useInterCompany());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      const output = await result.current.computeEliminations('2026-04-01', '2026-04-30', null, { silent: true });
+      expect(output.entriesCount).toBe(1);
+      expect(output.totalEliminated).toBe(80);
+      expect(output.elimination.id).toBe('elim-existing');
+    });
+  });
+
+  it('autoComputeEliminations aggregates synced transactions by period', async () => {
+    const { result } = renderHook(() => useInterCompany());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let eliminationCalls = 0;
+    let txCalls = 0;
+    mockFromFn.mockImplementation((table) => {
+      if (table === 'intercompany_transactions') {
+        txCalls += 1;
+
+        if (txCalls === 1) {
+          return createChain({
+            data: [
+              { id: 'tx-1', status: 'synced', created_at: '2026-03-03T00:00:00Z', amount: 30 },
+              { id: 'tx-2', status: 'synced', created_at: '2026-04-12T00:00:00Z', amount: 70 },
+            ],
+            error: null,
+          });
+        }
+
+        if (txCalls === 2) {
+          return createChain({ data: [{ id: 'tx-1', amount: 30 }], error: null });
+        }
+
+        if (txCalls === 3) {
+          return createChain({ data: [{ id: 'tx-2', amount: 70 }], error: null });
+        }
+
+        return createChain({ data: null, error: null });
+      }
+
+      if (table === 'intercompany_eliminations') {
+        eliminationCalls += 1;
+        if (eliminationCalls === 1 || eliminationCalls === 3) {
+          return createChain({ data: null, error: null });
+        }
+        return createChain({
+          data: {
+            id: `elim-${eliminationCalls}`,
+            entries_count: 1,
+            eliminated_amount: eliminationCalls === 2 ? 30 : 70,
+          },
+          error: null,
+        });
+      }
+
+      if (table === 'intercompany_links') return createChain({ data: [], error: null });
+      if (table === 'transfer_pricing_rules') return createChain({ data: [], error: null });
+      if (table === 'company') return createChain({ data: [], error: null });
+      return createChain();
+    });
+
+    await act(async () => {
+      const output = await result.current.autoComputeEliminations();
+      expect(output.processedPeriods).toBe(2);
+      expect(output.entriesCount).toBeGreaterThan(0);
+      expect(output.totalEliminated).toBeGreaterThan(0);
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Automatisation interco terminee' }));
+  });
 });

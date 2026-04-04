@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // ---------------------------------------------------------------------------
@@ -20,6 +20,10 @@ const mockFetchProducts = vi.fn();
 const mockCreateWarehouse = vi.fn();
 const mockUpdateWarehouse = vi.fn();
 const mockCreateLot = vi.fn();
+const { mockExportStockListPDF, mockExportStockListHTML } = vi.hoisted(() => ({
+  mockExportStockListPDF: vi.fn(),
+  mockExportStockListHTML: vi.fn(),
+}));
 
 vi.mock('@/hooks/useStockHistory', () => ({
   useStockAlerts: () => ({
@@ -216,8 +220,8 @@ vi.mock('@/utils/calculations', () => ({
 }));
 
 vi.mock('@/services/exportListsPDF', () => ({
-  exportStockListPDF: vi.fn(),
-  exportStockListHTML: vi.fn(),
+  exportStockListPDF: mockExportStockListPDF,
+  exportStockListHTML: mockExportStockListHTML,
 }));
 
 vi.mock('@/services/errorTracking', () => ({
@@ -369,5 +373,138 @@ describe('StockManagement', () => {
   it('renders smart replenishment recommendation panel', () => {
     render(<StockManagement />);
     expect(screen.getByText('stockManagement.cockpit.replenishmentTitle')).toBeTruthy();
+  });
+
+  it('resolves a stock alert from the alerts panel', () => {
+    render(<StockManagement />);
+    const resolveButton = screen.getByRole('button', { name: 'stockManagement.resolve' });
+    fireEvent.click(resolveButton);
+    expect(mockResolveAlert).toHaveBeenCalledWith('alert-1');
+  });
+
+  it('opens edit dialog from inventory actions and saves product details', () => {
+    render(<StockManagement />);
+
+    const editButtons = screen.getAllByTitle('stockManagement.viewDialog.edit');
+    fireEvent.click(editButtons[0]);
+
+    const saveButton = screen.getByRole('button', { name: 'stockManagement.editDialog.save' });
+    fireEvent.click(saveButton);
+
+    expect(mockUpdateProduct).toHaveBeenCalledWith(
+      'prod-1',
+      expect.objectContaining({
+        product_name: 'Widget A',
+        inventory_tracking_enabled: true,
+      })
+    );
+  });
+
+  it('opens pricing dialog from inventory actions and saves pricing changes', () => {
+    render(<StockManagement />);
+
+    const pricingButtons = screen.getAllByTitle('stockManagement.pricingDialog.title');
+    fireEvent.click(pricingButtons[0]);
+
+    const saveButton = screen.getByRole('button', { name: 'stockManagement.pricingDialog.save' });
+    fireEvent.click(saveButton);
+
+    expect(mockUpdateProduct).toHaveBeenCalledWith(
+      'prod-1',
+      expect.objectContaining({
+        unit_price: expect.any(Number),
+        purchase_price: expect.any(Number),
+      })
+    );
+  });
+
+  it('opens delete confirmation and deletes selected product', () => {
+    render(<StockManagement />);
+
+    const deleteButtons = screen.getAllByTitle('stockManagement.deleteDialog.confirm');
+    fireEvent.click(deleteButtons[0]);
+
+    const confirmButtons = screen.getAllByRole('button', { name: 'stockManagement.deleteDialog.confirm' });
+    fireEvent.click(confirmButtons.at(-1));
+
+    expect(mockDeleteProduct).toHaveBeenCalledWith('prod-1');
+  });
+
+  it('creates a warehouse from warehouse form inputs', () => {
+    render(<StockManagement />);
+
+    const codeInput = screen.getByPlaceholderText('MAIN');
+    const nameInput = screen.getByPlaceholderText('stockManagement.warehouses.warehouseName');
+    fireEvent.change(codeInput, { target: { value: 'WH2' } });
+    fireEvent.change(nameInput, { target: { value: 'Secondary warehouse' } });
+
+    const createWarehouseButton = screen.getByRole('button', { name: 'stockManagement.warehouses.createWarehouse' });
+    fireEvent.click(createWarehouseButton);
+
+    expect(mockCreateWarehouse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        warehouse_code: 'WH2',
+        warehouse_name: 'Secondary warehouse',
+      })
+    );
+  });
+
+  it('toggles warehouse activation state', () => {
+    render(<StockManagement />);
+
+    const deactivateButton = screen.getByRole('button', { name: 'stockManagement.warehouses.deactivate' });
+    fireEvent.click(deactivateButton);
+
+    expect(mockUpdateWarehouse).toHaveBeenCalledWith('wh-1', { is_active: false });
+  });
+
+  it('opens product view and transitions to edit flow from dialog action', () => {
+    render(<StockManagement />);
+
+    const viewButtons = screen.getAllByTitle('stockManagement.viewDialog.title');
+    fireEvent.click(viewButtons[0]);
+
+    const editFromViewButton = screen.getByRole('button', { name: 'stockManagement.viewDialog.edit' });
+    fireEvent.click(editFromViewButton);
+
+    const saveButton = screen.getByRole('button', { name: 'stockManagement.editDialog.save' });
+    fireEvent.click(saveButton);
+
+    expect(mockUpdateProduct).toHaveBeenCalledWith(
+      'prod-1',
+      expect.objectContaining({
+        product_name: 'Widget A',
+      })
+    );
+  });
+
+  it('opens product view and transitions to pricing flow from dialog action', () => {
+    render(<StockManagement />);
+
+    const viewButtons = screen.getAllByTitle('stockManagement.viewDialog.title');
+    fireEvent.click(viewButtons[0]);
+
+    const pricingFromViewButton = screen.getByRole('button', { name: 'stockManagement.viewDialog.priceQty' });
+    fireEvent.click(pricingFromViewButton);
+
+    const saveButton = screen.getByRole('button', { name: 'stockManagement.pricingDialog.save' });
+    fireEvent.click(saveButton);
+
+    expect(mockUpdateProduct).toHaveBeenCalledWith(
+      'prod-1',
+      expect.objectContaining({
+        unit_price: expect.any(Number),
+      })
+    );
+  });
+
+  it('runs PDF and HTML export actions', () => {
+    render(<StockManagement />);
+
+    fireEvent.click(screen.getByRole('button', { name: /PDF/i }));
+    fireEvent.click(screen.getByRole('button', { name: /HTML/i }));
+
+    expect(mockExportStockListPDF).toHaveBeenCalled();
+    expect(mockExportStockListHTML).toHaveBeenCalled();
   });
 });
