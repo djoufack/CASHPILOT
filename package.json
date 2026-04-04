@@ -154,7 +154,7 @@
     "pdfjs-dist": "^5.4.530",
     "react": "^18.2.0",
     "react-big-calendar": "^1.8.5",
-    "react-day-picker": "^8.9.1",
+    "react-day-picker": "^9.14.0",
     "react-dom": "^18.2.0",
     "react-helmet": "^6.1.0",
     "react-hook-form": "^7.48.2",
