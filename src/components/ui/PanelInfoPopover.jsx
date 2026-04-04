@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -33,9 +34,16 @@ const PanelInfoPopover = ({
   calculationMethod,
   filters,
   notes,
+  expertDefinition,
+  expertDataSource,
+  expertFormula,
+  expertCalculationMethod,
+  expertFilters,
+  expertNotes,
   ariaLabel,
   triggerClassName = '',
 }) => {
+  const [showExpert, setShowExpert] = useState(false);
   const normalizedTitle = normalize(title) || 'Information composant';
   const normalizedDefinition = normalize(definition);
   const normalizedDataSource = normalize(dataSource);
@@ -43,6 +51,20 @@ const PanelInfoPopover = ({
   const normalizedCalculationMethod = normalize(calculationMethod);
   const normalizedFilters = normalize(filters);
   const normalizedNotes = normalize(notes);
+  const normalizedExpertDefinition = normalize(expertDefinition);
+  const normalizedExpertDataSource = normalize(expertDataSource);
+  const normalizedExpertFormula = normalize(expertFormula);
+  const normalizedExpertCalculationMethod = normalize(expertCalculationMethod);
+  const normalizedExpertFilters = normalize(expertFilters);
+  const normalizedExpertNotes = normalize(expertNotes);
+  const hasExpertContent = Boolean(
+    normalizedExpertDefinition ||
+    normalizedExpertDataSource ||
+    normalizedExpertFormula ||
+    normalizedExpertCalculationMethod ||
+    normalizedExpertFilters ||
+    normalizedExpertNotes
+  );
 
   return (
     <Popover>
@@ -70,6 +92,30 @@ const PanelInfoPopover = ({
           <InfoSection label="Methode de calcul" value={normalizedCalculationMethod} />
           <InfoSection label="Filtres" value={normalizedFilters} />
           <InfoSection label="Notes" value={normalizedNotes} />
+          {hasExpertContent && (
+            <div className="pt-1 border-t border-gray-700/80">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-[11px] text-orange-300 hover:text-orange-200 hover:bg-orange-500/10"
+                onClick={() => setShowExpert((previous) => !previous)}
+              >
+                {showExpert ? 'Masquer detail expert' : 'Voir detail expert'}
+              </Button>
+            </div>
+          )}
+          {showExpert && hasExpertContent && (
+            <div className="space-y-3 border-t border-gray-700/80 pt-2">
+              <p className="text-[11px] uppercase tracking-wide text-orange-300">Niveau expert</p>
+              <InfoSection label="Definition (expert)" value={normalizedExpertDefinition} />
+              <InfoSection label="Source des donnees (expert)" value={normalizedExpertDataSource} />
+              <InfoSection label="Formule (expert)" value={normalizedExpertFormula} />
+              <InfoSection label="Methode de calcul (expert)" value={normalizedExpertCalculationMethod} />
+              <InfoSection label="Filtres (expert)" value={normalizedExpertFilters} />
+              <InfoSection label="Notes (expert)" value={normalizedExpertNotes} />
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

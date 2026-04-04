@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { formatCurrency } from '@/utils/calculations';
 import { useTranslation } from 'react-i18next';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const INSTRUMENT_COLORS = {
   bank_account: '#3B82F6',
@@ -35,10 +36,7 @@ const CustomLegend = ({ payload }) => {
     <div className="mt-2 flex flex-wrap justify-center gap-4">
       {payload?.map((entry, index) => (
         <div key={index} className="flex items-center gap-1.5">
-          <div
-            className="h-2.5 w-2.5 rounded-sm"
-            style={{ backgroundColor: entry.color }}
-          />
+          <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: entry.color }} />
           <span className="text-xs text-gray-400">{entry.value}</span>
         </div>
       ))}
@@ -48,6 +46,17 @@ const CustomLegend = ({ payload }) => {
 
 export const PaymentVolumeChart = ({ data = [], currency = 'EUR' }) => {
   const { t } = useTranslation();
+  const panelInfo = {
+    title: t('financialInstruments.paymentVolume', 'Payment Volume by Instrument'),
+    definition: 'Volume mensuel des entrées et sorties pour chaque type de moyen de paiement.',
+    dataSource: 'Transactions regroupées par mois et par type.',
+    formula: 'Pour chaque type: Entrées = somme des entrées, Sorties = somme des sorties.',
+    calculationMethod: 'Empile les séries par type (compte, carte, caisse) pour comparer rapidement.',
+    expertDataSource: 'Agrégats mensuels par type issus de `payment_transactions`.',
+    expertFormula:
+      'entry[type_inflow] += total_inflow ; entry[type_outflow] += -ABS(total_outflow) (stackOffset sign).',
+    expertCalculationMethod: 'Pré-agrégation JS par mois puis rendu empilé par type instrument dans Recharts.',
+  };
 
   const { chartData, instrumentTypes } = useMemo(() => {
     const monthMap = new Map();
@@ -63,7 +72,8 @@ export const PaymentVolumeChart = ({ data = [], currency = 'EUR' }) => {
 
       const entry = monthMap.get(month);
       entry[`${instrument_type}_inflow`] = (entry[`${instrument_type}_inflow`] || 0) + Number(total_inflow);
-      entry[`${instrument_type}_outflow`] = (entry[`${instrument_type}_outflow`] || 0) - Math.abs(Number(total_outflow));
+      entry[`${instrument_type}_outflow`] =
+        (entry[`${instrument_type}_outflow`] || 0) - Math.abs(Number(total_outflow));
     });
 
     return {
@@ -88,9 +98,12 @@ export const PaymentVolumeChart = ({ data = [], currency = 'EUR' }) => {
 
   return (
     <div className="rounded-xl border border-gray-700/50 bg-[#0f1528]/60 p-4 backdrop-blur-sm">
-      <h3 className="mb-4 text-sm font-semibold text-gray-300">
-        {t('financialInstruments.paymentVolume', 'Payment Volume by Instrument')}
-      </h3>
+      <div className="mb-4 inline-flex items-center gap-1.5">
+        <PanelInfoPopover {...panelInfo} ariaLabel={`Informations sur ${panelInfo.title}`} triggerClassName="h-5 w-5" />
+        <h3 className="text-sm font-semibold text-gray-300">
+          {t('financialInstruments.paymentVolume', 'Payment Volume by Instrument')}
+        </h3>
+      </div>
       <ResponsiveContainer width="100%" height={350}>
         <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }} stackOffset="sign">
           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />

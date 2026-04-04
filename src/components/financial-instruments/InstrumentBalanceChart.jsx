@@ -1,6 +1,7 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { formatCurrency } from '@/utils/calculations';
 import { useTranslation } from 'react-i18next';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const CustomTooltip = ({ active, payload, label, currency }) => {
   if (!active || !payload?.length) return null;
@@ -19,6 +20,16 @@ const CustomTooltip = ({ active, payload, label, currency }) => {
 
 export const InstrumentBalanceChart = ({ data = [], currency = 'EUR' }) => {
   const { t } = useTranslation();
+  const panelInfo = {
+    title: t('financialInstruments.balanceEvolution', 'Balance Evolution (90 days)'),
+    definition: 'Vue jour par jour des entrées, sorties et du solde de fin de journée.',
+    dataSource: 'Historique des transactions de ce compte.',
+    formula: "Solde de cloture = solde d'ouverture + cumul des entrées - sorties.",
+    calculationMethod: 'Le graphique combine les 3 courbes pour expliquer visuellement la variation du solde.',
+    expertDataSource: 'RPC Supabase `rpc_account_balance_evolution` alimentée par `payment_transactions`.',
+    expertFormula: 'closing_balance(day) = opening_balance + SUM(daily_inflow - daily_outflow) OVER (ORDER BY day).',
+    expertCalculationMethod: 'Série SQL déjà calculée, puis rendue telle quelle dans Recharts.',
+  };
 
   if (!data.length) {
     return (
@@ -36,9 +47,12 @@ export const InstrumentBalanceChart = ({ data = [], currency = 'EUR' }) => {
 
   return (
     <div className="rounded-xl border border-gray-700/50 bg-[#0f1528]/60 p-4 backdrop-blur-sm">
-      <h3 className="mb-4 text-sm font-semibold text-gray-300">
-        {t('financialInstruments.balanceEvolution', 'Balance Evolution (90 days)')}
-      </h3>
+      <div className="mb-4 inline-flex items-center gap-1.5">
+        <PanelInfoPopover {...panelInfo} ariaLabel={`Informations sur ${panelInfo.title}`} triggerClassName="h-5 w-5" />
+        <h3 className="text-sm font-semibold text-gray-300">
+          {t('financialInstruments.balanceEvolution', 'Balance Evolution (90 days)')}
+        </h3>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           <defs>

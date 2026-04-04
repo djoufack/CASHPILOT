@@ -1,10 +1,10 @@
-
 import { useTranslation } from 'react-i18next';
 import { Wallet, CreditCard, Banknote, Building2, Pencil, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { formatCurrency } from '@/utils/currencyService';
 
 const typeIcons = {
@@ -35,6 +35,16 @@ const itemVariants = {
 
 export function InstrumentsList({ instruments = [], type, onEdit, onDelete }) {
   const { t } = useTranslation();
+  const balanceInfo = {
+    title: t('financialInstruments.balance', 'Solde'),
+    definition: 'Montant actuellement disponible sur ce compte.',
+    dataSource: "Solde enregistré dans l'application pour cet instrument.",
+    formula: "Solde = solde d'ouverture + entrées - sorties.",
+    calculationMethod: 'Le montant est mis à jour automatiquement avec les opérations comptabilisées ou rapprochées.',
+    expertDataSource: 'Champ `company_payment_instruments.current_balance` (Supabase).',
+    expertFormula: 'Solde = opening_balance + sum(inflow posted/reconciled) - sum(outflow posted/reconciled).',
+    expertCalculationMethod: 'Valeur maintenue côté base via le trigger SQL `apply_payment_transaction_balance`.',
+  };
 
   const filtered = type ? instruments.filter((i) => i.instrument_type === type) : instruments;
 
@@ -71,18 +81,11 @@ export function InstrumentsList({ instruments = [], type, onEdit, onDelete }) {
                       <Icon className="h-5 w-5 text-amber-500" />
                     </div>
                     <div>
-                      <CardTitle className="text-white text-base font-semibold">
-                        {instrument.label}
-                      </CardTitle>
-                      {bankDetail?.bank_name && (
-                        <p className="text-gray-500 text-xs mt-0.5">{bankDetail.bank_name}</p>
-                      )}
+                      <CardTitle className="text-white text-base font-semibold">{instrument.label}</CardTitle>
+                      {bankDetail?.bank_name && <p className="text-gray-500 text-xs mt-0.5">{bankDetail.bank_name}</p>}
                     </div>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={statusColors[instrument.status] || statusColors.active}
-                  >
+                  <Badge variant="outline" className={statusColors[instrument.status] || statusColors.active}>
                     {t(`financialInstruments.status.${instrument.status}`, instrument.status)}
                   </Badge>
                 </div>
@@ -91,9 +94,10 @@ export function InstrumentsList({ instruments = [], type, onEdit, onDelete }) {
                 <div className="space-y-3">
                   {/* Balance */}
                   <div>
-                    <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                      {t('financialInstruments.balance', 'Solde')}
-                    </p>
+                    <div className="mb-1 inline-flex items-center gap-1.5 text-gray-500 text-xs uppercase tracking-wider">
+                      <PanelInfoPopover {...balanceInfo} triggerClassName="h-5 w-5" />
+                      <span>{t('financialInstruments.balance', 'Solde')}</span>
+                    </div>
                     <p className="text-xl font-bold text-white">
                       {formatCurrency(instrument.current_balance || 0, instrument.currency || 'EUR')}
                     </p>

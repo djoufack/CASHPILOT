@@ -1,22 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeftRight } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency } from '@/utils/currencyService';
 
 const emptyForm = {
@@ -65,6 +55,17 @@ export function TransferDialog({ open, onOpenChange, instruments = [], onSubmit 
     form.to_instrument_id &&
     form.from_instrument_id !== form.to_instrument_id &&
     parseFloat(form.amount) > 0;
+  const availableBalanceInfo = {
+    title: t('financialInstruments.availableBalance', 'Solde disponible'),
+    definition: 'Montant disponible sur le compte source avant de lancer le virement.',
+    dataSource: "Solde actuel du compte source affiché dans l'application.",
+    formula: "Solde = solde d'ouverture + entrées - sorties.",
+    calculationMethod:
+      'Affiche le solde du compte choisi pour vérifier rapidement si le montant du virement est cohérent.',
+    expertDataSource: 'Champ `company_payment_instruments.current_balance` du compte source.',
+    expertFormula: 'Solde = opening_balance + sum(inflow posted/reconciled) - sum(outflow posted/reconciled).',
+    expertCalculationMethod: 'Lecture instantanée du solde du compte source sélectionné dans le formulaire.',
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -98,12 +99,17 @@ export function TransferDialog({ open, onOpenChange, instruments = [], onSubmit 
               </SelectContent>
             </Select>
             {fromInstrument && (
-              <p className="text-xs text-gray-600">
-                {t('financialInstruments.availableBalance', 'Solde disponible')}:{' '}
+              <div className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+                <PanelInfoPopover
+                  {...availableBalanceInfo}
+                  ariaLabel={`Informations sur ${availableBalanceInfo.title}`}
+                  triggerClassName="h-5 w-5"
+                />
+                <span>{t('financialInstruments.availableBalance', 'Solde disponible')}:</span>
                 <span className="text-gray-400">
                   {formatCurrency(fromInstrument.current_balance || 0, fromInstrument.currency || 'EUR')}
                 </span>
-              </p>
+              </div>
             )}
           </div>
 

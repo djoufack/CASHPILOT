@@ -1,6 +1,7 @@
 import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { formatCurrency } from '@/utils/calculations';
 import { useTranslation } from 'react-i18next';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const CustomTooltip = ({ active, payload, label, currency }) => {
   if (!active || !payload?.length) return null;
@@ -22,10 +23,7 @@ const CustomLegend = ({ payload }) => {
     <div className="mt-2 flex flex-wrap justify-center gap-4">
       {payload?.map((entry, index) => (
         <div key={index} className="flex items-center gap-1.5">
-          <div
-            className="h-2.5 w-2.5 rounded-sm"
-            style={{ backgroundColor: entry.color }}
-          />
+          <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: entry.color }} />
           <span className="text-xs text-gray-400">{entry.value}</span>
         </div>
       ))}
@@ -35,6 +33,17 @@ const CustomLegend = ({ payload }) => {
 
 export const InstrumentCashFlowChart = ({ data = [], currency = 'EUR' }) => {
   const { t } = useTranslation();
+  const panelInfo = {
+    title: t('financialInstruments.cashFlow', 'Cash Flow by Instrument'),
+    definition: 'Comparaison par mois des entrées et sorties, avec le solde qui en résulte.',
+    dataSource: 'Transactions du compte regroupées par mois.',
+    formula: 'Net mensuel = entrées - sorties.',
+    calculationMethod: 'Barres pour entrées/sorties + ligne pour suivre le solde cumulé.',
+    expertDataSource: 'RPC Supabase `rpc_account_cash_flow` (groupement mensuel).',
+    expertFormula: 'running_balance(month) = opening_balance + SUM(inflow - outflow) OVER (ORDER BY month).',
+    expertCalculationMethod:
+      'Transformation locale: outflow est affiché en négatif pour la lecture, running_balance en courbe.',
+  };
 
   if (!data.length) {
     return (
@@ -47,7 +56,7 @@ export const InstrumentCashFlowChart = ({ data = [], currency = 'EUR' }) => {
   const chartData = data.map((row) => ({
     ...row,
     inflow: Number(row.inflow) || 0,
-    outflow: -(Math.abs(Number(row.outflow) || 0)),
+    outflow: -Math.abs(Number(row.outflow) || 0),
     net: Number(row.net) || 0,
     running_balance: Number(row.running_balance) || 0,
   }));
@@ -60,9 +69,12 @@ export const InstrumentCashFlowChart = ({ data = [], currency = 'EUR' }) => {
 
   return (
     <div className="rounded-xl border border-gray-700/50 bg-[#0f1528]/60 p-4 backdrop-blur-sm">
-      <h3 className="mb-4 text-sm font-semibold text-gray-300">
-        {t('financialInstruments.cashFlow', 'Cash Flow by Instrument')}
-      </h3>
+      <div className="mb-4 inline-flex items-center gap-1.5">
+        <PanelInfoPopover {...panelInfo} ariaLabel={`Informations sur ${panelInfo.title}`} triggerClassName="h-5 w-5" />
+        <h3 className="text-sm font-semibold text-gray-300">
+          {t('financialInstruments.cashFlow', 'Cash Flow by Instrument')}
+        </h3>
+      </div>
       <ResponsiveContainer width="100%" height={350}>
         <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />

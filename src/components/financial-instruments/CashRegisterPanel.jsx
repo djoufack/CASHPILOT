@@ -1,10 +1,10 @@
-
 import { useTranslation } from 'react-i18next';
 import { Banknote, Plus, Pencil, MapPin, User, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { formatCurrency } from '@/utils/currencyService';
 
 const containerVariants = {
@@ -25,38 +25,61 @@ const reconciliationLabels = {
 
 export function CashRegisterPanel({ instruments = [], onEdit, onAdd }) {
   const { t } = useTranslation();
+  const totalCashInfo = {
+    title: t('financialInstruments.totalCash', 'Total caisses'),
+    definition: 'Total des soldes de toutes les caisses visibles.',
+    dataSource: 'Soldes des caisses affichées dans cette section.',
+    formula: 'Total caisses = somme des soldes de chaque caisse.',
+    calculationMethod: 'Additionne simplement les montants affichés sur les cartes caisse.',
+    expertDataSource: 'Sous-ensemble `instrument_type = cash` de `company_payment_instruments`.',
+    expertFormula: 'Total caisses = sum(current_balance) sur les caisses visibles.',
+    expertCalculationMethod: 'Réduction locale JS sur `instruments` filtrés caisse.',
+  };
+  const cashCountInfo = {
+    title: t('financialInstruments.cashCount', 'Nombre'),
+    definition: 'Nombre de caisses affichées sur cet écran.',
+    dataSource: 'Liste des instruments de type caisse.',
+    formula: 'Nombre = count(caisses affichées).',
+    calculationMethod: 'Calcule `instruments.length`.',
+    expertDataSource: 'Collection `instruments` fournie par `usePaymentInstruments`.',
+    expertCalculationMethod: "Cardinal de l'ensemble filtré sur le type caisse.",
+  };
+  const unitBalanceInfo = {
+    title: t('financialInstruments.balance', 'Solde'),
+    definition: 'Montant actuellement disponible dans cette caisse.',
+    dataSource: "Solde enregistré dans l'application pour cette caisse.",
+    formula: "Solde = solde d'ouverture + entrées - sorties.",
+    calculationMethod: 'Le montant se met à jour automatiquement selon les opérations comptabilisées ou rapprochées.',
+    expertDataSource: 'Champ `company_payment_instruments.current_balance` (instrument caisse).',
+    expertFormula: 'Solde = opening_balance + sum(inflow posted/reconciled) - sum(outflow posted/reconciled).',
+    expertCalculationMethod: 'Mise à jour SQL par `apply_payment_transaction_balance`.',
+  };
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
-    >
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
       {/* Summary bar */}
       <div className="bg-[#0f1528] border border-gray-800/50 rounded-xl p-4 flex flex-wrap items-center gap-6">
         <div>
-          <p className="text-gray-500 text-xs uppercase tracking-wider">
-            {t('financialInstruments.totalCash', 'Total caisses')}
-          </p>
+          <div className="inline-flex items-center gap-1.5 text-gray-500 text-xs uppercase tracking-wider">
+            <PanelInfoPopover {...totalCashInfo} triggerClassName="h-5 w-5" />
+            <span>{t('financialInstruments.totalCash', 'Total caisses')}</span>
+          </div>
           <p className="text-xl font-bold text-white">
             {formatCurrency(
               instruments.reduce((sum, i) => sum + (i.current_balance || 0), 0),
-              instruments[0]?.currency || 'EUR',
+              instruments[0]?.currency || 'EUR'
             )}
           </p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs uppercase tracking-wider">
-            {t('financialInstruments.cashCount', 'Nombre')}
-          </p>
+          <div className="inline-flex items-center gap-1.5 text-gray-500 text-xs uppercase tracking-wider">
+            <PanelInfoPopover {...cashCountInfo} triggerClassName="h-5 w-5" />
+            <span>{t('financialInstruments.cashCount', 'Nombre')}</span>
+          </div>
           <p className="text-xl font-bold text-amber-500">{instruments.length}</p>
         </div>
         <div className="ml-auto">
-          <Button
-            className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
-            onClick={onAdd}
-          >
+          <Button className="bg-amber-500 hover:bg-amber-600 text-black font-semibold" onClick={onAdd}>
             <Plus className="h-4 w-4 mr-2" />
             {t('financialInstruments.addCash', 'Ajouter une caisse')}
           </Button>
@@ -83,9 +106,7 @@ export function CashRegisterPanel({ instruments = [], onEdit, onAdd }) {
                         <div className="p-2 rounded-lg bg-amber-500/10">
                           <Banknote className="h-5 w-5 text-amber-500" />
                         </div>
-                        <CardTitle className="text-white text-base font-semibold">
-                          {instrument.label}
-                        </CardTitle>
+                        <CardTitle className="text-white text-base font-semibold">{instrument.label}</CardTitle>
                       </div>
                       <Badge
                         variant="outline"
@@ -102,9 +123,10 @@ export function CashRegisterPanel({ instruments = [], onEdit, onAdd }) {
                   <CardContent className="space-y-3">
                     {/* Balance */}
                     <div>
-                      <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                        {t('financialInstruments.balance', 'Solde')}
-                      </p>
+                      <div className="mb-1 inline-flex items-center gap-1.5 text-gray-500 text-xs uppercase tracking-wider">
+                        <PanelInfoPopover {...unitBalanceInfo} triggerClassName="h-5 w-5" />
+                        <span>{t('financialInstruments.balance', 'Solde')}</span>
+                      </div>
                       <p className="text-xl font-bold text-white">
                         {formatCurrency(instrument.current_balance || 0, instrument.currency || 'EUR')}
                       </p>
@@ -130,7 +152,8 @@ export function CashRegisterPanel({ instruments = [], onEdit, onAdd }) {
                           <span>
                             {t(
                               `financialInstruments.reconciliation.${cashDetail.reconciliation_frequency}`,
-                              reconciliationLabels[cashDetail.reconciliation_frequency] || cashDetail.reconciliation_frequency,
+                              reconciliationLabels[cashDetail.reconciliation_frequency] ||
+                                cashDetail.reconciliation_frequency
                             )}
                           </span>
                         </div>

@@ -1,9 +1,9 @@
-
 import { useTranslation } from 'react-i18next';
 import { CreditCard, Plus, Pencil, Wifi } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { formatCurrency } from '@/utils/currencyService';
 
 const brandGradients = {
@@ -32,6 +32,17 @@ const itemVariants = {
 
 export function CardGrid({ cards = [], onEdit, onAdd }) {
   const { t } = useTranslation();
+  const balanceInfo = {
+    title: t('financialInstruments.balance', 'Solde'),
+    definition: 'Montant actuellement disponible sur cette carte.',
+    dataSource: "Solde enregistré dans l'application pour cette carte.",
+    formula: "Solde = solde d'ouverture + entrées - sorties.",
+    calculationMethod: 'Le montant est mis à jour automatiquement quand une opération est comptabilisée ou rapprochée.',
+    expertDataSource: 'Champ `company_payment_instruments.current_balance` pour le type `card`.',
+    expertFormula: 'Solde = opening_balance + sum(inflow posted/reconciled) - sum(outflow posted/reconciled).',
+    expertCalculationMethod:
+      'Mise à jour en base par `apply_payment_transaction_balance` selon les changements sur `payment_transactions`.',
+  };
 
   return (
     <motion.div
@@ -68,9 +79,7 @@ export function CardGrid({ cards = [], onEdit, onAdd }) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {cardDetail.is_virtual && (
-                    <Wifi className="h-4 w-4 text-white/60" />
-                  )}
+                  {cardDetail.is_virtual && <Wifi className="h-4 w-4 text-white/60" />}
                   <Badge variant="outline" className={`${cardType.color} text-xs`}>
                     {t(`financialInstruments.cardTypes.${cardDetail.card_type}`, cardType.label)}
                   </Badge>
@@ -80,25 +89,19 @@ export function CardGrid({ cards = [], onEdit, onAdd }) {
               {/* Card number */}
               <div className="relative z-10 my-6">
                 <p className="text-white/40 text-xs mb-1">{t('financialInstruments.cardNumber', 'Numero')}</p>
-                <p className="text-white text-xl font-mono tracking-[0.3em]">
-                  **** **** **** {last4}
-                </p>
+                <p className="text-white text-xl font-mono tracking-[0.3em]">**** **** **** {last4}</p>
               </div>
 
               {/* Bottom row: Holder, Expiry, Balance */}
               <div className="flex items-end justify-between relative z-10">
                 <div>
-                  <p className="text-white/40 text-xs">
-                    {t('financialInstruments.fields.cardHolder', 'Titulaire')}
-                  </p>
+                  <p className="text-white/40 text-xs">{t('financialInstruments.fields.cardHolder', 'Titulaire')}</p>
                   <p className="text-white text-sm font-medium uppercase tracking-wider">
                     {cardDetail.holder_name || instrument.label}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-white/40 text-xs">
-                    {t('financialInstruments.expiry', 'Expire')}
-                  </p>
+                  <p className="text-white/40 text-xs">{t('financialInstruments.expiry', 'Expire')}</p>
                   <p className="text-white text-sm font-mono">
                     {expiryMonth}/{expiryYear}
                   </p>
@@ -121,8 +124,17 @@ export function CardGrid({ cards = [], onEdit, onAdd }) {
               </div>
 
               {/* Balance overlay */}
-              {(instrument.current_balance != null && instrument.current_balance !== 0) && (
+              {instrument.current_balance != null && instrument.current_balance !== 0 && (
                 <div className="absolute bottom-3 right-3 bg-black/30 backdrop-blur-sm rounded-lg px-3 py-1.5 z-10">
+                  <div className="mb-0.5 inline-flex items-center gap-1">
+                    <PanelInfoPopover
+                      {...balanceInfo}
+                      triggerClassName="h-5 w-5 border-white/40 bg-black/20 text-white"
+                    />
+                    <span className="text-[10px] uppercase tracking-wider text-white/70">
+                      {t('financialInstruments.balance', 'Solde')}
+                    </span>
+                  </div>
                   <p className="text-white text-sm font-semibold">
                     {formatCurrency(instrument.current_balance, instrument.currency || 'EUR')}
                   </p>

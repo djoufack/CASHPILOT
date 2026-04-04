@@ -26,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { usePaymentInstruments } from '@/hooks/usePaymentInstruments';
 import { usePaymentTransactions } from '@/hooks/usePaymentTransactions';
 import { InstrumentsList } from '@/components/financial-instruments/InstrumentsList';
@@ -73,6 +74,23 @@ const emptyTransactionForm = {
   description: '',
   notes: '',
 };
+
+const InfoLabel = ({ info, children, className = '' }) => (
+  <span className={`inline-flex items-center gap-1.5 ${className}`.trim()}>
+    <PanelInfoPopover
+      title={info.title}
+      definition={info.definition}
+      dataSource={info.dataSource}
+      formula={info.formula}
+      calculationMethod={info.calculationMethod}
+      filters={info.filters}
+      notes={info.notes}
+      ariaLabel={`Informations sur ${info.title}`}
+      triggerClassName="h-5 w-5"
+    />
+    <span>{children}</span>
+  </span>
+);
 
 const FinancialInstrumentsPage = () => {
   const { t } = useTranslation();
@@ -317,6 +335,90 @@ const FinancialInstrumentsPage = () => {
       currentBalance,
     };
   }, [activeInstruments, transactionInstrumentFilter, transactionRows]);
+
+  const selectedTransactionInstrumentLabel = useMemo(() => {
+    if (transactionInstrumentFilter === 'all') return t('financialInstruments.transactions.allInstruments', 'Tous');
+    return (
+      activeInstruments.find((instrument) => instrument.id === transactionInstrumentFilter)?.label ||
+      t('financialInstruments.transactions.selectedInstrument', 'Compte selectionne')
+    );
+  }, [activeInstruments, t, transactionInstrumentFilter]);
+
+  const transactionPanelInfo = useMemo(
+    () => ({
+      currentBalance: {
+        title: 'Solde courant',
+        definition: 'Montant disponible maintenant sur le compte choisi (ou total de tous les comptes actifs).',
+        dataSource: "Soldes des comptes bancaires enregistrés dans l'application.",
+        formula: 'Si un compte est choisi: son solde. Sinon: somme des soldes de tous les comptes actifs.',
+        calculationMethod:
+          'Le solde se met à jour automatiquement quand une opération est comptabilisée ou rapprochée. Les brouillons, en attente et annulées ne changent pas ce montant.',
+        expertDataSource:
+          'Champ `company_payment_instruments.current_balance` lu via `usePaymentInstruments` et filtré sur les instruments actifs.',
+        expertFormula:
+          "Si filtre = all: somme des `current_balance` des instruments actifs ; sinon `current_balance` de l'instrument sélectionné.",
+        expertCalculationMethod:
+          "La fonction SQL `apply_payment_transaction_balance` ajuste `current_balance` sur INSERT/UPDATE/DELETE de `payment_transactions` quand `status IN ('posted','reconciled')` et `deleted_at IS NULL`.",
+        filters: `Compte / moyen: ${selectedTransactionInstrumentLabel}`,
+      },
+      inflow: {
+        title: 'Entrées',
+        definition: 'Total des montants entrants visibles avec vos filtres actuels.',
+        dataSource: 'Liste des transactions affichées à l écran.',
+        formula: 'Entrées = somme des mouvements marqués en entrée.',
+        calculationMethod: 'Additionne uniquement les lignes qui restent après vos filtres.',
+        expertDataSource: 'Table `payment_transactions` chargée par `usePaymentTransactions`.',
+        expertFormula: "Entrées = sum(amount) where `flow_direction = 'inflow'`.",
+        expertCalculationMethod:
+          'Agrégation exécutée côté UI après filtres Compte/Flux/Statut/Recherche appliqués sur `transactionRows`.',
+      },
+      outflow: {
+        title: 'Sorties',
+        definition: 'Total des montants sortants visibles avec vos filtres actuels.',
+        dataSource: 'Liste des transactions affichées à l écran.',
+        formula: 'Sorties = somme des mouvements marqués en sortie.',
+        calculationMethod: 'Additionne uniquement les lignes qui restent après vos filtres.',
+        expertDataSource: 'Table `payment_transactions` chargée par `usePaymentTransactions`.',
+        expertFormula: "Sorties = sum(amount) where `flow_direction = 'outflow'`.",
+        expertCalculationMethod:
+          'Agrégation exécutée côté UI après filtres Compte/Flux/Statut/Recherche appliqués sur `transactionRows`.',
+      },
+      netFlow: {
+        title: 'Net / operations',
+        definition: 'Différence entre ce qui entre et ce qui sort dans la vue actuelle.',
+        dataSource: 'Totaux Entrées et Sorties calculés sur la liste filtrée.',
+        formula: 'Net = Entrées - Sorties.',
+        calculationMethod: "Calcule l'écart entre les deux totaux et affiche aussi le nombre d'opérations concernées.",
+        expertDataSource: 'Agrégats `totalInflow`, `totalOutflow`, `operationCount` calculés en mémoire.',
+        expertFormula: 'Net = `totalInflow - totalOutflow`.',
+        expertCalculationMethod:
+          'Le calcul est déterministe dans `transactionDashboard` (useMemo) et dépend de `transactionRows` post-filtrage.',
+      },
+      reportByKind: {
+        title: "Rapport par type d'operation",
+        definition: 'Vue résumée des opérations classées par type (frais, transfert, encaissement, etc.).',
+        dataSource: 'Transactions visibles après filtres.',
+        formula: 'Par type: nombre d opérations + montant total.',
+        calculationMethod: 'Regroupe les lignes par type puis trie les résultats du plus gros montant au plus faible.',
+        expertDataSource: 'Regroupement par `transaction_kind` sur `scopedRows`.',
+        expertFormula: 'Par type: `count(*)` et `sum(amount)`.',
+        expertCalculationMethod:
+          'Réduction JS vers une map `{kind: {count, amount}}`, puis tri décroissant par `amount`.',
+      },
+      transactionRegister: {
+        title: 'Registre des transactions',
+        definition: 'Liste détaillée de toutes les opérations qui correspondent à vos filtres.',
+        dataSource: 'Transactions et comptes liés affichés dans le tableau.',
+        calculationMethod:
+          'Chaque ligne reprend date, compte, type, montant et statut pour expliquer le résultat affiché.',
+        expertDataSource:
+          'Select `payment_transactions` + relation `company_payment_instruments(id, label, instrument_type, currency)`.',
+        expertCalculationMethod:
+          'Projection ligne à ligne avec labels traduits (`transaction_kind`, `flow_direction`, `status`) et format monétaire.',
+      },
+    }),
+    [selectedTransactionInstrumentLabel]
+  );
 
   const openCreateTransactionDialog = () => {
     setEditingTransaction(null);
@@ -685,7 +787,9 @@ const FinancialInstrumentsPage = () => {
                   <div className="grid gap-4 md:grid-cols-4">
                     <Card className="bg-[#141c33] border-gray-800/50">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-xs text-gray-400 uppercase">Solde courant</CardTitle>
+                        <CardTitle className="text-xs text-gray-400 uppercase">
+                          <InfoLabel info={transactionPanelInfo.currentBalance}>Solde courant</InfoLabel>
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-xl font-semibold text-white">
@@ -695,7 +799,9 @@ const FinancialInstrumentsPage = () => {
                     </Card>
                     <Card className="bg-[#141c33] border-gray-800/50">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-xs text-gray-400 uppercase">Entrées</CardTitle>
+                        <CardTitle className="text-xs text-gray-400 uppercase">
+                          <InfoLabel info={transactionPanelInfo.inflow}>Entrées</InfoLabel>
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-xl font-semibold text-green-400">
@@ -705,7 +811,9 @@ const FinancialInstrumentsPage = () => {
                     </Card>
                     <Card className="bg-[#141c33] border-gray-800/50">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-xs text-gray-400 uppercase">Sorties</CardTitle>
+                        <CardTitle className="text-xs text-gray-400 uppercase">
+                          <InfoLabel info={transactionPanelInfo.outflow}>Sorties</InfoLabel>
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-xl font-semibold text-red-400">
@@ -715,7 +823,9 @@ const FinancialInstrumentsPage = () => {
                     </Card>
                     <Card className="bg-[#141c33] border-gray-800/50">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-xs text-gray-400 uppercase">Net / opérations</CardTitle>
+                        <CardTitle className="text-xs text-gray-400 uppercase">
+                          <InfoLabel info={transactionPanelInfo.netFlow}>Net / opérations</InfoLabel>
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p
@@ -732,7 +842,11 @@ const FinancialInstrumentsPage = () => {
 
                   <Card className="bg-[#141c33] border-gray-800/50">
                     <CardHeader>
-                      <CardTitle className="text-white text-base">Rapport par type d&apos;opération</CardTitle>
+                      <CardTitle className="text-white text-base">
+                        <InfoLabel info={transactionPanelInfo.reportByKind}>
+                          Rapport par type d&apos;opération
+                        </InfoLabel>
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       {transactionDashboard.reportsByKind.length === 0 ? (
@@ -766,7 +880,9 @@ const FinancialInstrumentsPage = () => {
 
                   <Card className="bg-[#141c33] border-gray-800/50">
                     <CardHeader>
-                      <CardTitle className="text-white text-base">Registre des transactions</CardTitle>
+                      <CardTitle className="text-white text-base">
+                        <InfoLabel info={transactionPanelInfo.transactionRegister}>Registre des transactions</InfoLabel>
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       {transactionsLoading ? (
