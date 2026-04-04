@@ -7,6 +7,15 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://rfzvrezrcigzmldgvntz.supabase.co';
 const SUPABASE_ANON_KEY = '[SUPABASE_ANON_KEY_REDACTED]';
+const DEMO_BE_EMAIL = (process.env.PILOTAGE_BE_EMAIL || 'pilotage.be.demo@cashpilot.cloud').trim();
+
+function requireEnv(key) {
+  const value = String(process.env[key] || '').trim();
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+}
 
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -45,11 +54,12 @@ const DESCRIPTIONS = [
 
 async function main() {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const demoBePassword = requireEnv('PILOTAGE_BE_PASSWORD');
 
   console.log('Logging in as BE...');
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email: 'pilotage.be.demo@cashpilot.cloud',
-    password: 'PilotageBE#2026!'
+    email: DEMO_BE_EMAIL,
+    password: demoBePassword,
   });
   if (authError) { console.error('Login failed:', authError.message); return; }
   const userId = authData.user.id;

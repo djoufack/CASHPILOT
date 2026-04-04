@@ -14,11 +14,11 @@
 
 ## Comptes Demo
 
-| Plan                | Email                               | Password            | company_id (à récupérer via MCP login) |
-| ------------------- | ----------------------------------- | ------------------- | -------------------------------------- |
-| PCMN (Belgique)     | pilotage.be.demo@cashpilot.cloud    | PilotageBE#2026!    | —                                      |
-| PCG (France)        | pilotage.fr.demo@cashpilot.cloud    | PilotageFR#2026!    | —                                      |
-| SYSCOHADA (Afrique) | pilotage.ohada.demo@cashpilot.cloud | PilotageOHADA#2026! | —                                      |
+| Plan                | Email                               | Password                    | company_id (à récupérer via MCP login) |
+| ------------------- | ----------------------------------- | --------------------------- | -------------------------------------- |
+| PCMN (Belgique)     | pilotage.be.demo@cashpilot.cloud    | [SECRET_DEMO_NON_VERSIONNE] | —                                      |
+| PCG (France)        | pilotage.fr.demo@cashpilot.cloud    | [SECRET_DEMO_NON_VERSIONNE] | —                                      |
+| SYSCOHADA (Afrique) | pilotage.ohada.demo@cashpilot.cloud | [SECRET_DEMO_NON_VERSIONNE] | —                                      |
 
 ## Stack
 

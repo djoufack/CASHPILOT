@@ -16,7 +16,7 @@ const SUPABASE_ANON_KEY = '[SUPABASE_ANON_KEY_REDACTED]';
 const ACCOUNTS = [
   {
     email: 'pilotage.fr.demo@cashpilot.cloud',
-    password: 'PilotageFR#2026!',
+    passwordEnv: 'PILOTAGE_FR_PASSWORD',
     country: 'FR',
     currency: 'EUR',
     taxRate: 20,
@@ -31,7 +31,7 @@ const ACCOUNTS = [
   },
   {
     email: 'pilotage.be.demo@cashpilot.cloud',
-    password: 'PilotageBE#2026!',
+    passwordEnv: 'PILOTAGE_BE_PASSWORD',
     country: 'BE',
     currency: 'EUR',
     taxRate: 21,
@@ -46,7 +46,7 @@ const ACCOUNTS = [
   },
   {
     email: 'pilotage.ohada.demo@cashpilot.cloud',
-    password: 'PilotageOHADA#2026!',
+    passwordEnv: 'PILOTAGE_OHADA_PASSWORD',
     country: 'CM',
     currency: 'XAF',
     taxRate: 19.25,
@@ -318,6 +318,14 @@ function roundTo(n, decimals = 2) {
   return Math.round(n * Math.pow(10, decimals)) / Math.pow(10, decimals);
 }
 
+function requireEnv(key) {
+  const value = String(process.env[key] || '').trim();
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+}
+
 const MONTHS = [
   { month: 1, date: '2026-01-15', dueDate: '2026-02-14' },
   { month: 2, date: '2026-02-12', dueDate: '2026-03-14' },
@@ -563,7 +571,8 @@ async function main() {
   console.log('='.repeat(60));
 
   for (const account of ACCOUNTS) {
-    await seedAccount(account);
+    const password = requireEnv(account.passwordEnv);
+    await seedAccount({ ...account, password });
   }
 
   console.log('\n' + '='.repeat(60));

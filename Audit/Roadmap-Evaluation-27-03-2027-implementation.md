@@ -9,9 +9,9 @@ Statut global: `DONE`
 1. Une suggestion = une tache = un agent.
 2. Ne pas passer a la suggestion suivante tant que les tests de la suggestion courante ne sont pas 100% OK.
 3. Chaque suggestion doit etre validee avec les 3 comptes demo:
-   - `pilotage.fr.demo@cashpilot.cloud` / `PilotageFR#2026!`
-   - `pilotage.be.demo@cashpilot.cloud` / `PilotageBE#2026!`
-   - `pilotage.ohada.demo@cashpilot.cloud` / `PilotageOHADA#2026!`
+   - `pilotage.fr.demo@cashpilot.cloud` / `[SECRET_DEMO_NON_VERSIONNE]`
+   - `pilotage.be.demo@cashpilot.cloud` / `[SECRET_DEMO_NON_VERSIONNE]`
+   - `pilotage.ohada.demo@cashpilot.cloud` / `[SECRET_DEMO_NON_VERSIONNE]`
 4. Toute mise a jour doit etre consignée dans la section `Journal d'avancement`.
 
 ## Protocole de test bloqueur (a executer pour chaque suggestion)

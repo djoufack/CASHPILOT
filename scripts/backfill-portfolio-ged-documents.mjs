@@ -16,19 +16,19 @@ const ACCOUNTS = [
   {
     key: 'FR',
     email: 'pilotage.fr.demo@cashpilot.cloud',
-    password: 'PilotageFR#2026!',
+    passwordEnv: 'PILOTAGE_FR_PASSWORD',
     country: 'FR',
   },
   {
     key: 'BE',
     email: 'pilotage.be.demo@cashpilot.cloud',
-    password: 'PilotageBE#2026!',
+    passwordEnv: 'PILOTAGE_BE_PASSWORD',
     country: 'BE',
   },
   {
     key: 'OHADA',
     email: 'pilotage.ohada.demo@cashpilot.cloud',
-    password: 'PilotageOHADA#2026!',
+    passwordEnv: 'PILOTAGE_OHADA_PASSWORD',
     country: 'CM',
   },
 ];
@@ -67,6 +67,14 @@ function loadEnvFile(filePath) {
     const value = line.slice(idx + 1).trim();
     if (!(key in process.env)) process.env[key] = value;
   }
+}
+
+function requireEnv(key) {
+  const value = String(process.env[key] || '').trim();
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
 }
 
 function addDays(isoDate, days) {
@@ -585,7 +593,8 @@ async function main() {
 
   const output = [];
   for (const account of targetAccounts) {
-    output.push(await runAccount(account));
+    const password = requireEnv(account.passwordEnv);
+    output.push(await runAccount({ ...account, password }));
   }
 
   console.log(JSON.stringify(output, null, 2));

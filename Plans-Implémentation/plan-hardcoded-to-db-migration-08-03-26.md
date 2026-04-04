@@ -34,6 +34,7 @@
 ## P0 — TABLES EXISTANTES, FRONTEND DOIT LIRE (pas de migration SQL)
 
 ### P0.1 : Taux de TVA → `accounting_tax_rates`
+
 **Table existe déjà** avec colonnes : id, user_id, account_code, name, rate, tax_type, is_active, is_default, effective_date
 **MCP tools** : create/update/delete/get/list_accounting_tax_rates
 
@@ -50,6 +51,7 @@
 | `src/components/accounting/VATDeclaration.jsx` | 16-17 | `0.1925` | Fetch from accounting_tax_rates |
 
 **Pattern d'implémentation :**
+
 ```jsx
 // Hook réutilisable : src/hooks/useDefaultTaxRate.js
 import { useCompany } from '../context/CompanyContext';
@@ -60,12 +62,15 @@ export function useDefaultTaxRate() {
   const [defaultRate, setDefaultRate] = useState(0);
 
   useEffect(() => {
-    supabase.from('accounting_tax_rates')
+    supabase
+      .from('accounting_tax_rates')
       .select('rate')
       .eq('is_default', true)
       .eq('is_active', true)
       .single()
-      .then(({ data }) => { if (data) setDefaultRate(data.rate); });
+      .then(({ data }) => {
+        if (data) setDefaultRate(data.rate);
+      });
   }, [activeCompany]);
 
   return defaultRate;
@@ -73,6 +78,7 @@ export function useDefaultTaxRate() {
 ```
 
 ### P0.2 : Conditions de paiement → `payment_terms`
+
 **Table existe déjà** avec colonnes : id, user_id, name, days, description
 
 **Fichiers frontend à modifier :**
@@ -83,17 +89,21 @@ export function useDefaultTaxRate() {
 | `src/components/ProjectBillingDialog.jsx` | 127 | `30` jours | Fetch default payment_terms.days |
 
 **Pattern d'implémentation :**
+
 ```jsx
 // Hook : src/hooks/useDefaultPaymentDays.js
 export function useDefaultPaymentDays() {
   const [days, setDays] = useState(30); // fallback
   useEffect(() => {
-    supabase.from('payment_terms')
+    supabase
+      .from('payment_terms')
       .select('days')
       .order('created_at', { ascending: true })
       .limit(1)
       .single()
-      .then(({ data }) => { if (data) setDays(data.days); });
+      .then(({ data }) => {
+        if (data) setDays(data.days);
+      });
   }, []);
   return days;
 }
@@ -104,6 +114,7 @@ export function useDefaultPaymentDays() {
 ## P1 — CRÉER TABLES CONFIG MANQUANTES (migration SQL)
 
 ### P1.1 : Table `payment_methods`
+
 ```sql
 CREATE TABLE IF NOT EXISTS payment_methods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -118,10 +129,12 @@ CREATE TABLE IF NOT EXISTS payment_methods (
   UNIQUE(user_id, code)
 );
 ```
+
 **Seed** : bank_transfer, cash, card, check, paypal, other
 **Frontend** : `src/components/PaymentRecorder.jsx` lignes 30-37
 
 ### P1.2 : Table `credit_costs`
+
 ```sql
 CREATE TABLE IF NOT EXISTS credit_costs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -133,10 +146,12 @@ CREATE TABLE IF NOT EXISTS credit_costs (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 ```
+
 **Seed** : Tous les coûts de `src/hooks/useCreditsGuard.js` lignes 10-52
 **Frontend** : `src/hooks/useCreditsGuard.js`
 
 ### P1.3 : Table `accounting_journals`
+
 ```sql
 CREATE TABLE IF NOT EXISTS accounting_journals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -150,6 +165,7 @@ CREATE TABLE IF NOT EXISTS accounting_journals (
   UNIQUE(user_id, code)
 );
 ```
+
 **Seed** : VE/Ventes, AC/Achats, BQ/Banque, CA/Caisse, OD/Opérations Diverses, PA/Paie
 **Frontend** : `src/services/exportFEC.js` lignes 28-35
 
@@ -158,18 +174,22 @@ CREATE TABLE IF NOT EXISTS accounting_journals (
 ## P2 — MIGRER VALEURS HARDCODÉES RESTANTES
 
 ### P2.1 : Statuts de documents → CHECK constraints (DÉJÀ FAIT)
+
 Les statuts sont maintenant dans des CHECK constraints en DB (migration 20260308250000).
 **Frontend** : Lire les statuts depuis les CHECK constraints ou une table `document_statuses`.
 
 ### P2.2 : Thèmes de facture → `invoice_themes` table ou `invoice_settings.themes` JSONB
+
 **Fichier** : `src/config/invoiceThemes.js` (20 thèmes, 208 lignes)
 **Action** : Stocker dans `invoice_settings` ou nouvelle table
 
 ### P2.3 : Couleurs graphiques
+
 **Fichier** : `src/components/accounting/VATDeclaration.jsx` ligne 10
 **Action** : Stocker dans company settings ou laisser en CSS (non-critique)
 
 ### P2.4 : Liste des pays
+
 **Fichier** : `src/constants/countries.js` (163 lignes)
 **Action** : Table `countries` ou edge function (données stables, acceptable en constante)
 
@@ -178,14 +198,17 @@ Les statuts sont maintenant dans des CHECK constraints en DB (migration 20260308
 ## P3 — INTÉGRITÉ RÉFÉRENTIELLE USER→COMPANY→DATA
 
 ### P3.1 : FK company.user_id → auth.users(id) ON DELETE CASCADE
+
 **CRITIQUE** : La table company n'a PAS de FK vers auth.users. Un user supprimé laisse des companies orphelines.
 
 ### P3.2 : FK supplier_invoices.user_id → ON DELETE CASCADE
+
 Existe mais sans clause ON DELETE.
 
 ### P3.3 : Vérifier toutes les tables avec user_id ont FK vers auth.users
 
 **Migration SQL :**
+
 ```sql
 -- P3.1 : company.user_id FK
 ALTER TABLE company
@@ -214,6 +237,6 @@ ALTER TABLE supplier_invoices
 
 ## CREDENTIALS DEMO
 
-- FR: pilotage.fr.demo@cashpilot.cloud / PilotageFR#2026!
-- BE: pilotage.be.demo@cashpilot.cloud / PilotageBE#2026!
-- OHADA: pilotage.ohada.demo@cashpilot.cloud / PilotageOHADA#2026!
+- FR: pilotage.fr.demo@cashpilot.cloud / [SECRET_DEMO_NON_VERSIONNE]
+- BE: pilotage.be.demo@cashpilot.cloud / [SECRET_DEMO_NON_VERSIONNE]
+- OHADA: pilotage.ohada.demo@cashpilot.cloud / [SECRET_DEMO_NON_VERSIONNE]

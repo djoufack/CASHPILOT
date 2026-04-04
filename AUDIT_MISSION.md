@@ -15,11 +15,11 @@ et corriger chaque bug détecté immédiatement.
 
 ### Comptes Demo
 
-| Plan                | Email                               | Password            |
-| ------------------- | ----------------------------------- | ------------------- |
-| PCMN (Belgique)     | pilotage.be.demo@cashpilot.cloud    | PilotageBE#2026!    |
-| PCG (France)        | pilotage.fr.demo@cashpilot.cloud    | PilotageFR#2026!    |
-| SYSCOHADA (Afrique) | pilotage.ohada.demo@cashpilot.cloud | PilotageOHADA#2026! |
+| Plan                | Email                               | Password                    |
+| ------------------- | ----------------------------------- | --------------------------- |
+| PCMN (Belgique)     | pilotage.be.demo@cashpilot.cloud    | [SECRET_DEMO_NON_VERSIONNE] |
+| PCG (France)        | pilotage.fr.demo@cashpilot.cloud    | [SECRET_DEMO_NON_VERSIONNE] |
+| SYSCOHADA (Afrique) | pilotage.ohada.demo@cashpilot.cloud | [SECRET_DEMO_NON_VERSIONNE] |
 
 ### GitHub
 

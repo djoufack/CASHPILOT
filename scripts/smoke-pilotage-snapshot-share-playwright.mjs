@@ -14,19 +14,16 @@ const ACCOUNTS = [
     key: 'FR',
     email: process.env.PILOTAGE_FR_EMAIL || 'pilotage.fr.demo@cashpilot.cloud',
     passwordEnv: 'PILOTAGE_FR_PASSWORD',
-    defaultPassword: 'PilotageFR#2026!',
   },
   {
     key: 'BE',
     email: process.env.PILOTAGE_BE_EMAIL || 'pilotage.be.demo@cashpilot.cloud',
     passwordEnv: 'PILOTAGE_BE_PASSWORD',
-    defaultPassword: 'PilotageBE#2026!',
   },
   {
     key: 'OHADA',
     email: process.env.PILOTAGE_OHADA_EMAIL || 'pilotage.ohada.demo@cashpilot.cloud',
     passwordEnv: 'PILOTAGE_OHADA_PASSWORD',
-    defaultPassword: 'PilotageOHADA#2026!',
   },
 ];
 
@@ -237,9 +234,9 @@ async function main() {
 
   try {
     for (const account of ACCOUNTS) {
-      const password = String(process.env[account.passwordEnv] || account.defaultPassword || '').trim();
+      const password = String(process.env[account.passwordEnv] || '').trim();
       if (!password) {
-        throw new Error(`Missing demo password for ${account.key}`);
+        throw new Error(`Missing required environment variable: ${account.passwordEnv}`);
       }
       results.push(await runAccount(browser, { ...account, password }));
     }

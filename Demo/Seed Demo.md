@@ -1,17 +1,16 @@
 Le seed démo FR / BE / OHADA est en place, les comptes fonctionnent, et le mode d’emploi pour vos démonstrations est prêt dans pilotage-demo-playbook.md.
 
-
 comment l'utiliser?
 
 Oui. Le plus simple est :
 
 Connectez-vous à https://cashpilot.tech avec l’un des comptes démo :
 
-pilotage.fr.demo@cashpilot.cloud / PilotageFR#2026!
+pilotage.fr.demo@cashpilot.cloud / [SECRET_DEMO_NON_VERSIONNE]
 
-pilotage.be.demo@cashpilot.cloud / PilotageBE#2026!
+pilotage.be.demo@cashpilot.cloud / [SECRET_DEMO_NON_VERSIONNE]
 
-pilotage.ohada.demo@cashpilot.cloud / PilotageOHADA#2026!
+pilotage.ohada.demo@cashpilot.cloud / [SECRET_DEMO_NON_VERSIONNE]
 
 Ouvrez ensuite https://cashpilot.tech/app/pilotage.
 
