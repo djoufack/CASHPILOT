@@ -1,0 +1,263 @@
+﻿menu;module;route;description_module;onglet;description_onglet
+Pilotage global;Dashboard;/app;Vue d ensemble business avec actions rapides.;;
+Pilotage global;Pilotage;/app/pilotage;Cockpit de pilotage transversal finance/compta/fiscal/IA.;overview;Synthese executive.
+Pilotage global;Pilotage;/app/pilotage;Cockpit de pilotage transversal finance/compta/fiscal/IA.;accounting;Vue comptable consolidee.
+Pilotage global;Pilotage;/app/pilotage;Cockpit de pilotage transversal finance/compta/fiscal/IA.;financial;KPIs financiers et tendances.
+Pilotage global;Pilotage;/app/pilotage;Cockpit de pilotage transversal finance/compta/fiscal/IA.;taxValuation;Valorisation et fiscalite.
+Pilotage global;Pilotage;/app/pilotage;Cockpit de pilotage transversal finance/compta/fiscal/IA.;simulator;Simulation de scenarios.
+Pilotage global;Pilotage;/app/pilotage;Cockpit de pilotage transversal finance/compta/fiscal/IA.;aiAudit;Audit assiste par IA.
+Pilotage global;Pilotage;/app/pilotage;Cockpit de pilotage transversal finance/compta/fiscal/IA.;dataAvailability;Disponibilite et qualite des donnees.
+Pilotage global;Pilotage;/app/pilotage;Cockpit de pilotage transversal finance/compta/fiscal/IA.;analytics;Acces aux rapports avances.
+Pilotage global;CFO Agent;/app/cfo-agent;Assistant financier IA (insights, alertes, recommandations).;;
+Pilotage global;Analytics;/app/analytics;Analytique avancee, graphiques, watchlists, exports.;;
+Mon Entreprise;Cockpit Conformite & Groupe;/app/company-compliance-cockpit;Vue centrale conformite multi-entites.;;
+Mon Entreprise;Portfolio societes;/app/portfolio;Suivi des societes du portefeuille, priorites, watchlist.;;
+Mon Entreprise;Comptes bancaires (Instruments financiers);/app/financial-instruments;Gestion comptes, cartes, caisses et operations.;Comptes bancaires;CRUD comptes/IBAN/BIC, devise, soldes.
+Mon Entreprise;Comptes bancaires (Instruments financiers);/app/financial-instruments;Gestion comptes, cartes, caisses et operations.;Cartes;Gestion cartes et plafonds.
+Mon Entreprise;Comptes bancaires (Instruments financiers);/app/financial-instruments;Gestion comptes, cartes, caisses et operations.;Caisses;Gestion caisses physiques.
+Mon Entreprise;Comptes bancaires (Instruments financiers);/app/financial-instruments;Gestion comptes, cartes, caisses et operations.;Statistiques;Agregats et vues de synthese.
+Mon Entreprise;Comptes bancaires (Instruments financiers);/app/financial-instruments;Gestion comptes, cartes, caisses et operations.;Transactions;Registre complet, import releve, export CSV, creation/edition.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Envoi;Factures sortantes Peppol, filtres et actions.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Reception;Factures entrantes et synchronisation.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Journal;Historique des transmissions et evenements.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Configuration;Parametres AP/Scrada et import UBL externe.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Envoi > Liste;Table de suivi detaillee.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Envoi > Calendrier;Vision temporelle des emissions.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Envoi > Agenda;Lecture chronologique des emissions.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Envoi > Kanban;Suivi visuel par statut.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Reception > Liste;Table des factures entrantes.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Reception > Calendrier;Vision temporelle des receptions.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Reception > Agenda;Lecture chronologique des receptions.
+Mon Entreprise;Peppol;/app/peppol;E-invoicing reseau Peppol avec politique de credits et verification Peppol ID.;Reception > Kanban;Suivi visuel des statuts entrants.
+Mon Entreprise;PDP / Certification;/app/pdp-compliance;Certification, audit trail, archives conformite.;audit;Evenements et tracabilite.
+Mon Entreprise;PDP / Certification;/app/pdp-compliance;Certification, audit trail, archives conformite.;archives;Archivage et indicateurs.
+Mon Entreprise;Inter-societes;/app/inter-company;Flux intra-groupe, pricing et eliminations.;links;Liens entre societes.
+Mon Entreprise;Inter-societes;/app/inter-company;Flux intra-groupe, pricing et eliminations.;transactions;Flux interco.
+Mon Entreprise;Inter-societes;/app/inter-company;Flux intra-groupe, pricing et eliminations.;pricing;Regles de prix de transfert.
+Mon Entreprise;Inter-societes;/app/inter-company;Flux intra-groupe, pricing et eliminations.;eliminations;Eliminations de consolidation.
+Mon Entreprise;Consolidation;/app/consolidation;Consolidation financiere groupe.;pnl;Resultat consolide.
+Mon Entreprise;Consolidation;/app/consolidation;Consolidation financiere groupe.;balance;Bilan consolide.
+Mon Entreprise;Consolidation;/app/consolidation;Consolidation financiere groupe.;cash;Cash consolide.
+Mon Entreprise;Consolidation;/app/consolidation;Consolidation financiere groupe.;intercompany;Reconciliation interco.
+Mon Entreprise;Consolidation;/app/consolidation;Consolidation financiere groupe.;entities;Vue par entite.
+Mon Entreprise;Veille reglementaire;/app/regulatory-intel;Mises a jour reglementaires et suivi obligations.;updates;Actualites reglementaires.
+Mon Entreprise;Veille reglementaire;/app/regulatory-intel;Mises a jour reglementaires et suivi obligations.;checklists;Listes de controle.
+Mon Entreprise;Veille reglementaire;/app/regulatory-intel;Mises a jour reglementaires et suivi obligations.;subscriptions;Abonnements alertes.
+GED HUB;GED HUB;/app/ged-hub;Hub documentaire central (metadonnees, workflow, retention, scan IA).;;
+Ventes;Clients;/app/clients;Referentiel clients.;;
+Ventes;Devis;/app/quotes;Cycle devis et conversion commerciale.;Liste;Vue tabulaire.
+Ventes;Devis;/app/quotes;Cycle devis et conversion commerciale.;Galerie;Vue cartes.
+Ventes;Devis;/app/quotes;Cycle devis et conversion commerciale.;Calendrier;Vue calendrier.
+Ventes;Devis;/app/quotes;Cycle devis et conversion commerciale.;Agenda;Vue chronologique.
+Ventes;Devis;/app/quotes;Cycle devis et conversion commerciale.;Kanban;Vue pipeline statuts.
+Ventes;Factures;/app/invoices;Facturation client.;Liste;Vue tabulaire.
+Ventes;Factures;/app/invoices;Facturation client.;Galerie;Vue cartes.
+Ventes;Factures;/app/invoices;Facturation client.;Calendrier;Vue calendrier.
+Ventes;Factures;/app/invoices;Facturation client.;Agenda;Vue chronologique.
+Ventes;Factures;/app/invoices;Facturation client.;Kanban;Vue pipeline statuts.
+Ventes;Notes de credit;/app/credit-notes;Gestion des avoirs.;Liste;Vue tabulaire.
+Ventes;Notes de credit;/app/credit-notes;Gestion des avoirs.;Calendrier;Vue calendrier.
+Ventes;Notes de credit;/app/credit-notes;Gestion des avoirs.;Agenda;Vue chronologique.
+Ventes;Notes de credit;/app/credit-notes;Gestion des avoirs.;Kanban;Vue pipeline statuts.
+Ventes;Factures recurrentes;/app/recurring-invoices;Automatisation facturation periodique et relances.;recurring;Modeles et executions recurrentes.
+Ventes;Factures recurrentes;/app/recurring-invoices;Automatisation facturation periodique et relances.;reminders;Relances automatiques.
+Ventes;Factures recurrentes;/app/recurring-invoices;Automatisation facturation periodique et relances.;recurring > Liste;Vue tabulaire.
+Ventes;Factures recurrentes;/app/recurring-invoices;Automatisation facturation periodique et relances.;recurring > Calendrier;Vue calendrier.
+Ventes;Factures recurrentes;/app/recurring-invoices;Automatisation facturation periodique et relances.;recurring > Agenda;Vue chronologique.
+Ventes;Factures recurrentes;/app/recurring-invoices;Automatisation facturation periodique et relances.;recurring > Kanban;Vue pipeline statuts.
+Ventes;Bons de livraison;/app/delivery-notes;Gestion BL.;Liste;Vue tabulaire.
+Ventes;Bons de livraison;/app/delivery-notes;Gestion BL.;Calendrier;Vue calendrier.
+Ventes;Bons de livraison;/app/delivery-notes;Gestion BL.;Agenda;Vue chronologique.
+Ventes;Bons de livraison;/app/delivery-notes;Gestion BL.;Kanban;Vue pipeline statuts.
+Ventes;Relances IA;/app/smart-dunning;Recouvrement intelligent.;pipeline;Suivi executions.
+Ventes;Relances IA;/app/smart-dunning;Recouvrement intelligent.;campaigns;Campagnes de relance.
+Ventes;Relances IA;/app/smart-dunning;Recouvrement intelligent.;scores;Scoring risque clients.
+Achats & Depenses;Fournisseurs;/app/suppliers;Referentiel fournisseurs.;;
+Achats & Depenses;Profil fournisseur;/app/suppliers/:id;Vue detaillee fournisseur.;overview;Fiche globale.
+Achats & Depenses;Profil fournisseur;/app/suppliers/:id;Vue detaillee fournisseur.;services;Prestations liees.
+Achats & Depenses;Profil fournisseur;/app/suppliers/:id;Vue detaillee fournisseur.;products;Produits lies.
+Achats & Depenses;Profil fournisseur;/app/suppliers/:id;Vue detaillee fournisseur.;invoices;Factures liees.
+Achats & Depenses;Rapports fournisseurs;/app/suppliers/reports;Analyse achats/fournisseurs.;spending;Depenses.
+Achats & Depenses;Rapports fournisseurs;/app/suppliers/reports;Analyse achats/fournisseurs.;orders;Commandes.
+Achats & Depenses;Rapports fournisseurs;/app/suppliers/reports;Analyse achats/fournisseurs.;delivery;Livraisons.
+Achats & Depenses;Rapports fournisseurs;/app/suppliers/reports;Analyse achats/fournisseurs.;scores;Performance.
+Achats & Depenses;Commandes fournisseurs;/app/purchase-orders;Bons de commande et workflow.;Liste;Vue tabulaire.
+Achats & Depenses;Commandes fournisseurs;/app/purchase-orders;Bons de commande et workflow.;Calendrier;Vue calendrier.
+Achats & Depenses;Commandes fournisseurs;/app/purchase-orders;Bons de commande et workflow.;Agenda;Vue chronologique.
+Achats & Depenses;Commandes fournisseurs;/app/purchase-orders;Bons de commande et workflow.;Kanban;Vue pipeline statuts.
+Achats & Depenses;Factures fournisseurs;/app/supplier-invoices;OCR/IA, approbations, 3-way match.;;
+Achats & Depenses;Achats;/app/purchases;Suivi commandes/receptions/alertes stock.;;
+Achats & Depenses;Depenses;/app/expenses;Notes de frais et depenses operationnelles.;Liste;Vue tabulaire.
+Achats & Depenses;Depenses;/app/expenses;Notes de frais et depenses operationnelles.;Calendrier;Vue calendrier.
+Achats & Depenses;Depenses;/app/expenses;Notes de frais et depenses operationnelles.;Agenda;Vue chronologique.
+Achats & Depenses;Cartographie fournisseurs;/app/suppliers/map;Visualisation geographique fournisseurs.;;
+Tresorerie & Comptabilite;Tresorerie;/app/cash-flow;Flux de tresorerie et soldes.;;
+Tresorerie & Comptabilite;Previsions IA;/app/cash-flow-forecast;Prevision cash + alertes BFR.;;
+Tresorerie & Comptabilite;Recouvrement;/app/debt-manager;Gestion creances/dettes et actions.;dashboard;Synthese recouvrement.
+Tresorerie & Comptabilite;Recouvrement;/app/debt-manager;Gestion creances/dettes et actions.;receivables;Creances clients.
+Tresorerie & Comptabilite;Recouvrement;/app/debt-manager;Gestion creances/dettes et actions.;payables;Dettes fournisseurs.
+Tresorerie & Comptabilite;Recouvrement;/app/debt-manager;Gestion creances/dettes et actions.;calendar;Vue calendrier.
+Tresorerie & Comptabilite;Recouvrement;/app/debt-manager;Gestion creances/dettes et actions.;agenda;Vue chronologique.
+Tresorerie & Comptabilite;Recouvrement;/app/debt-manager;Gestion creances/dettes et actions.;kanban;Pipeline statuts.
+Tresorerie & Comptabilite;Connexions bancaires;/app/bank-connections;Connexion banques et synchronisation.;;
+Tresorerie & Comptabilite;Banking integre;/app/embedded-banking;Operations bancaires integrees.;;
+Tresorerie & Comptabilite;Rapprochement IA;/app/recon-ia;Matching intelligent banque/compta.;;
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;dashboard;Synthese comptable.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;coa;Plan comptable.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;balance;Bilan.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;income;Compte de resultat.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;diagnostic;Diagnostic financier.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;annexes;Annexes.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;vat;TVA.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;tax;Estimation impot.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;mappings;Mappings comptables.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;rates;Taux TVA.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;reconciliation;Rapprochement comptable.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;fixedAssets;Immobilisations.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;closing;Cloture assistee.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;analytique;Comptabilite analytique.
+Tresorerie & Comptabilite;Comptabilite;/app/suppliers/accounting;Module comptable complet.;init;Initialisation bilans.
+Tresorerie & Comptabilite;Teledeclaration;/app/tax-filing;Declarations fiscales.;vat;TVA.
+Tresorerie & Comptabilite;Teledeclaration;/app/tax-filing;Declarations fiscales.;corporate;IS/impot societe.
+Tresorerie & Comptabilite;Teledeclaration;/app/tax-filing;Declarations fiscales.;history;Historique depots.
+Tresorerie & Comptabilite;Audit comptable;/app/audit-comptable;Controles et remediations comptables.;balance;Equilibre ecritures.
+Tresorerie & Comptabilite;Audit comptable;/app/audit-comptable;Controles et remediations comptables.;fiscal;Controles fiscaux.
+Tresorerie & Comptabilite;Audit comptable;/app/audit-comptable;Controles et remediations comptables.;anomalies;Detection anomalies.
+Tresorerie & Comptabilite;Scenarios financiers;/app/scenarios;Modelisation et comparaison scenarios.;scenarios;Bibliotheque de scenarios.
+Tresorerie & Comptabilite;Scenarios financiers;/app/scenarios;Modelisation et comparaison scenarios.;comparison;Comparaison multi-scenarios.
+Tresorerie & Comptabilite;Detail scenario;/app/scenarios/:scenarioId;Parametrage et lecture d un scenario.;assumptions;Hypotheses.
+Tresorerie & Comptabilite;Detail scenario;/app/scenarios/:scenarioId;Parametrage et lecture d un scenario.;results;Resultats calcules.
+Tresorerie & Comptabilite;Detail scenario;/app/scenarios/:scenarioId;Parametrage et lecture d un scenario.;info;Metadonnees.
+Tresorerie & Comptabilite;SYSCOHADA Bilan;/app/syscohada/balance-sheet;Etat OHADA bilan.;;
+Tresorerie & Comptabilite;SYSCOHADA Resultat;/app/syscohada/income-statement;Etat OHADA resultat.;;
+Tresorerie & Comptabilite;TAFIRE;/app/tafire;Reporting TAFIRE.;;
+Catalogue;Produits & Stock;/app/stock;Gestion stock/entrepots/ajustements.;cockpit;Vue pilotage stock.
+Catalogue;Produits & Stock;/app/stock;Gestion stock/entrepots/ajustements.;warehouses;Gestion entrepots.
+Catalogue;Produits & Stock;/app/stock;Gestion stock/entrepots/ajustements.;inventory;Inventaire et disponibilites.
+Catalogue;Produits & Stock;/app/stock;Gestion stock/entrepots/ajustements.;history;Historique mouvements.
+Catalogue;Produits & Stock;/app/stock;Gestion stock/entrepots/ajustements.;adjustments;Ajustements de stock.
+Catalogue;Prestations clients;/app/services;Catalogue services.;services;Catalogue prestations.
+Catalogue;Prestations clients;/app/services;Catalogue services.;categories;Categories prestations.
+Catalogue;Prestations clients;/app/services;Catalogue services.;detail > overview;Vue generale service.
+Catalogue;Prestations clients;/app/services;Catalogue services.;detail > project;Lien projets.
+Catalogue;Prestations clients;/app/services;Catalogue services.;detail > billing;Regles facturation.
+Catalogue;Categories;/app/categories;Categorisation produits/services.;products;Categories produits.
+Catalogue;Categories;/app/categories;Categorisation produits/services.;services;Categories services.
+Catalogue;Scanner code-barres;/app/products/barcode;Scan article/code-barres.;;
+Projets & CRM;Projets;/app/projects;Pilotage portefeuille projets.;Liste;Vue tabulaire.
+Projets & CRM;Projets;/app/projects;Pilotage portefeuille projets.;Galerie;Vue cartes.
+Projets & CRM;Projets;/app/projects;Pilotage portefeuille projets.;Calendrier;Vue calendrier.
+Projets & CRM;Projets;/app/projects;Pilotage portefeuille projets.;Agenda;Vue chronologique.
+Projets & CRM;Projets;/app/projects;Pilotage portefeuille projets.;Kanban;Pipeline statuts.
+Projets & CRM;Detail projet;/app/projects/:projectId;Gestion operationnelle projet.;kanban;Taches par statut.
+Projets & CRM;Detail projet;/app/projects/:projectId;Gestion operationnelle projet.;gantt;Planning Gantt.
+Projets & CRM;Detail projet;/app/projects/:projectId;Gestion operationnelle projet.;calendar;Calendrier projet.
+Projets & CRM;Detail projet;/app/projects/:projectId;Gestion operationnelle projet.;agenda;Chronologie.
+Projets & CRM;Detail projet;/app/projects/:projectId;Gestion operationnelle projet.;list;Liste taches.
+Projets & CRM;Detail projet;/app/projects/:projectId;Gestion operationnelle projet.;stats;Indicateurs projet.
+Projets & CRM;Detail projet;/app/projects/:projectId;Gestion operationnelle projet.;profitability;Rentabilite.
+Projets & CRM;Detail projet;/app/projects/:projectId;Gestion operationnelle projet.;control;Controle et qualite.
+Projets & CRM;CRM;/app/crm;CRM complet de la prospection au support.;overview;Vue CRM globale.
+Projets & CRM;CRM;/app/crm;CRM complet de la prospection au support.;accounts;Comptes et contacts.
+Projets & CRM;CRM;/app/crm;CRM complet de la prospection au support.;leads;Pistes commerciales.
+Projets & CRM;CRM;/app/crm;CRM complet de la prospection au support.;opportunities;Opportunites.
+Projets & CRM;CRM;/app/crm;CRM complet de la prospection au support.;activities;Activites commerciales.
+Projets & CRM;CRM;/app/crm;CRM complet de la prospection au support.;quotes-contracts;Devis/contrats.
+Projets & CRM;CRM;/app/crm;CRM complet de la prospection au support.;support;Tickets et SLA.
+Projets & CRM;CRM;/app/crm;CRM complet de la prospection au support.;automation;Automatisations CRM.
+Projets & CRM;CRM;/app/crm;CRM complet de la prospection au support.;reports;Rapports CRM.
+Projets & CRM;Timesheets;/app/timesheets;Saisie et suivi du temps.;Liste;Vue tabulaire.
+Projets & CRM;Timesheets;/app/timesheets;Saisie et suivi du temps.;Calendrier;Vue calendrier.
+Projets & CRM;Timesheets;/app/timesheets;Saisie et suivi du temps.;Agenda;Vue chronologique.
+Projets & CRM;Timesheets;/app/timesheets;Saisie et suivi du temps.;Kanban;Pipeline statuts.
+Projets & CRM;Ressources;/app/hr-material;Allocation ressources et impact paie/compta.;resources;Ressources.
+Projets & CRM;Ressources;/app/hr-material;Allocation ressources et impact paie/compta.;allocation;Affectations.
+Projets & CRM;Ressources;/app/hr-material;Allocation ressources et impact paie/compta.;tasks;Taches.
+Projets & CRM;Ressources;/app/hr-material;Allocation ressources et impact paie/compta.;payroll;Impacts paie.
+Projets & CRM;Ressources;/app/hr-material;Allocation ressources et impact paie/compta.;accounting;Impacts comptables.
+Projets & CRM;Generateur de rapports;/app/reports/generator;Generation de rapports personnalises.;;
+Ressources Humaines;Employes;/app/rh/employes;Dossiers collaborateurs et organisation.;list;Liste employes.
+Ressources Humaines;Employes;/app/rh/employes;Dossiers collaborateurs et organisation.;detail;Fiche employee.
+Ressources Humaines;Employes;/app/rh/employes;Dossiers collaborateurs et organisation.;org;Organigramme.
+Ressources Humaines;Employes;/app/rh/employes;Dossiers collaborateurs et organisation.;form;Creation/edition.
+Ressources Humaines;Paie;/app/rh/paie;Calcul paie et bulletins.;periodes;Periodes de paie.
+Ressources Humaines;Paie;/app/rh/paie;Calcul paie et bulletins.;calcul;Calculs de paie.
+Ressources Humaines;Paie;/app/rh/paie;Calcul paie et bulletins.;bulletins;Edition bulletins.
+Ressources Humaines;Paie;/app/rh/paie;Calcul paie et bulletins.;historique;Historique paie.
+Ressources Humaines;Paie;/app/rh/paie;Calcul paie et bulletins.;connecteurs-pays;Connecteurs pays.
+Ressources Humaines;Absences & Conges;/app/rh/absences;Demandes et soldes conges.;demandes;Workflow demandes.
+Ressources Humaines;Absences & Conges;/app/rh/absences;Demandes et soldes conges.;calendrier;Planning absences.
+Ressources Humaines;Absences & Conges;/app/rh/absences;Demandes et soldes conges.;soldes;Soldes conges.
+Ressources Humaines;Absences & Conges;/app/rh/absences;Demandes et soldes conges.;nouvelle;Nouvelle demande.
+Ressources Humaines;Recrutement;/app/rh/recrutement;Pipeline recrutement.;positions;Postes ouverts.
+Ressources Humaines;Recrutement;/app/rh/recrutement;Pipeline recrutement.;pipeline;Suivi candidatures.
+Ressources Humaines;Recrutement;/app/rh/recrutement;Pipeline recrutement.;candidates;Base candidats.
+Ressources Humaines;Recrutement;/app/rh/recrutement;Pipeline recrutement.;interviews;Entretiens.
+Ressources Humaines;Onboarding RH;/app/rh/onboarding;Parcours integration nouveaux employes.;;
+Ressources Humaines;Formation;/app/rh/formation;Formation et inscriptions.;catalogue;Catalogue formations.
+Ressources Humaines;Formation;/app/rh/formation;Formation et inscriptions.;inscriptions;Inscriptions/suivi.
+Ressources Humaines;Competences;/app/rh/competences;Cartographie des skills.;matrice;Matrice competences.
+Ressources Humaines;Competences;/app/rh/competences;Cartographie des skills.;radar;Vue radar.
+Ressources Humaines;Competences;/app/rh/competences;Cartographie des skills.;gaps;Ecarts competences.
+Ressources Humaines;Entretiens;/app/rh/entretiens;Campagnes d evaluation.;reviews;Entretiens individuels.
+Ressources Humaines;Entretiens;/app/rh/entretiens;Campagnes d evaluation.;campaigns;Campagnes.
+Ressources Humaines;Entretiens;/app/rh/entretiens;Campagnes d evaluation.;manager-workflow;Workflow manager.
+Ressources Humaines;Entretiens;/app/rh/entretiens;Campagnes d evaluation.;form;Formulaires.
+Ressources Humaines;People Review;/app/rh/people-review;Revue talents et succession.;ninebox;Matrice 9-box.
+Ressources Humaines;People Review;/app/rh/people-review;Revue talents et succession.;succession;Plans succession.
+Ressources Humaines;People Review;/app/rh/people-review;Revue talents et succession.;budget;Impacts budgetaires.
+Ressources Humaines;People Review;/app/rh/people-review;Revue talents et succession.;hipot;Haute potentialite.
+Ressources Humaines;QVT & Risques;/app/rh/qvt;QVT, prevention et risques psychosociaux.;surveys;Enquetes.
+Ressources Humaines;QVT & Risques;/app/rh/qvt;QVT, prevention et risques psychosociaux.;results;Resultats.
+Ressources Humaines;QVT & Risques;/app/rh/qvt;QVT, prevention et risques psychosociaux.;prevention;Plans prevention.
+Ressources Humaines;QVT & Risques;/app/rh/qvt;QVT, prevention et risques psychosociaux.;duerp;Registre DUERP.
+Ressources Humaines;Bilan social;/app/rh/bilan-social;KPIs RH legaux et reporting social.;;
+Ressources Humaines;Analytics RH;/app/rh/analytics;Analytique RH avancee.;turnover;Risque turnover.
+Ressources Humaines;Analytics RH;/app/rh/analytics;Analytique RH avancee.;absenteeism;Absentéisme.
+Ressources Humaines;Analytics RH;/app/rh/analytics;Analytique RH avancee.;headcount;Projection effectifs.
+Ressources Humaines;Analytics RH;/app/rh/analytics;Analytique RH avancee.;salary;Benchmark remuneration.
+Ressources Humaines;Portail employe;/app/employee-portal;Self-service salarie.;leave;Conges.
+Ressources Humaines;Portail employe;/app/employee-portal;Self-service salarie.;expenses;Notes de frais.
+Ressources Humaines;Portail employe;/app/employee-portal;Self-service salarie.;payslips;Bulletins de paie.
+Parametres / Integrations / Dev;Integrations Hub;/app/integrations;Hub API, Webhooks, MCP, packs no-code.;api;Connexions API.
+Parametres / Integrations / Dev;Integrations Hub;/app/integrations;Hub API, Webhooks, MCP, packs no-code.;webhooks;Orchestration webhooks.
+Parametres / Integrations / Dev;Integrations Hub;/app/integrations;Hub API, Webhooks, MCP, packs no-code.;mcp;Connexions MCP.
+Parametres / Integrations / Dev;Integrations Hub;/app/integrations;Hub API, Webhooks, MCP, packs no-code.;mcp > connection;Config client MCP.
+Parametres / Integrations / Dev;Integrations Hub;/app/integrations;Hub API, Webhooks, MCP, packs no-code.;mcp > services;Catalogue services exposes.
+Parametres / Integrations / Dev;API-Webhook-MCP;/app/api-mcp;Acces rapide dev API/MCP + catalogue outils.;api;Generation API keys.
+Parametres / Integrations / Dev;API-Webhook-MCP;/app/api-mcp;Acces rapide dev API/MCP + catalogue outils.;mcp;Generation client MCP.
+Parametres / Integrations / Dev;API-Webhook-MCP;/app/api-mcp;Acces rapide dev API/MCP + catalogue outils.;tools;Liste outils MCP.
+Parametres / Integrations / Dev;Open API & Marketplace;/app/open-api;Cles API + marketplace + politique securite API.;keys;Gestion des cles et policy securite.
+Parametres / Integrations / Dev;Open API & Marketplace;/app/open-api;Cles API + marketplace + politique securite API.;marketplace;Apps connectees/marketplace.
+Parametres / Integrations / Dev;Webhooks;/app/webhooks;Endpoints, journaux et integrations.;endpoints;Configuration endpoints.
+Parametres / Integrations / Dev;Webhooks;/app/webhooks;Endpoints, journaux et integrations.;logs;Logs de livraison.
+Parametres / Integrations / Dev;Webhooks;/app/webhooks;Endpoints, journaux et integrations.;integrations;Integrations reliees.
+Parametres / Integrations / Dev;Mobile Money;/app/mobile-money;Connecteurs mobile money (providers/pays/credentials).;;
+Parametres / Integrations / Dev;Portail comptable;/app/accountant-portal;Espace de travail comptable collaboratif.;;
+Parametres / Integrations / Dev;Dashboard comptable;/app/accountant-dashboard;KPIs et operations comptables.;;
+Parametres / Integrations / Dev;Securite (page dediee);/app/security;MFA + gouvernance SSO/IP/domaines + e-sign policies.;;
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;profile;Profil utilisateur.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;company;Parametres societe.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;billing;Abonnement/facturation.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;team;Equipe et roles.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;notifications;Preferences notifications.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;security;Biometrie/passkeys.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;invoices;Personnalisation factures.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;credits;Credits et consommation.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;backup;Sauvegardes.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;sync;Synchronisation.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;connections;Connexions API/MCP.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;peppol;Parametres Peppol.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;personal-data;Export donnees perso.
+Parametres / Integrations / Dev;Parametres generaux;/app/settings;Parametres utilisateur/societe/facturation/RGPD.;danger;Zone de suppression compte.
+Admin;Admin;/admin;Administration plateforme.;dashboard;Vue admin globale.
+Admin;Admin;/admin;Administration plateforme.;users;Gestion utilisateurs.
+Admin;Admin;/admin;Administration plateforme.;clients;Gestion clients.
+Admin;Admin;/admin;Administration plateforme.;roles;Roles et permissions.
+Admin;Admin;/admin;Administration plateforme.;billing;Facturation plateforme.
+Admin;Admin;/admin;Administration plateforme.;feature-flags;Activation fonctions.
+Admin;Admin;/admin;Administration plateforme.;ops-health;Sante operationnelle.
+Admin;Admin;/admin;Administration plateforme.;traceability;Traçabilite.
+Admin;Admin;/admin;Administration plateforme.;audit;Audit.
+Admin;Seed data;/admin/seed-data;Donnees de demarrage/maintenance.;;
+Admin;Admin technique;/app/admin-ops;Outils techniques internes.;;

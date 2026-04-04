@@ -1,0 +1,31 @@
+﻿section;element;description
+Vision produit;Pilotage 360;Dashboard, Pilotage, CFO Agent, Analytics pour piloter croissance, marge, tresorerie et risque.
+Vision produit;Conformite groupe;Cockpit conformite, Portfolio societes, Peppol, PDP, Inter-societes, Consolidation, Veille reglementaire.
+Vision produit;Execution metier;Ventes, Achats/Depenses, Catalogue, Projets/CRM, RH avec workflows et vues multi-formats.
+Nouveautes 2026;Comptes bancaires dans Mon Entreprise;Entree directe vers /app/financial-instruments depuis Mon Entreprise.
+Nouveautes 2026;Transactions instruments financiers;Nouveau cockpit transactions: filtres, KPIs, rapport par type, registre CRUD, import releve, export CSV.
+Nouveautes 2026;Peppol renforce;Politique de credits, verification Peppol ID, sous-vues Liste/Calendrier/Agenda/Kanban pour Envoi et Reception.
+Modules prioritaires (direction);Finance & Cash;Tresorerie, Previsions IA, Recouvrement, Connexions bancaires, Banking integre, Rapprochement IA, Comptabilite, Tax filing, Audit, Scenarios.
+Modules prioritaires (direction);Revenue Ops;Clients, Devis, Factures, Factures recurrentes, BL, Relances IA, CRM, Projets, Timesheets.
+Modules prioritaires (direction);RH & Performance;Employes, Paie, Absences, Recrutement, Formation, Competences, Entretiens, People Review, QVT, Bilan social, Analytics RH, Portail employe.
+Focus Peppol;Envoi;Emission facture Peppol et suivi statuts.
+Focus Peppol;Reception;Import/synchronisation factures entrantes.
+Focus Peppol;Journal;Traçabilite complete des transmissions.
+Focus Peppol;Configuration;Parametrage AP/Scrada et import UBL externe.
+Focus Peppol;Envoi > Liste;Vue tabulaire des factures sortantes.
+Focus Peppol;Envoi > Calendrier;Vue temporelle des emissions.
+Focus Peppol;Envoi > Agenda;Lecture chronologique des emissions.
+Focus Peppol;Envoi > Kanban;Pipeline de statuts sortants.
+Focus Peppol;Reception > Liste;Vue tabulaire des factures entrantes.
+Focus Peppol;Reception > Calendrier;Vue temporelle des receptions.
+Focus Peppol;Reception > Agenda;Lecture chronologique des receptions.
+Focus Peppol;Reception > Kanban;Pipeline de statuts entrants.
+Focus Comptes bancaires;Comptes bancaires;CRUD comptes, IBAN/BIC, devise, soldes.
+Focus Comptes bancaires;Cartes;Gestion cartes, reseau/type/plafond.
+Focus Comptes bancaires;Caisses;Gestion caisses et controles de rapprochement.
+Focus Comptes bancaires;Statistiques;Synthese soldes et volumes par instrument.
+Focus Comptes bancaires;Transactions;Registre operations avec filtres, KPIs, rapports, import releve et export CSV.
+KPIs comite;Couverture fonctionnelle (Modules transverses couverts);Finance + Ventes + RH + Conformite + DevOps
+KPIs comite;Profondeur processus (Niveaux de workflow);Creation, approbation, execution, audit
+KPIs comite;Vision temps (Modes d analyse);Liste, calendrier, agenda, kanban (selon module)
+KPIs comite;Conformite (Piliers);Peppol, PDP, audit comptable, veille reglementaire

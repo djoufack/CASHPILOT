@@ -60,3 +60,11 @@ Toutes les operations financieres de chaque societe du portfolio d'un utilisateu
 - Deploiement : Vercel
 - Tests : Vitest
 - i18n : i18next (fr, en)
+
+## GitHub et Vercel - CLI uniquement
+
+Regle projet : pour toute operation GitHub et Vercel, utiliser uniquement la CLI.
+
+- GitHub : `git` / `gh`
+- Vercel : `vercel`
+- Ne pas utiliser les connecteurs/plugins/outils MCP GitHub ou Vercel pour ces actions.
