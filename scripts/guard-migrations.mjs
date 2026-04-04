@@ -9,7 +9,9 @@ const MIGRATION_DIRS = [
 ];
 
 const SECURITY_DEFINER_REGEX = /create\s+(or\s+replace\s+)?function[\s\S]*?\$\$[\s\S]*?\$\$\s*language[\s\S]*?;/gi;
-const POLICY_MUTATION_REGEX = /create\s+policy[\s\S]*?for\s+(all|insert|update|delete)[\s\S]*?;/gi;
+// Match one CREATE POLICY statement at a time (up to the first semicolon),
+// then inspect whether it targets mutation operations.
+const POLICY_STATEMENT_REGEX = /create\s+policy\b[^;]*;/gi;
 const BASELINE_ALLOWLIST = new Set([
   'supabase/migrations/20260212002024_unified_billing_foundation.sql:SECURITY DEFINER function without SET search_path',
   'supabase/migrations/20260226150558_cashpilot_auto_accounting_engine_v2.sql:Mutation policy with always-true predicate',
@@ -82,8 +84,9 @@ async function main() {
       });
     }
 
-    for (const match of source.matchAll(POLICY_MUTATION_REGEX)) {
+    for (const match of source.matchAll(POLICY_STATEMENT_REGEX)) {
       const block = match[0];
+      if (!/\bfor\s+(all|insert|update|delete)\b/i.test(block)) continue;
       const hasAlwaysTrueUsing = /using\s*\(\s*true\s*\)/i.test(block);
       const hasAlwaysTrueWithCheck = /with\s+check\s*\(\s*true\s*\)/i.test(block);
       if (!hasAlwaysTrueUsing && !hasAlwaysTrueWithCheck) continue;
