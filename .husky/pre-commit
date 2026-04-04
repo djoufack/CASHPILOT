@@ -1,1 +1,2 @@
+node scripts/guard-env-files.mjs --staged
 npx lint-staged

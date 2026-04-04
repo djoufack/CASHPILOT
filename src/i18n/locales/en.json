@@ -59,10 +59,10 @@
     "backToHome": "Back to home",
     "goToDashboard": "Go to dashboard",
     "deleted": "Deleted",
-    "refresh": "Actualiser",
-    "saving": "Enregistrement...",
-    "name": "Nom",
-    "currency": "Devise",
+    "refresh": "Refresh",
+    "saving": "Saving...",
+    "name": "Name",
+    "currency": "Currency",
     "noData": "No data available",
     "processing": "Traitement...",
     "documents": "Documents",
@@ -73,9 +73,9 @@
     "topBar": "Top bar",
     "updated": "Updated",
     "select": "Select",
-    "add": "Ajouter",
+    "add": "Add",
     "email": "Email",
-    "allRightsReserved": "All Rights Reserved",
+    "allRightsReserved": "All rights reserved",
     "back": "Retour",
     "selected": "Selectionne",
     "all": "All",
@@ -360,9 +360,9 @@
     "searchAndAddServices": "Search And Add Services",
     "manualItemHint": "Manual Item Hint",
     "itemsSummary": "Items Summary",
-    "noItemsYet": "No Items Yet",
+    "noItemsYet": "No items yet",
     "addItemsHint": "Add Items Hint",
-    "deleteTitle": "Delete Invoice",
+    "deleteTitle": "Delete invoice",
     "deleteConfirm": "Are you sure you want to delete this invoice? This action cannot be undone.",
     "client": "Client",
     "items": "Articles",
@@ -722,7 +722,7 @@
       "timesheetUpdated": "Timesheet updated successfully",
       "timesheetDeleted": "Timesheet deleted successfully",
       "timesheetInvoiced": "Timesheets invoiced successfully",
-      "settingsSaved": "Settings Saved",
+      "settingsSaved": "Settings saved",
       "clientRestored": "Client restauré avec succès"
     },
     "error": {
@@ -2195,10 +2195,10 @@
     "campaignHighlightComplianceDesc": "RGPD, audit trail, gouvernance administrateur",
     "campaignHighlightGlobal": "Multi-pays & multi-activites",
     "campaignHighlightGlobalDesc": "Belgique, FR, OHADA, equipe distribuee",
-    "demoCredentialsCopied": "Identifiants démo copiés",
+    "demoCredentialsCopied": "Demo credentials copied",
     "copyFailed": "Copie impossible",
-    "copyManualHint": "Copiez manuellement les identifiants affichés.",
-    "backToLanding": "Retour a la landing"
+    "copyManualHint": "Manually copy the displayed credentials.",
+    "backToLanding": "Back to landing page"
   },
   "invoiceExtraction": {
     "extractWithAI": "Extract with AI",
@@ -4255,7 +4255,7 @@
       "fifoCogs": "Fifo Cogs",
       "cmupCogs": "Cmup Cogs",
       "soldQty": "Sold Qty",
-      "noSku": "No Sku"
+      "noSku": "No SKU"
     },
     "replenishmentTable": {
       "product": "Product",
@@ -4267,11 +4267,11 @@
       "orderDate": "Order Date",
       "purchaseBudget": "Purchase Budget",
       "action": "Action",
-      "noSku": "No Sku"
+      "noSku": "No SKU"
     },
     "inventory": {
-      "noProducts": "No Products",
-      "noProductsSubtitle": "No Products Subtitle",
+      "noProducts": "No products",
+      "noProductsSubtitle": "Add your first product to get started.",
       "columns": {
         "product": "Product",
         "sku": "Sku",
@@ -4323,7 +4323,7 @@
     },
     "history": {
       "selectProduct": "Select Product",
-      "noHistory": "No History",
+      "noHistory": "No history",
       "columns": {
         "date": "Date",
         "before": "Before",
@@ -4765,11 +4765,11 @@
     "weekly": "Hebdomadaire",
     "monthly": "Mensuel",
     "manual": "Manuel",
-    "setAsDefault": "Définir comme caisse par défaut",
+    "setAsDefault": "Set as default cash account",
     "totalCash": "Totaal kassa's",
     "cashCount": "Nombre",
-    "addCash": "Ajouter une caisse",
-    "noCash": "Aucune caisse enregistree",
+    "addCash": "Add cash account",
+    "noCash": "No cash account configured",
     "dailyInflow": "Daily Inflow",
     "dailyOutflow": "Daily Outflow",
     "closingBalance": "Closing Balance",
@@ -4777,7 +4777,7 @@
     "inflow": "Inflow",
     "outflow": "Outflow",
     "runningBalance": "Running Balance",
-    "addFirst": "Cliquez sur \"Ajouter\" pour creer votre premier instrument",
+    "addFirst": "Click \"Add\" to create your first instrument",
     "default": "Par defaut",
     "stats": {
       "totalBalance": "Solde total",
@@ -4796,7 +4796,7 @@
       "stats": "Statistics",
       "transactions": "Transactions"
     },
-    "unknownCompany": "Unknown Company",
+    "unknownCompany": "Unknown company",
     "instrument": "Instrument",
     "type": "Type",
     "originalBalance": "Balance",
@@ -4818,7 +4818,7 @@
     "transferCreated": "Transfer Created",
     "transferCancelled": "Transfer Cancelled",
     "portfolioCreated": "Portfolio Created",
-    "confirmDelete": "Confirm Delete",
+    "confirmDelete": "Confirm deletion",
     "subtitle": "Gerez vos comptes bancaires, cartes et caisses"
   },
   "paymentTransactions": {
@@ -5263,10 +5263,10 @@
     "transferCancelled": "Cancelled",
     "date": "Date",
     "transferSourceUnavailable": "Transfer Source Unavailable",
-    "integrationReady": "Connecteur bancaire opérationnel",
-    "integrationNotReady": "Connecteur bancaire non prêt",
+    "integrationReady": "Bank connector operational",
+    "integrationNotReady": "Bank connector not ready",
     "integrationReadyHint": "GoCardless est disponible pour synchroniser les comptes.",
-    "integrationNotReadyHint": "Configuration GoCardless incomplète. Le bouton de connexion est temporairement désactivé."
+    "integrationNotReadyHint": "GoCardless configuration incomplete. The connect button is temporarily disabled."
   },
   "accountant": {
     "portalTitle": "Accountant Portal",
@@ -6587,7 +6587,7 @@
     "queue_count": "{{count}} operations en attente"
   },
   "pages": {
-    "accounting": "Accounting Integration",
+    "accounting": "Accounting integration",
     "categories": "Categories",
     "creditNotes": "Credit Notes",
     "debtManager": "Debt Manager",
@@ -6597,12 +6597,12 @@
     "pilotage": "Pilotage",
     "pricing": "Pricing",
     "resetPassword": "Reset Password",
-    "securitySettings": "Security Settings",
+    "securitySettings": "Security settings",
     "supplierReports": "Supplier Reports"
   },
   "clientProfile": {
     "notFound": "Not Found",
-    "backToClients": "Back To Clients",
+    "backToClients": "Back to clients",
     "pageTitle": "Page Title",
     "revenue": "Revenue",
     "pending": "Pending",
@@ -6618,10 +6618,10 @@
     "bank": "Bank",
     "iban": "Iban",
     "bic": "Bic",
-    "noBankData": "No Bank Data",
+    "noBankData": "No bank data",
     "notes": "Notes",
     "recentInvoices": "Recent Invoices",
-    "noInvoices": "No Invoices"
+    "noInvoices": "No invoices"
   },
   "gedHub": {
     "subtitle": "Point central des documents entreprise, federes depuis tous les modules CashPilot."
