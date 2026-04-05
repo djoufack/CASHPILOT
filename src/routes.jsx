@@ -71,6 +71,7 @@ const NotificationCenter = lazyRetry(() => import('./pages/NotificationCenter'))
 const SupplierReports = lazyRetry(() => import('./pages/SupplierReports'));
 const AccountingIntegration = lazyRetry(() => import('./pages/AccountingIntegration'));
 const AdminPage = lazyRetry(() => import('./pages/admin/AdminPage'));
+const AdminMcpToolsPage = lazyRetry(() => import('./pages/admin/AdminMcpToolsPage'));
 const CreditNotesPage = lazyRetry(() => import('./pages/CreditNotesPage'));
 const DeliveryNotesPage = lazyRetry(() => import('./pages/DeliveryNotesPage'));
 const DebtManagerPage = lazyRetry(() => import('./pages/DebtManagerPage'));
@@ -212,6 +213,7 @@ const AppRoutes = () => {
         }
       >
         <Route index element={page(AdminPage)} />
+        <Route path="mcp-tools" element={page(AdminMcpToolsPage)} />
         <Route path="seed-data" element={page(SeedDataManager)} />
       </Route>
 

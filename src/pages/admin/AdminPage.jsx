@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   Activity,
   Fingerprint,
+  Database,
 } from 'lucide-react';
 import AdminClientManager from '@/components/admin/AdminClientManager';
 import AdminRoleManager from '@/components/admin/AdminRoleManager';
@@ -19,6 +20,7 @@ import AdminBillingManager from '@/components/admin/AdminBillingManager';
 import AdminFeatureFlagsPanel from '@/components/admin/AdminFeatureFlagsPanel';
 import AdminOperationalHealthPanel from '@/components/admin/AdminOperationalHealthPanel';
 import AdminTraceabilityPanel from '@/components/admin/AdminTraceabilityPanel';
+import AdminMcpToolsManager from '@/components/admin/AdminMcpToolsManager';
 import { useTranslation } from 'react-i18next';
 
 const AdminPage = () => {
@@ -82,6 +84,12 @@ const AdminPage = () => {
             <Fingerprint className="w-4 h-4 mr-2" /> Traceability
           </TabsTrigger>
           <TabsTrigger
+            value="mcp-tools"
+            className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+          >
+            <Database className="w-4 h-4 mr-2" /> MCP Tools
+          </TabsTrigger>
+          <TabsTrigger
             value="audit"
             className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
           >
@@ -119,6 +127,10 @@ const AdminPage = () => {
 
         <TabsContent value="traceability" className="mt-6">
           <AdminTraceabilityPanel />
+        </TabsContent>
+
+        <TabsContent value="mcp-tools" className="mt-6">
+          <AdminMcpToolsManager />
         </TabsContent>
 
         <TabsContent value="audit" className="mt-6">

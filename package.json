@@ -89,6 +89,7 @@
     "vercel:build:prod": "npx vercel build --prod",
     "vercel:deploy:prebuilt:prod": "npx vercel deploy --prebuilt --prod --yes",
     "vercel:prebuilt:prod": "npm run vercel:pull:prod && npm run vercel:build:prod && npm run vercel:deploy:prebuilt:prod",
+    "mcp:tools:seed-sql": "node scripts/generate-mcp-tools-seed-sql.mjs",
     "prepare": "husky",
     "guard:lint-warning-budget": "node scripts/guard-eslint-warning-budget.mjs",
     "guard:i18n-keys": "node scripts/guard-i18n-keys.mjs",

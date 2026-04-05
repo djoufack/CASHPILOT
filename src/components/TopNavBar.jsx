@@ -122,6 +122,7 @@ const TopNavBar = ({ isCollapsed, mobileMenuOpen: externalMobileOpen, onMobileMe
     ...(isAdmin
       ? [
           { to: '/admin', icon: Shield, label: t('common.admin') },
+          { to: '/admin/mcp-tools', icon: Database, label: 'MCP Tools Registry' },
           { to: '/admin/seed-data', icon: Database, label: t('nav.seedData') },
         ]
       : []),
