@@ -124,7 +124,13 @@
         margin: 0;
         color: var(--accent);
         font-size: 0.95rem;
+      }
+
+      .tool-id {
+        margin-top: 0.2rem;
         font-family: ui-monospace, Consolas, monospace;
+        font-size: 0.72rem;
+        color: var(--muted);
       }
 
       .desc {
@@ -196,6 +202,18 @@
         color: var(--accent);
       }
 
+      .tool-title {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .tool-sub {
+        margin-top: 0.1rem;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
       .error {
         border: 1px solid #7f1d1d;
         background: #450a0a;
@@ -221,15 +239,15 @@
       <div class="stats">
         <div class="stat">
           <div class="stat-value" id="statTotal">-</div>
-          <div class="stat-label">Tools actifs</div>
+          <div class="stat-label">Outils actifs</div>
         </div>
         <div class="stat">
           <div class="stat-value" id="statCategories">-</div>
-          <div class="stat-label">Categories</div>
+          <div class="stat-label">Domaines</div>
         </div>
         <div class="stat">
           <div class="stat-value" id="statGenerated">-</div>
-          <div class="stat-label">Generes</div>
+          <div class="stat-label">Auto-generes</div>
         </div>
         <div class="stat">
           <div class="stat-value" id="statManual">-</div>
@@ -240,9 +258,9 @@
 
     <main class="layout">
       <div class="toolbar">
-        <input id="searchInput" class="input" placeholder="Rechercher tool, description, tags, categorie..." />
+        <input id="searchInput" class="input" placeholder="Rechercher nom, description, domaine ou mot-cle..." />
         <select id="categorySelect" class="select">
-          <option value="all">Toutes categories</option>
+          <option value="all">Tous les domaines</option>
         </select>
       </div>
 
@@ -260,10 +278,10 @@
           <table>
             <thead>
               <tr>
-                <th>Tool</th>
-                <th>Categorie</th>
-                <th>Source module</th>
-                <th>Tags</th>
+                <th>Outil</th>
+                <th>Domaine</th>
+                <th>Module fonctionnel</th>
+                <th>Mots-cles</th>
                 <th>MAJ</th>
               </tr>
             </thead>
