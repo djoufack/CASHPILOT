@@ -71,6 +71,7 @@ AGENTS.md
 # Keep only the runtime MCP handler in the Vercel deployment payload.
 /api/*
 !/api/mcp.js
+!/api/mcp-tools.js
 /n8n-workflows/
 /skills/
 /stripe/
