@@ -2730,6 +2730,7 @@
     "checkError": "Peppol check error",
     "inboundDocuments": "Invoices received via Peppol",
     "syncInbound": "Sync",
+    "receiveAction": "Receive",
     "status": {
       "none": "Not sent",
       "received": "Received",

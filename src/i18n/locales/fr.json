@@ -2727,6 +2727,7 @@
     "checkError": "Erreur de vérification Peppol",
     "inboundDocuments": "Factures reçues via Peppol",
     "syncInbound": "Synchroniser",
+    "receiveAction": "Réception",
     "status": {
       "none": "Non envoyé",
       "received": "Reçu",

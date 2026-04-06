@@ -826,6 +826,12 @@ const PeppolPage = () => {
     }
   }, [openCreditsModal, refreshAll, syncInbound, t, toast, user]);
 
+  const syncInboundButtonLabel = t('peppolPage.creditPolicy.syncButton', {
+    credits: CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE,
+    unit: creditUnit,
+    defaultValue: `Synchroniser (${CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE} ${creditUnit}/facture)`,
+  });
+
   // --- Formatting helpers ---
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
@@ -1423,11 +1429,7 @@ const PeppolPage = () => {
               disabled={syncingInbound}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${syncingInbound ? 'animate-spin' : ''}`} />
-              {t('peppolPage.creditPolicy.syncButton', {
-                credits: CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE,
-                unit: creditUnit,
-                defaultValue: `Synchroniser (${CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE} ${creditUnit}/facture)`,
-              })}
+              {syncInboundButtonLabel}
             </Button>
             <Link to="/app/settings">
               <Button variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
@@ -1838,6 +1840,12 @@ const PeppolPage = () => {
                               invoice.peppol_status === 'none' ||
                               invoice.peppol_status === 'error' ||
                               invoice.peppol_status === 'cancelled');
+                          const sendDisabledReason = !hasEndpoint
+                            ? t('peppol.clientNoEndpoint')
+                            : t(
+                                'peppolPage.sendUnavailableStatus',
+                                'Envoi indisponible pour ce statut. Utilisez les actions de suivi.'
+                              );
 
                           return (
                             <tr key={invoice.id} className="hover:bg-gray-800/50 transition-colors">
@@ -1887,21 +1895,16 @@ const PeppolPage = () => {
                               </td>
                               <td className="p-3 text-right">
                                 <div className="flex items-center justify-end gap-1">
-                                  {canSend && (
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleOpenSendDialog(invoice)}
-                                      disabled={sending || rowBusy}
-                                      className="bg-orange-500 hover:bg-orange-600 text-white text-xs"
-                                    >
-                                      <Send className="w-3 h-3 mr-1" />
-                                      {t('peppolPage.creditPolicy.tableSendLabel', {
-                                        credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
-                                        unit: creditUnit,
-                                        defaultValue: `Envoyer (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit})`,
-                                      })}
-                                    </Button>
-                                  )}
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleOpenSendDialog(invoice)}
+                                    disabled={sending || rowBusy || !canSend}
+                                    title={!canSend ? sendDisabledReason : undefined}
+                                    className="bg-orange-500 hover:bg-orange-600 text-white text-xs disabled:bg-gray-700 disabled:text-gray-300"
+                                  >
+                                    <Send className="w-3 h-3 mr-1" />
+                                    {t('peppol.sendViaPeppol', 'Envoyer')}
+                                  </Button>
                                   {(invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
                                     <Badge className="bg-yellow-500/20 text-yellow-400 border-0 gap-1">
                                       <RefreshCw className="w-3 h-3 animate-spin" />
@@ -2071,6 +2074,16 @@ const PeppolPage = () => {
           {/* -------- TAB: INBOUND -------- */}
           <TabsContent value="inbound" className="mt-4">
             <div className="flex flex-wrap gap-2 mb-4">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSyncInbound}
+                disabled={syncingInbound}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${syncingInbound ? 'animate-spin' : ''}`} />
+                {t('peppol.receiveAction', 'Réception')}
+              </Button>
               <Button
                 size="sm"
                 variant={inboundViewMode === 'list' ? 'default' : 'outline'}

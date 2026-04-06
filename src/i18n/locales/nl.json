@@ -3637,6 +3637,7 @@
     "checkError": "Peppol-controlefout",
     "inboundDocuments": "Facturen ontvangen via Peppol",
     "syncInbound": "Synchroniseren",
+    "receiveAction": "Ontvangst",
     "status": {
       "none": "Niet verzonden",
       "received": "Ontvangen",

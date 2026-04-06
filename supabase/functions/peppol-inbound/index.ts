@@ -33,6 +33,8 @@ const normalizeInboundDocuments = (payload: unknown): Record<string, unknown>[] 
   return [];
 };
 
+const extractDocumentId = (doc: Record<string, unknown>): string => String(doc.id || doc.documentId || '').trim();
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -85,43 +87,99 @@ serve(async (req) => {
     }
 
     if (action === 'sync') {
-      const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/unconfirmed`;
-      const scradaResponse = await fetch(scradaUrl, {
-        method: 'GET',
-        headers: { ...scradaHeaders, 'Content-Type': 'application/json' },
-      });
+      const endpointErrors: string[] = [];
+      let hadSuccessfulFetch = false;
 
-      if (!scradaResponse.ok) {
-        const errText = await scradaResponse.text();
-        throw new HttpError(502, `Scrada API error (${scradaResponse.status}): ${errText}`);
+      const fetchDocumentsFromPath = async (path: string): Promise<Record<string, unknown>[] | null> => {
+        const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}${path}`;
+        const scradaResponse = await fetch(scradaUrl, {
+          method: 'GET',
+          headers: { ...scradaHeaders, 'Content-Type': 'application/json' },
+        });
+
+        if (!scradaResponse.ok) {
+          const errText = await scradaResponse.text();
+          endpointErrors.push(`${path} -> ${scradaResponse.status}: ${errText}`);
+          return null;
+        }
+
+        const scradaPayload = await scradaResponse.json().catch(() => null);
+        hadSuccessfulFetch = true;
+        return normalizeInboundDocuments(scradaPayload);
+      };
+
+      const candidateDocuments = new Map<string, { doc: Record<string, unknown>; shouldConfirm: boolean }>();
+      const addDocuments = (docs: Record<string, unknown>[], shouldConfirm: boolean) => {
+        for (const doc of docs) {
+          const docId = extractDocumentId(doc);
+          if (!docId) continue;
+
+          const existing = candidateDocuments.get(docId);
+          if (existing) {
+            existing.shouldConfirm = existing.shouldConfirm || shouldConfirm;
+            continue;
+          }
+          candidateDocuments.set(docId, { doc, shouldConfirm });
+        }
+      };
+
+      const unconfirmedDocs = await fetchDocumentsFromPath('/peppol/inbound/document/unconfirmed');
+      if (unconfirmedDocs) {
+        addDocuments(unconfirmedDocs, true);
       }
 
-      const scradaPayload = await scradaResponse.json().catch(() => null);
-      const documents = normalizeInboundDocuments(scradaPayload);
-      const newDocuments: Array<{ docId: string; doc: Record<string, unknown> }> = [];
-
-      for (const doc of documents) {
-        const docId = String(doc.id || doc.documentId || '').trim();
-        if (!docId) continue;
-
-        const { data: existing } = await supabase
-          .from('peppol_inbound_documents')
-          .select('id')
-          .eq('scrada_document_id', docId)
-          .eq('user_id', user.id)
-          .eq('company_id', companyId)
-          .maybeSingle();
-
-        if (!existing) {
-          newDocuments.push({ docId, doc });
+      // Fallback: recover missed webhooks / already-confirmed invoices from list endpoints.
+      if (candidateDocuments.size === 0) {
+        const fallbackPaths = ['/peppol/inbound/document', '/peppolInbound'];
+        for (const path of fallbackPaths) {
+          const listedDocs = await fetchDocumentsFromPath(path);
+          if (listedDocs) {
+            addDocuments(listedDocs, false);
+            break;
+          }
         }
+      }
+
+      if (!hadSuccessfulFetch && candidateDocuments.size === 0) {
+        throw new HttpError(502, `Scrada API error on inbound sync: ${endpointErrors.join(' | ') || 'Unknown error'}`);
+      }
+
+      const candidateIds = Array.from(candidateDocuments.keys());
+      if (candidateIds.length === 0) {
+        return new Response(
+          JSON.stringify({
+            synced: true,
+            totalFromScrada: 0,
+            newDocuments: 0,
+            requiredCredits: 0,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const { data: existingDocs, error: existingDocsError } = await supabase
+        .from('peppol_inbound_documents')
+        .select('scrada_document_id')
+        .eq('user_id', user.id)
+        .eq('company_id', companyId)
+        .in('scrada_document_id', candidateIds);
+      if (existingDocsError) throw existingDocsError;
+
+      const existingIds = new Set((existingDocs || []).map((row) => String(row.scrada_document_id || '').trim()));
+      const newDocuments: Array<{ docId: string; doc: Record<string, unknown>; shouldConfirm: boolean }> = [];
+      for (const [docId, payload] of candidateDocuments.entries()) {
+        if (existingIds.has(docId)) continue;
+        newDocuments.push({ docId, doc: payload.doc, shouldConfirm: payload.shouldConfirm });
       }
 
       if (newDocuments.length === 0) {
         return new Response(
           JSON.stringify({
             synced: true,
-            totalFromScrada: documents.length,
+            totalFromScrada: candidateDocuments.size,
             newDocuments: 0,
             requiredCredits: 0,
           }),
@@ -190,7 +248,8 @@ serve(async (req) => {
         if (insertDocsError) throw insertDocsError;
 
         const confirmationResults: Array<{ documentId: string; confirmed: boolean; status: number }> = [];
-        for (const { docId } of newDocuments) {
+        for (const { docId, shouldConfirm } of newDocuments) {
+          if (!shouldConfirm) continue;
           const confirmUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/${docId}/confirm`;
           const confirmResponse = await fetch(confirmUrl, {
             method: 'PUT',
@@ -209,7 +268,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             synced: true,
-            totalFromScrada: documents.length,
+            totalFromScrada: candidateDocuments.size,
             newDocuments: newDocuments.length,
             requiredCredits,
             confirmedDocuments,
