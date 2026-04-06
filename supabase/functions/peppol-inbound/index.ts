@@ -35,6 +35,42 @@ const normalizeInboundDocuments = (payload: unknown): Record<string, unknown>[] 
 
 const extractDocumentId = (doc: Record<string, unknown>): string => String(doc.id || doc.documentId || '').trim();
 
+const pickFirstText = (values: unknown[]): string | null => {
+  for (const value of values) {
+    const text = String(value ?? '').trim();
+    if (text) return text;
+  }
+  return null;
+};
+
+const resolveInboundSenderName = (doc: Record<string, unknown>): string | null =>
+  pickFirstText([
+    doc.senderCommercialName,
+    doc.senderTradeName,
+    doc.senderName,
+    doc.supplierPartyName,
+    doc.supplierName,
+    doc.supplierLegalName,
+    doc.companyName,
+    doc.legalName,
+  ]);
+
+const resolveInboundInvoiceRef = (doc: Record<string, unknown>): string | null =>
+  pickFirstText([doc.invoiceNumber, doc.number, doc.invoiceNo, doc.internalNumber, doc.reference]);
+
+const resolveInboundReceivedAt = (doc: Record<string, unknown>): string =>
+  String(
+    pickFirstText([
+      doc.scradaReceivedAt,
+      doc.receivedAt,
+      doc.createdOn,
+      doc.peppolC3Timestamp,
+      doc.c3Timestamp,
+      doc.peppolC2Timestamp,
+      doc.c2Timestamp,
+    ]) || new Date().toISOString()
+  );
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -162,16 +198,46 @@ serve(async (req) => {
 
       const { data: existingDocs, error: existingDocsError } = await supabase
         .from('peppol_inbound_documents')
-        .select('scrada_document_id')
+        .select('id, scrada_document_id, sender_name, invoice_number, received_at')
         .eq('user_id', user.id)
         .eq('company_id', companyId)
         .in('scrada_document_id', candidateIds);
       if (existingDocsError) throw existingDocsError;
 
-      const existingIds = new Set((existingDocs || []).map((row) => String(row.scrada_document_id || '').trim()));
+      const existingByDocId = new Map(
+        (existingDocs || []).map((row) => [String(row.scrada_document_id || '').trim(), row as Record<string, unknown>])
+      );
       const newDocuments: Array<{ docId: string; doc: Record<string, unknown>; shouldConfirm: boolean }> = [];
       for (const [docId, payload] of candidateDocuments.entries()) {
-        if (existingIds.has(docId)) continue;
+        const existing = existingByDocId.get(docId);
+        if (existing) {
+          const updatePayload: Record<string, unknown> = {};
+          const senderName = resolveInboundSenderName(payload.doc);
+          const invoiceRef = resolveInboundInvoiceRef(payload.doc);
+          const receivedAt = resolveInboundReceivedAt(payload.doc);
+
+          if (!String(existing.sender_name || '').trim() && senderName) {
+            updatePayload.sender_name = senderName;
+          }
+          if (!String(existing.invoice_number || '').trim() && invoiceRef) {
+            updatePayload.invoice_number = invoiceRef;
+          }
+          if (!String(existing.received_at || '').trim() && receivedAt) {
+            updatePayload.received_at = receivedAt;
+          }
+
+          if (Object.keys(updatePayload).length > 0) {
+            const { error: updateError } = await supabase
+              .from('peppol_inbound_documents')
+              .update(updatePayload)
+              .eq('id', String(existing.id || ''))
+              .eq('user_id', user.id)
+              .eq('company_id', companyId);
+            if (updateError) throw updateError;
+          }
+
+          continue;
+        }
         newDocuments.push({ docId, doc: payload.doc, shouldConfirm: payload.shouldConfirm });
       }
 
@@ -225,9 +291,9 @@ serve(async (req) => {
           company_id: companyId,
           scrada_document_id: docId,
           sender_peppol_id: String(doc.peppolSenderID || doc.senderID || '').trim() || null,
-          sender_name: String(doc.senderName || doc.supplierPartyName || '').trim() || null,
+          sender_name: resolveInboundSenderName(doc),
           document_type: String(doc.documentType || 'invoice'),
-          invoice_number: String(doc.invoiceNumber || doc.number || doc.internalNumber || '').trim() || null,
+          invoice_number: resolveInboundInvoiceRef(doc),
           invoice_date: String(doc.invoiceDate || '').trim() || null,
           total_excl_vat: Number(doc.totalExclVat || doc.totalExclVAT || 0) || null,
           total_vat: Number(doc.totalVat || doc.totalVAT || 0) || null,
@@ -235,13 +301,7 @@ serve(async (req) => {
           currency: String(doc.currency || 'EUR'),
           status: 'new',
           metadata: doc,
-          received_at: String(
-            doc.peppolC3Timestamp ||
-              doc.peppolC2Timestamp ||
-              doc.receivedAt ||
-              doc.createdOn ||
-              new Date().toISOString()
-          ),
+          received_at: resolveInboundReceivedAt(doc),
         }));
 
         const { error: insertDocsError } = await supabase.from('peppol_inbound_documents').insert(inboundRows);

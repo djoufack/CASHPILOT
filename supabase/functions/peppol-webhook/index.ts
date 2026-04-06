@@ -22,6 +22,14 @@ async function verifyHmacSignature(body: string, signature: string, secret: stri
   return computedHex === signature.toLowerCase();
 }
 
+const pickFirstText = (values: unknown[]): string | null => {
+  for (const value of values) {
+    const text = String(value ?? '').trim();
+    if (text) return text;
+  }
+  return null;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -140,8 +148,23 @@ serve(async (req) => {
       const documentId = req.headers.get('x-scrada-document-id') || '';
       const senderPeppolId = req.headers.get('x-scrada-peppol-sender-id') || '';
       const contentType = req.headers.get('content-type') || '';
+      const scradaTriggeredAt = req.headers.get('x-scrada-triggered-at') || '';
+      const c3Timestamp = req.headers.get('x-scrada-peppol-c3-timestamp') || '';
+      const c2Timestamp = req.headers.get('x-scrada-peppol-c2-timestamp') || '';
 
       let ublXml: string | null = null;
+      let inboundPayload: Record<string, unknown> | null = null;
+
+      if (contentType.includes('json')) {
+        try {
+          const parsed = JSON.parse(rawBody);
+          if (parsed && typeof parsed === 'object') {
+            inboundPayload = parsed as Record<string, unknown>;
+          }
+        } catch {
+          // Ignore malformed JSON payloads from webhook senders.
+        }
+      }
       if (contentType.includes('xml')) {
         ublXml = rawBody;
       }
@@ -191,19 +214,53 @@ serve(async (req) => {
             topic,
             senderPeppolId,
             c2MessageId: req.headers.get('x-scrada-peppol-c2-message-id'),
-            c3Timestamp: req.headers.get('x-scrada-peppol-c3-timestamp'),
+            c2Timestamp,
+            c3Timestamp,
+            scradaTriggeredAt,
+            ...inboundPayload,
             billingSkippedReason,
           };
+
+          const senderName = pickFirstText([
+            inboundPayload?.senderCommercialName,
+            inboundPayload?.senderTradeName,
+            inboundPayload?.senderName,
+            inboundPayload?.supplierPartyName,
+            inboundPayload?.supplierName,
+            inboundPayload?.supplierLegalName,
+            inboundPayload?.companyName,
+          ]);
+          const invoiceRef = pickFirstText([
+            inboundPayload?.invoiceNumber,
+            inboundPayload?.number,
+            inboundPayload?.invoiceNo,
+            inboundPayload?.internalNumber,
+            inboundPayload?.reference,
+          ]);
+          const receivedAt =
+            pickFirstText([
+              inboundPayload?.scradaReceivedAt,
+              inboundPayload?.receivedAt,
+              inboundPayload?.createdOn,
+              inboundPayload?.peppolC3Timestamp,
+              c3Timestamp,
+              inboundPayload?.peppolC2Timestamp,
+              c2Timestamp,
+              scradaTriggeredAt,
+            ]) || new Date().toISOString();
 
           const { error: insertDocError } = await supabaseAdmin.from('peppol_inbound_documents').insert({
             user_id: userId,
             company_id: companyRecord.id,
             scrada_document_id: documentId,
             sender_peppol_id: senderPeppolId,
+            sender_name: senderName,
             document_type: 'invoice',
+            invoice_number: invoiceRef,
             ubl_xml: ublXml,
             status: 'new',
             metadata,
+            received_at: receivedAt,
           });
           if (insertDocError) throw insertDocError;
 

@@ -863,10 +863,78 @@ const PeppolPage = () => {
     return `${formatted} ${currency || 'EUR'}`;
   }, []);
 
+  const getInboundMetadata = useCallback((doc) => {
+    if (doc?.metadata && typeof doc.metadata === 'object') return doc.metadata;
+    return {};
+  }, []);
+
+  const resolveInboundSenderCommercialName = useCallback(
+    (doc) => {
+      const metadata = getInboundMetadata(doc);
+      return (
+        String(
+          doc?.sender_name ||
+            metadata?.senderCommercialName ||
+            metadata?.senderTradeName ||
+            metadata?.senderName ||
+            metadata?.supplierPartyName ||
+            metadata?.supplierName ||
+            metadata?.supplierLegalName ||
+            metadata?.companyName ||
+            ''
+        ).trim() ||
+        String(doc?.sender_peppol_id || '').trim() ||
+        '-'
+      );
+    },
+    [getInboundMetadata]
+  );
+
+  const resolveInboundScradaReceivedAt = useCallback(
+    (doc) => {
+      const metadata = getInboundMetadata(doc);
+      return (
+        String(
+          metadata?.scradaReceivedAt ||
+            metadata?.receivedAt ||
+            metadata?.createdOn ||
+            metadata?.peppolC3Timestamp ||
+            metadata?.c3Timestamp ||
+            metadata?.peppolC2Timestamp ||
+            metadata?.c2Timestamp ||
+            metadata?.scradaTriggeredAt ||
+            doc?.received_at ||
+            doc?.created_at ||
+            ''
+        ).trim() || null
+      );
+    },
+    [getInboundMetadata]
+  );
+
+  const resolveInboundScradaInvoiceRef = useCallback(
+    (doc, linkedSupplierInvoice = null) => {
+      const metadata = getInboundMetadata(doc);
+      return (
+        String(
+          doc?.invoice_number ||
+            metadata?.invoiceNumber ||
+            metadata?.number ||
+            metadata?.invoiceNo ||
+            metadata?.internalNumber ||
+            metadata?.reference ||
+            linkedSupplierInvoice?.invoice_number ||
+            ''
+        ).trim() || '-'
+      );
+    },
+    [getInboundMetadata]
+  );
+
   const resolveInboundLinkedSupplierInvoice = useCallback(
     (doc) => {
       if (!doc) return null;
-      const metadata = doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
+      const metadata = getInboundMetadata(doc);
       const supplierInvoiceId = String(metadata?.supplier_invoice_id || '').trim();
       if (supplierInvoiceId && inboundSupplierInvoiceById.has(supplierInvoiceId)) {
         return inboundSupplierInvoiceById.get(supplierInvoiceId);
@@ -877,7 +945,7 @@ const PeppolPage = () => {
       }
       return null;
     },
-    [inboundSupplierInvoiceByDocumentId, inboundSupplierInvoiceById]
+    [getInboundMetadata, inboundSupplierInvoiceByDocumentId, inboundSupplierInvoiceById]
   );
 
   const isBusinessDisputed = useCallback((record) => {
@@ -1238,11 +1306,11 @@ const PeppolPage = () => {
         const linkedSupplierInvoice = resolveInboundLinkedSupplierInvoice(doc);
         const status = getInboundWorkflowStatusKey(doc, linkedSupplierInvoice);
         const meta = inboundMeta[status] || inboundMeta.a_traiter;
-        const invoiceNumber = doc.invoice_number || linkedSupplierInvoice?.invoice_number || '#-';
+        const invoiceNumber = resolveInboundScradaInvoiceRef(doc, linkedSupplierInvoice);
         return {
           id: doc.id,
           title: invoiceNumber,
-          subtitle: doc.sender_name || doc.sender_peppol_id || '-',
+          subtitle: resolveInboundSenderCommercialName(doc),
           amount: linkedSupplierInvoice
             ? formatAmount(
                 linkedSupplierInvoice.total_ttc ||
@@ -1252,14 +1320,24 @@ const PeppolPage = () => {
                 linkedSupplierInvoice.currency
               )
             : null,
-          date: linkedSupplierInvoice?.due_date || doc.received_at || doc.created_at,
+          date:
+            resolveInboundScradaReceivedAt(doc) || linkedSupplierInvoice?.due_date || doc.received_at || doc.created_at,
           status,
           statusLabel: meta.label,
           statusColor: meta.color,
           resource: doc,
         };
       }),
-    [formatAmount, getInboundWorkflowStatusKey, inboundDocuments, inboundMeta, resolveInboundLinkedSupplierInvoice]
+    [
+      formatAmount,
+      getInboundWorkflowStatusKey,
+      inboundDocuments,
+      inboundMeta,
+      resolveInboundLinkedSupplierInvoice,
+      resolveInboundScradaInvoiceRef,
+      resolveInboundScradaReceivedAt,
+      resolveInboundSenderCommercialName,
+    ]
   );
 
   const inboundCalendarEvents = useMemo(
@@ -2185,10 +2263,10 @@ const PeppolPage = () => {
                       <thead>
                         <tr className="border-b border-gray-800 bg-gray-900/50">
                           <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                            Date
+                            Date reception Scrada
                           </th>
                           <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                            Expediteur
+                            Expediteur (nom commercial)
                           </th>
                           <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden sm:table-cell">
                             Document ID
@@ -2197,7 +2275,7 @@ const PeppolPage = () => {
                             Statuts
                           </th>
                           <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
-                            Facture
+                            Facture recue (Scrada)
                           </th>
                           <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
                             Actions
@@ -2213,12 +2291,15 @@ const PeppolPage = () => {
                           return (
                             <tr key={doc.id} className="hover:bg-gray-800/50 transition-colors">
                               <td className="p-3 text-gray-300 whitespace-nowrap text-xs">
-                                {formatDateTime(doc.received_at || doc.created_at)}
+                                {formatDateTime(resolveInboundScradaReceivedAt(doc))}
                               </td>
                               <td className="p-3 text-gray-300 whitespace-nowrap">
-                                <span className="font-mono text-xs">
-                                  {doc.sender_name || doc.sender_peppol_id || '-'}
-                                </span>
+                                <div className="flex flex-col items-start">
+                                  <span className="text-sm">{resolveInboundSenderCommercialName(doc)}</span>
+                                  {doc.sender_peppol_id ? (
+                                    <span className="font-mono text-[11px] text-gray-500">{doc.sender_peppol_id}</span>
+                                  ) : null}
+                                </div>
                               </td>
                               <td className="p-3 hidden sm:table-cell">
                                 <span
@@ -2237,13 +2318,9 @@ const PeppolPage = () => {
                                 </div>
                               </td>
                               <td className="p-3">
-                                {doc.invoice_number ? (
-                                  <span className="text-orange-400 text-sm font-medium">{doc.invoice_number}</span>
-                                ) : (
-                                  <span className="text-gray-600">
-                                    {doc.metadata?.internalNumber ? `#${doc.metadata.internalNumber}` : '-'}
-                                  </span>
-                                )}
+                                <span className="text-orange-400 text-sm font-medium">
+                                  {resolveInboundScradaInvoiceRef(doc, linkedSupplierInvoice)}
+                                </span>
                               </td>
                               <td className="p-3 text-right">
                                 <DropdownMenu>
