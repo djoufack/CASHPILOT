@@ -1,0 +1,137 @@
+{
+  "nav": {
+    "sap": "SAP"
+  },
+  "sap": {
+    "pageTitle": "SAP Program",
+    "title": "SAP Program",
+    "subtitle": "SAP governance by domains: Core accounting, Controlling, Group.",
+    "globalScore": "Global score",
+    "generatedAt": "Updated: {{date}}",
+    "refresh": "Refresh",
+    "openModule": "Open module",
+    "quickLinksTitle": "SAP quick links",
+    "loading": "Loading SAP data...",
+    "backToCockpit": "Back to SAP cockpit",
+    "unknownModule": "Unknown SAP module",
+    "unknownModuleDescription": "This module is not configured in the SAP cockpit yet.",
+    "unknownModuleHint": "Use the SAP cockpit to choose a valid module.",
+    "moduleSnapshot": "Module snapshot",
+    "moduleRoadmap": "Module roadmap",
+    "relatedPages": "Related pages",
+    "otherModules": "Other SAP modules",
+    "groups": {
+      "core": {
+        "title": "Accounting core",
+        "description": "FI, AA and Close for bookkeeping, assets and period close."
+      },
+      "performance": {
+        "title": "Controlling",
+        "description": "CO for performance analytics and cost control."
+      },
+      "group": {
+        "title": "Group view",
+        "description": "Multi-entity consolidation and intercompany governance."
+      }
+    },
+    "status": {
+      "ready": "Ready",
+      "inProgress": "In progress",
+      "planned": "Planned"
+    },
+    "metric": {
+      "entries": "Entries",
+      "scope": "Scope",
+      "lastEntry": "Last entry",
+      "axes": "Analytical axes",
+      "assets": "Fixed assets",
+      "portfolios": "Portfolios",
+      "members": "Portfolio companies",
+      "closures": "Closures",
+      "latestClosure": "Last close",
+      "infoNovice": "Beginner read: this value shows your current level and helps prioritize next actions."
+    },
+    "links": {
+      "audit": "Accounting audit",
+      "cashflow": "Treasury",
+      "scenarios": "Scenarios",
+      "analytics": "Analytics",
+      "compliance": "Compliance cockpit",
+      "intercompany": "Intercompany",
+      "portfolio": "Portfolio",
+      "regulatory": "Regulatory watch"
+    },
+    "quick": {
+      "accounting": "Accounting",
+      "treasury": "Treasury",
+      "consolidation": "Consolidation",
+      "audit": "Accounting audit",
+      "pilotage": "Steering"
+    },
+    "modules": {
+      "fi": {
+        "title": "SAP FI",
+        "description": "General ledger, postings and data quality.",
+        "primary": "Open Accounting"
+      },
+      "co": {
+        "title": "SAP CO",
+        "description": "Controlling, analytical dimensions and cost steering.",
+        "primary": "Open Steering"
+      },
+      "aa": {
+        "title": "SAP AA",
+        "description": "Fixed assets and asset lifecycle tracking.",
+        "primary": "Open Fixed Assets"
+      },
+      "consolidation": {
+        "title": "SAP Consolidation",
+        "description": "Multi-entity consolidation and intercompany.",
+        "primary": "Open Consolidation"
+      },
+      "close": {
+        "title": "SAP Close",
+        "description": "Period close and compliance controls.",
+        "primary": "Open Close"
+      }
+    },
+    "roadmap": {
+      "summaryTitle": "SAP roadmap",
+      "summaryHint": "Active DB rows computed without mocks or hardcoded business data.",
+      "empty": "No SAP workstream is recorded for this company yet.",
+      "total": "Total workstreams",
+      "done": "Done",
+      "blocked": "Blocked",
+      "overdue": "Overdue",
+      "deleteConfirm": "Delete this workstream? This action cannot be undone.",
+      "creating": "Saving...",
+      "add": "Add workstream",
+      "emptyModule": "No workstreams are defined for this module yet.",
+      "blockers": "Blockers",
+      "delete": "Delete",
+      "supabaseNotConfigured": "Supabase not configured",
+      "noActiveCompany": "No active company selected",
+      "noAuthenticatedUser": "User not authenticated",
+      "workstreamNotFound": "Workstream not found",
+      "status": {
+        "planned": "Planned",
+        "inProgress": "In progress",
+        "blocked": "Blocked",
+        "done": "Done"
+      },
+      "priority": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      },
+      "form": {
+        "title": "Workstream title",
+        "titlePlaceholder": "Describe the workstream",
+        "dueDate": "Due date",
+        "priority": "Priority",
+        "priorityPlaceholder": "Choose a priority"
+      }
+    }
+  }
+}

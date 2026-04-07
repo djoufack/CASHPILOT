@@ -1,0 +1,137 @@
+{
+  "nav": {
+    "sap": "SAP"
+  },
+  "sap": {
+    "pageTitle": "Programme SAP",
+    "title": "Programme SAP",
+    "subtitle": "Pilotage SAP par domaines: Noyau comptable, Controle de gestion, Groupe.",
+    "globalScore": "Score global",
+    "generatedAt": "Maj: {{date}}",
+    "refresh": "Rafraichir",
+    "openModule": "Ouvrir module",
+    "quickLinksTitle": "Acces rapides SAP",
+    "loading": "Chargement des donnees SAP...",
+    "backToCockpit": "Retour cockpit SAP",
+    "unknownModule": "Module SAP inconnu",
+    "unknownModuleDescription": "Ce module n est pas encore configure dans le cockpit SAP.",
+    "unknownModuleHint": "Utilisez le cockpit SAP pour choisir un module valide.",
+    "moduleSnapshot": "Snapshot module",
+    "moduleRoadmap": "Roadmap du module",
+    "relatedPages": "Pages reliees",
+    "otherModules": "Autres modules SAP",
+    "groups": {
+      "core": {
+        "title": "Noyau comptable",
+        "description": "FI, AA et Close pour la tenue comptable, les actifs et la cloture."
+      },
+      "performance": {
+        "title": "Controle de gestion",
+        "description": "CO pour l analyse de performance et le pilotage des couts."
+      },
+      "group": {
+        "title": "Vision groupe",
+        "description": "Consolidation multi-entites et pilotage inter-societes."
+      }
+    },
+    "status": {
+      "ready": "Pret",
+      "inProgress": "En cours",
+      "planned": "Planifie"
+    },
+    "metric": {
+      "entries": "Ecritures",
+      "scope": "Perimetre",
+      "lastEntry": "Derniere ecriture",
+      "axes": "Axes analytiques",
+      "assets": "Immobilisations",
+      "portfolios": "Portfolios",
+      "members": "Societes en portefeuille",
+      "closures": "Clotures",
+      "latestClosure": "Derniere cloture",
+      "infoNovice": "Lecture debutant: ce chiffre vous indique le niveau actuel et aide a prioriser les prochaines actions."
+    },
+    "links": {
+      "audit": "Audit comptable",
+      "cashflow": "Tresorerie",
+      "scenarios": "Scenarios",
+      "analytics": "Analytics",
+      "compliance": "Compliance cockpit",
+      "intercompany": "Inter-Societes",
+      "portfolio": "Portfolio",
+      "regulatory": "Veille reglementaire"
+    },
+    "quick": {
+      "accounting": "Comptabilite",
+      "treasury": "Tresorerie",
+      "consolidation": "Consolidation",
+      "audit": "Audit comptable",
+      "pilotage": "Pilotage"
+    },
+    "modules": {
+      "fi": {
+        "title": "SAP FI",
+        "description": "Comptabilite generale, ecritures et qualite de donnees.",
+        "primary": "Ouvrir Comptabilite"
+      },
+      "co": {
+        "title": "SAP CO",
+        "description": "Controlling, axes analytiques et pilotage des couts.",
+        "primary": "Ouvrir Pilotage"
+      },
+      "aa": {
+        "title": "SAP AA",
+        "description": "Immobilisations et suivi des actifs.",
+        "primary": "Ouvrir Immobilisations"
+      },
+      "consolidation": {
+        "title": "SAP Consolidation",
+        "description": "Consolidation multi-entites et intercompany.",
+        "primary": "Ouvrir Consolidation"
+      },
+      "close": {
+        "title": "SAP Close",
+        "description": "Cloture periodique et controle de conformite.",
+        "primary": "Ouvrir Cloture"
+      }
+    },
+    "roadmap": {
+      "summaryTitle": "Roadmap SAP",
+      "summaryHint": "Lignes DB actives, calculees sans mock ni data hardcodee.",
+      "empty": "Aucun workstream SAP n est encore enregistre pour cette societe.",
+      "total": "Total workstreams",
+      "done": "Termines",
+      "blocked": "Bloques",
+      "overdue": "En retard",
+      "deleteConfirm": "Supprimer ce workstream ? Cette action est irreversible.",
+      "creating": "Enregistrement...",
+      "add": "Ajouter workstream",
+      "emptyModule": "Aucun workstream n est encore defini pour ce module.",
+      "blockers": "Blocages",
+      "delete": "Supprimer",
+      "supabaseNotConfigured": "Supabase non configure",
+      "noActiveCompany": "Aucune societe active selectionnee",
+      "noAuthenticatedUser": "Utilisateur non authentifie",
+      "workstreamNotFound": "Workstream introuvable",
+      "status": {
+        "planned": "Planifie",
+        "inProgress": "En cours",
+        "blocked": "Bloque",
+        "done": "Termine"
+      },
+      "priority": {
+        "low": "Basse",
+        "medium": "Moyenne",
+        "high": "Haute",
+        "critical": "Critique"
+      },
+      "form": {
+        "title": "Titre du workstream",
+        "titlePlaceholder": "Decrivez le workstream",
+        "dueDate": "Echeance",
+        "priority": "Priorite",
+        "priorityPlaceholder": "Choisir une priorite"
+      }
+    }
+  }
+}

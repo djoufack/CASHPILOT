@@ -103,6 +103,33 @@ export const SAP_QUICK_LINKS = [
   { to: '/app/pilotage', labelKey: 'sap.quick.pilotage', fallback: 'Pilotage' },
 ];
 
+export const SAP_MODULE_GROUPS = [
+  {
+    key: 'core',
+    titleKey: 'sap.groups.core.title',
+    fallbackTitle: 'Noyau comptable',
+    descriptionKey: 'sap.groups.core.description',
+    fallbackDescription: 'FI, AA et Close pour la tenue comptable, les actifs et la cloture.',
+    modules: ['fi', 'aa', 'close'],
+  },
+  {
+    key: 'performance',
+    titleKey: 'sap.groups.performance.title',
+    fallbackTitle: 'Controle de gestion',
+    descriptionKey: 'sap.groups.performance.description',
+    fallbackDescription: 'CO pour le pilotage analytique et la maitrise des couts.',
+    modules: ['co'],
+  },
+  {
+    key: 'group',
+    titleKey: 'sap.groups.group.title',
+    fallbackTitle: 'Vision groupe',
+    descriptionKey: 'sap.groups.group.description',
+    fallbackDescription: 'Consolidation multi-entites et intercompany.',
+    modules: ['consolidation'],
+  },
+];
+
 const STATUS_META = {
   ready: {
     labelKey: 'sap.status.ready',
@@ -396,6 +423,18 @@ export function buildMetricInfo(moduleKey, metricId, t) {
   };
 }
 
+function buildGroupPanelInfo(group, t) {
+  const title = t(group.titleKey, group.fallbackTitle);
+  return {
+    title,
+    definition: `Regroupement SAP: ${title}.`,
+    dataSource: 'Configuration SAP_MODULE_GROUPS dans SapProgramPage.',
+    calculationMethod: 'Aucun calcul numerique. Les modules sont regroupes par logique metier.',
+    notes:
+      'Cette presentation reduit la charge cognitive pour les utilisateurs debutants en structurant le cockpit par domaines.',
+  };
+}
+
 export function buildModuleView(key, moduleState, t, locale) {
   const meta = SAP_MODULE_META[key];
   if (!meta) return null;
@@ -434,6 +473,7 @@ export default function SapProgramPage() {
   } = useSapRoadmap();
 
   const views = SAP_MODULE_ORDER.map((key) => buildModuleView(key, modules?.[key], t, locale)).filter(Boolean);
+  const viewByKey = useMemo(() => views.reduce((acc, view) => ({ ...acc, [view.key]: view }), {}), [views]);
   const roadmapSummary = useMemo(() => deriveRoadmapSummary(roadmapItems), [roadmapItems]);
   const globalStatusMeta =
     globalScore >= 80 ? STATUS_META.ready : globalScore > 0 ? STATUS_META.in_progress : STATUS_META.planned;
@@ -507,7 +547,10 @@ export default function SapProgramPage() {
                     {t(globalStatusMeta.labelKey, globalStatusMeta.fallback)}
                   </Badge>
                   <Badge className="border border-white/15 bg-white/5 text-slate-200">
-                    {t('sap.generatedAt', 'Maj: {{date}}', { date: formatGeneratedAt(generatedAt, locale) })}
+                    {t('sap.generatedAt', {
+                      defaultValue: 'Maj: {{date}}',
+                      date: formatGeneratedAt(generatedAt, locale),
+                    })}
                   </Badge>
                 </div>
               </div>
@@ -568,68 +611,89 @@ export default function SapProgramPage() {
             )}
           </section>
 
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {views.map((view) => {
-              const Icon = view.icon;
-              const moduleInfo = buildModulePanelInfo(view.key, t);
+          <section className="space-y-4">
+            {SAP_MODULE_GROUPS.map((group) => {
+              const groupedViews = group.modules.map((key) => viewByKey[key]).filter(Boolean);
+              if (!groupedViews.length) return null;
+
+              const groupInfo = buildGroupPanelInfo(group, t);
 
               return (
-                <Card key={view.key} className="border-white/10 bg-[#0f1528]/80">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-start justify-between gap-4 text-base text-white">
-                      <div className="inline-flex items-center gap-2">
-                        {moduleInfo && <PanelInfoPopover {...moduleInfo} triggerClassName="h-5 w-5" />}
-                        <Icon className="h-4.5 w-4.5 text-cyan-300" />
-                        <span>{t(view.titleKey, view.fallbackTitle)}</span>
-                      </div>
-                      <Badge className={view.statusClassName}>{view.statusLabel}</Badge>
-                    </CardTitle>
-                    <p className="text-sm text-slate-400">{t(view.descriptionKey, view.fallbackDescription)}</p>
-                  </CardHeader>
+                <div key={group.key} className="rounded-2xl border border-white/10 bg-[#0f1528]/70 p-4">
+                  <div className="mb-4">
+                    <p className="inline-flex items-center gap-2 text-white font-medium">
+                      <PanelInfoPopover {...groupInfo} triggerClassName="h-5 w-5" />
+                      {t(group.titleKey, group.fallbackTitle)}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">{t(group.descriptionKey, group.fallbackDescription)}</p>
+                  </div>
 
-                  <CardContent className="space-y-4">
-                    <div className="flex items-end gap-2">
-                      <span className={`text-3xl font-semibold ${view.scoreClassName}`}>{view.score}</span>
-                      <span className="pb-1 text-slate-400">/100</span>
-                    </div>
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    {groupedViews.map((view) => {
+                      const Icon = view.icon;
+                      const moduleInfo = buildModulePanelInfo(view.key, t);
 
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      {view.metrics.map((metric) => {
-                        const info = buildMetricInfo(view.key, metric.id, t);
+                      return (
+                        <Card key={view.key} className="border-white/10 bg-[#0f1528]/80">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="flex items-start justify-between gap-4 text-base text-white">
+                              <div className="inline-flex items-center gap-2">
+                                {moduleInfo && <PanelInfoPopover {...moduleInfo} triggerClassName="h-5 w-5" />}
+                                <Icon className="h-4.5 w-4.5 text-cyan-300" />
+                                <span>{t(view.titleKey, view.fallbackTitle)}</span>
+                              </div>
+                              <Badge className={view.statusClassName}>{view.statusLabel}</Badge>
+                            </CardTitle>
+                            <p className="text-sm text-slate-400">{t(view.descriptionKey, view.fallbackDescription)}</p>
+                          </CardHeader>
 
-                        return (
-                          <div
-                            key={`${view.key}-${metric.id}`}
-                            className="rounded-xl border border-white/10 bg-black/20 p-3"
-                          >
-                            <p className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-slate-500">
-                              {info && <PanelInfoPopover {...info} triggerClassName="h-4.5 w-4.5" />}
-                              <span>{metric.label}</span>
-                            </p>
-                            <p className="mt-1 break-all text-sm font-medium text-white">{metric.value}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          <CardContent className="space-y-4">
+                            <div className="flex items-end gap-2">
+                              <span className={`text-3xl font-semibold ${view.scoreClassName}`}>{view.score}</span>
+                              <span className="pb-1 text-slate-400">/100</span>
+                            </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <Button asChild size="sm" className="bg-cyan-600 text-white hover:bg-cyan-500">
-                        <Link to={view.to}>
-                          {t('sap.openModule', 'Ouvrir module')}
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        asChild
-                        size="sm"
-                        variant="outline"
-                        className="border-white/15 text-slate-100 hover:bg-white/10"
-                      >
-                        <Link to={view.primaryLink}>{t(view.primaryLabelKey, view.primaryFallback)}</Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                              {view.metrics.map((metric) => {
+                                const info = buildMetricInfo(view.key, metric.id, t);
+
+                                return (
+                                  <div
+                                    key={`${view.key}-${metric.id}`}
+                                    className="rounded-xl border border-white/10 bg-black/20 p-3"
+                                  >
+                                    <p className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-slate-500">
+                                      {info && <PanelInfoPopover {...info} triggerClassName="h-4.5 w-4.5" />}
+                                      <span>{metric.label}</span>
+                                    </p>
+                                    <p className="mt-1 break-all text-sm font-medium text-white">{metric.value}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <Button asChild size="sm" className="bg-cyan-600 text-white hover:bg-cyan-500">
+                                <Link to={view.to}>
+                                  {t('sap.openModule', 'Ouvrir module')}
+                                  <ArrowRight className="ml-2 h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="border-white/15 text-slate-100 hover:bg-white/10"
+                              >
+                                <Link to={view.primaryLink}>{t(view.primaryLabelKey, view.primaryFallback)}</Link>
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </section>

@@ -1,0 +1,137 @@
+{
+  "nav": {
+    "sap": "SAP"
+  },
+  "sap": {
+    "pageTitle": "SAP-programma",
+    "title": "SAP-programma",
+    "subtitle": "SAP-sturing per domein: Kernboekhouding, Controlling, Groep.",
+    "globalScore": "Globale score",
+    "generatedAt": "Bijgewerkt: {{date}}",
+    "refresh": "Vernieuwen",
+    "openModule": "Module openen",
+    "quickLinksTitle": "SAP snelkoppelingen",
+    "loading": "SAP-gegevens laden...",
+    "backToCockpit": "Terug naar SAP-cockpit",
+    "unknownModule": "Onbekende SAP-module",
+    "unknownModuleDescription": "Deze module is nog niet geconfigureerd in de SAP-cockpit.",
+    "unknownModuleHint": "Gebruik de SAP-cockpit om een geldige module te kiezen.",
+    "moduleSnapshot": "Module-overzicht",
+    "moduleRoadmap": "Module-roadmap",
+    "relatedPages": "Gerelateerde paginas",
+    "otherModules": "Andere SAP-modules",
+    "groups": {
+      "core": {
+        "title": "Kernboekhouding",
+        "description": "FI, AA en Close voor boekingen, activa en periodeafsluiting."
+      },
+      "performance": {
+        "title": "Controlling",
+        "description": "CO voor prestatie-analyse en kostensturing."
+      },
+      "group": {
+        "title": "Groepsvisie",
+        "description": "Consolidatie over meerdere entiteiten en intercompany-sturing."
+      }
+    },
+    "status": {
+      "ready": "Klaar",
+      "inProgress": "Bezig",
+      "planned": "Gepland"
+    },
+    "metric": {
+      "entries": "Boekingen",
+      "scope": "Scope",
+      "lastEntry": "Laatste boeking",
+      "axes": "Analytische assen",
+      "assets": "Vaste activa",
+      "portfolios": "Portefeuilles",
+      "members": "Portefeuillebedrijven",
+      "closures": "Afsluitingen",
+      "latestClosure": "Laatste afsluiting",
+      "infoNovice": "Voor beginners: dit cijfer toont het huidige niveau en helpt de volgende acties prioriteren."
+    },
+    "links": {
+      "audit": "Boekhoudaudit",
+      "cashflow": "Treasury",
+      "scenarios": "Scenario's",
+      "analytics": "Analytics",
+      "compliance": "Compliance cockpit",
+      "intercompany": "Intercompany",
+      "portfolio": "Portfolio",
+      "regulatory": "Regelgevingsmonitoring"
+    },
+    "quick": {
+      "accounting": "Boekhouding",
+      "treasury": "Treasury",
+      "consolidation": "Consolidatie",
+      "audit": "Boekhoudaudit",
+      "pilotage": "Sturing"
+    },
+    "modules": {
+      "fi": {
+        "title": "SAP FI",
+        "description": "Grootboek, boekingen en datakwaliteit.",
+        "primary": "Boekhouding openen"
+      },
+      "co": {
+        "title": "SAP CO",
+        "description": "Controlling, analytische dimensies en kostensturing.",
+        "primary": "Sturing openen"
+      },
+      "aa": {
+        "title": "SAP AA",
+        "description": "Vaste activa en opvolging van de activacyclus.",
+        "primary": "Activa openen"
+      },
+      "consolidation": {
+        "title": "SAP Consolidation",
+        "description": "Consolidatie over meerdere entiteiten en intercompany.",
+        "primary": "Consolidatie openen"
+      },
+      "close": {
+        "title": "SAP Close",
+        "description": "Periodeafsluiting en compliance-controles.",
+        "primary": "Afsluiting openen"
+      }
+    },
+    "roadmap": {
+      "summaryTitle": "SAP-roadmap",
+      "summaryHint": "Actieve DB-rijen, berekend zonder mocks of hardcoded bedrijfsdata.",
+      "empty": "Er is nog geen SAP-workstream geregistreerd voor dit bedrijf.",
+      "total": "Totaal workstreams",
+      "done": "Klaar",
+      "blocked": "Geblokkeerd",
+      "overdue": "Achterstallig",
+      "deleteConfirm": "Deze workstream verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+      "creating": "Opslaan...",
+      "add": "Workstream toevoegen",
+      "emptyModule": "Er zijn nog geen workstreams voor deze module.",
+      "blockers": "Blokkeringen",
+      "delete": "Verwijderen",
+      "supabaseNotConfigured": "Supabase is niet geconfigureerd",
+      "noActiveCompany": "Geen actief bedrijf geselecteerd",
+      "noAuthenticatedUser": "Gebruiker niet geauthenticeerd",
+      "workstreamNotFound": "Workstream niet gevonden",
+      "status": {
+        "planned": "Gepland",
+        "inProgress": "Bezig",
+        "blocked": "Geblokkeerd",
+        "done": "Klaar"
+      },
+      "priority": {
+        "low": "Laag",
+        "medium": "Gemiddeld",
+        "high": "Hoog",
+        "critical": "Kritiek"
+      },
+      "form": {
+        "title": "Workstreamtitel",
+        "titlePlaceholder": "Beschrijf de workstream",
+        "dueDate": "Einddatum",
+        "priority": "Prioriteit",
+        "priorityPlaceholder": "Kies een prioriteit"
+      }
+    }
+  }
+}

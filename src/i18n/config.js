@@ -13,6 +13,32 @@ const localeLoaders = {
   nl: () => import('./locales/nl.json'),
 };
 
+const localePatchLoaders = {
+  en: [() => import('./locales/sap.en.json')],
+  fr: [() => import('./locales/sap.fr.json')],
+  nl: [() => import('./locales/sap.nl.json')],
+};
+
+const isPlainObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const mergeLocalePayload = (base, patch) => {
+  if (!isPlainObject(base)) return isPlainObject(patch) ? { ...patch } : base;
+  if (!isPlainObject(patch)) return { ...base };
+
+  const result = { ...base };
+
+  for (const [key, patchValue] of Object.entries(patch)) {
+    const baseValue = result[key];
+    if (isPlainObject(baseValue) && isPlainObject(patchValue)) {
+      result[key] = mergeLocalePayload(baseValue, patchValue);
+    } else {
+      result[key] = patchValue;
+    }
+  }
+
+  return result;
+};
+
 const normalizeLanguageCode = (value) => {
   const normalized = String(value || '')
     .trim()
@@ -28,10 +54,27 @@ const localeBackend = {
   read(language, _namespace, callback) {
     const normalizedLanguage = normalizeLanguageCode(language);
     const loadLocale = localeLoaders[normalizedLanguage] || localeLoaders.en;
+    const patchLoaders = localePatchLoaders[normalizedLanguage] || [];
 
-    loadLocale()
-      .then((module) => {
-        callback(null, module.default || module);
+    Promise.all([
+      loadLocale(),
+      ...patchLoaders.map((loadPatch) =>
+        loadPatch().catch((error) => {
+          if (import.meta.env.DEV) {
+            console.warn(`[i18n] Locale patch load failed for "${normalizedLanguage}"`, error);
+          }
+          return null;
+        })
+      ),
+    ])
+      .then((modules) => {
+        const [baseModule, ...patchModules] = modules;
+        const baseLocale = baseModule?.default || baseModule || {};
+        const mergedLocale = patchModules.reduce((acc, patchModule) => {
+          const patchLocale = patchModule?.default || patchModule || {};
+          return mergeLocalePayload(acc, patchLocale);
+        }, baseLocale);
+        callback(null, mergedLocale);
       })
       .catch((error) => {
         callback(error, false);

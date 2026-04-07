@@ -309,7 +309,10 @@ export default function SapModulePage() {
                   <span className="pb-1 text-lg text-slate-400">/100</span>
                 </div>
                 <p className="mt-2 text-xs text-slate-400">
-                  {t('sap.generatedAt', 'Maj: {{date}}', { date: formatGeneratedAt(generatedAt, locale) })}
+                  {t('sap.generatedAt', {
+                    defaultValue: 'Maj: {{date}}',
+                    date: formatGeneratedAt(generatedAt, locale),
+                  })}
                 </p>
               </div>
             </div>
