@@ -6,6 +6,7 @@ import {
   HttpError,
   refundCredits,
   requireAuthenticatedUser,
+  resolveCreditCost,
 } from '../_shared/billing.ts';
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -21,7 +22,7 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const CREDIT_COST = 2;
+const CHATBOT_OPERATION_CODE = 'AI_CHATBOT';
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_CONTEXT_MESSAGES = 12;
 const MAX_CONTEXT_PARTS = 3;
@@ -30,22 +31,31 @@ const GEMINI_CACHE_TTL_MS = 10 * 60 * 1000;
 const GEMINI_CACHE_MAX_ENTRIES = 300;
 const CHATBOT_RATE_LIMIT = { maxRequests: 50, windowMs: 15 * 60 * 1000, keyPrefix: 'ai-chatbot' };
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const normalizeStatus = (value: unknown) => String(value || '').trim().toLowerCase();
-const normalizeQuestion = (value: string) => String(value || '')
-  .toLowerCase()
-  .normalize('NFD')
-  .replace(/\p{M}/gu, '')
-  .replace(/[’']/g, '')
-  .replace(/\s+/g, ' ')
-  .trim();
+const normalizeStatus = (value: unknown) =>
+  String(value || '')
+    .trim()
+    .toLowerCase();
+const normalizeQuestion = (value: string) =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[’']/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 const toNumber = (value: unknown) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
-const formatMoney = (value: unknown) => `${toNumber(value).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-const formatPercent = (value: unknown) => `${toNumber(value).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+const formatMoney = (value: unknown) =>
+  `${toNumber(value).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+const formatPercent = (value: unknown) =>
+  `${toNumber(value).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 const hasAnyKeyword = (text: string, keywords: string[]) => keywords.some((keyword) => text.includes(keyword));
-const looksLikeFactualQuestion = (text: string) => /\b(quel|quelle|quels|quelles|combien|donne|montre|affiche|what|how much|c est quoi|c'est quoi|solde|total)\b/.test(text);
+const looksLikeFactualQuestion = (text: string) =>
+  /\b(quel|quelle|quels|quelles|combien|donne|montre|affiche|what|how much|c est quoi|c'est quoi|solde|total)\b/.test(
+    text
+  );
 const geminiReplyCache = new Map<string, { reply: string; expiresAt: number }>();
 
 type CanonicalAssistantFacts = {
@@ -72,10 +82,7 @@ type CanonicalAssistantFacts = {
   currentPath: string | null;
 };
 
-const buildDeterministicMetricReply = (
-  message: string,
-  canonicalFacts: CanonicalAssistantFacts,
-) => {
+const buildDeterministicMetricReply = (message: string, canonicalFacts: CanonicalAssistantFacts) => {
   const normalized = normalizeQuestion(message);
   if (!looksLikeFactualQuestion(normalized)) return null;
 
@@ -85,7 +92,16 @@ const buildDeterministicMetricReply = (
   const counts = canonicalFacts.counts;
   const companyName = canonicalFacts.companyName || "l'entreprise";
 
-  if (hasAnyKeyword(normalized, ['tableau de bord', 'dashboard', 'kpi', 'indicateur', 'tous les chiffres', 'tous les indicateurs'])) {
+  if (
+    hasAnyKeyword(normalized, [
+      'tableau de bord',
+      'dashboard',
+      'kpi',
+      'indicateur',
+      'tous les chiffres',
+      'tous les indicateurs',
+    ])
+  ) {
     return [
       `Source canonique unique CashPilot - ${companyName}`,
       `- CA dashboard (facture): ${formatMoney(dashboard.revenue)}`,
@@ -98,8 +114,8 @@ const buildDeterministicMetricReply = (
     ].join('\n');
   }
 
-  const asksForRevenue = hasAnyKeyword(normalized, ['chiffre daffaires', 'revenu', 'revenue'])
-    || /(^|\W)ca(\W|$)/.test(normalized);
+  const asksForRevenue =
+    hasAnyKeyword(normalized, ['chiffre daffaires', 'revenu', 'revenue']) || /(^|\W)ca(\W|$)/.test(normalized);
 
   if (asksForRevenue) {
     return [
@@ -187,7 +203,7 @@ const buildDeterministicMetricReply = (
 const applyCompanyScope = (
   query: any,
   activeCompanyId: string | null,
-  { includeUnassigned = true }: { includeUnassigned?: boolean } = {},
+  { includeUnassigned = true }: { includeUnassigned?: boolean } = {}
 ) => {
   if (!activeCompanyId) return query;
 
@@ -199,43 +215,46 @@ const applyCompanyScope = (
 };
 
 const stringifyQueryError = (
-  error: { message?: string | null; details?: string | null; hint?: string | null } | null | undefined,
+  error: { message?: string | null; details?: string | null; hint?: string | null } | null | undefined
 ) => [error?.message, error?.details, error?.hint].filter(Boolean).join(' ').toLowerCase();
 
 const isMissingCompanyScopeError = (
-  error: { message?: string | null; details?: string | null; hint?: string | null } | null | undefined,
-) => {
-  const text = stringifyQueryError(error);
-  if (!text) return false;
-  return text.includes('company_id')
-    && (
-      text.includes('does not exist')
-      || text.includes('could not find')
-      || text.includes('schema cache')
-      || text.includes('unknown')
-    );
-};
-
-const isMissingRelationOrColumnError = (
-  error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null } | null | undefined,
+  error: { message?: string | null; details?: string | null; hint?: string | null } | null | undefined
 ) => {
   const text = stringifyQueryError(error);
   if (!text) return false;
   return (
-    text.includes('does not exist')
-    || text.includes('could not find the table')
-    || text.includes('schema cache')
-    || text.includes('unknown')
-    || error?.code === '42P01'
-    || error?.code === '42703'
-    || error?.code === 'PGRST205'
+    text.includes('company_id') &&
+    (text.includes('does not exist') ||
+      text.includes('could not find') ||
+      text.includes('schema cache') ||
+      text.includes('unknown'))
+  );
+};
+
+const isMissingRelationOrColumnError = (
+  error:
+    | { code?: string | null; message?: string | null; details?: string | null; hint?: string | null }
+    | null
+    | undefined
+) => {
+  const text = stringifyQueryError(error);
+  if (!text) return false;
+  return (
+    text.includes('does not exist') ||
+    text.includes('could not find the table') ||
+    text.includes('schema cache') ||
+    text.includes('unknown') ||
+    error?.code === '42P01' ||
+    error?.code === '42703' ||
+    error?.code === 'PGRST205'
   );
 };
 
 const executeScopedQueryWithFallback = async (
   name: string,
   runScoped: () => Promise<any>,
-  runUnscoped: (() => Promise<any>) | null,
+  runUnscoped: (() => Promise<any>) | null
 ) => {
   const primary = await runScoped();
   if (!primary?.error) return primary;
@@ -273,7 +292,7 @@ const coerceOptionalSingleResult = (name: string, response: any) => {
 const resolveActiveCompanyId = async (
   supabase: ReturnType<typeof createAuthClient>,
   userId: string,
-  requestedCompanyId: unknown,
+  requestedCompanyId: unknown
 ) => {
   if (typeof requestedCompanyId === 'string' && UUID_REGEX.test(requestedCompanyId)) {
     return requestedCompanyId;
@@ -293,11 +312,9 @@ const sample = <T>(rows: T[] | null | undefined, size = 20) => (Array.isArray(ro
 const fetchScopedCount = async (
   supabase: ReturnType<typeof createAuthClient>,
   table: string,
-  activeCompanyId: string | null,
+  activeCompanyId: string | null
 ) => {
-  let query = supabase
-    .from(table)
-    .select('id', { count: 'exact', head: true });
+  let query = supabase.from(table).select('id', { count: 'exact', head: true });
 
   query = applyCompanyScope(query, activeCompanyId);
 
@@ -320,7 +337,7 @@ const enforceRateLimit = async (
   serviceClient: ReturnType<typeof createServiceClient>,
   scope: string,
   rateKey: string,
-  config: { maxRequests: number; windowMs: number; keyPrefix: string },
+  config: { maxRequests: number; windowMs: number; keyPrefix: string }
 ): Promise<RateLimitCheck> => {
   const windowSeconds = Math.max(1, Math.floor(config.windowMs / 1000));
   const persistentRateKey = `${scope}:${rateKey}`;
@@ -340,7 +357,7 @@ const enforceRateLimit = async (
         return {
           allowed: Boolean(row.allowed),
           remaining: Number(row.remaining ?? 0),
-          resetAt: Number.isFinite(resetAt) ? resetAt : (Date.now() + config.windowMs),
+          resetAt: Number.isFinite(resetAt) ? resetAt : Date.now() + config.windowMs,
         };
       }
     }
@@ -357,15 +374,21 @@ const enforceRateLimit = async (
 };
 
 const assertNoCriticalQueryError = (
-  responses: Array<{ name: string; error: { message: string; code?: string | null; details?: string | null; hint?: string | null } | null }>,
+  responses: Array<{
+    name: string;
+    error: { message: string; code?: string | null; details?: string | null; hint?: string | null } | null;
+  }>
 ) => {
   const failed = responses.filter((response) => response.error);
   if (failed.length === 0) return;
 
-  console.error('[ai-chatbot] canonical query errors:', failed.map((response) => ({
-    query: response.name,
-    error: response.error,
-  })));
+  console.error(
+    '[ai-chatbot] canonical query errors:',
+    failed.map((response) => ({
+      query: response.name,
+      error: response.error,
+    }))
+  );
 
   const failedNames = failed.map((response) => response.name).join(', ');
   throw new HttpError(500, `Impossible de charger les donnees canoniques (${failedNames})`);
@@ -376,36 +399,33 @@ const sanitizeUserMessage = (value: unknown) => {
   return value.replace(/\u0000/g, '').trim();
 };
 
-const escapeXml = (value: unknown) => String(value ?? '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&apos;');
+const escapeXml = (value: unknown) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 
 const sanitizeConversationContext = (
-  value: unknown,
+  value: unknown
 ): Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> => {
   if (!Array.isArray(value)) return [];
 
   return value
     .slice(-MAX_CONTEXT_MESSAGES)
     .map((rawEntry) => {
-      const entry = (rawEntry && typeof rawEntry === 'object')
-        ? rawEntry as { role?: unknown; parts?: unknown }
-        : {};
+      const entry = rawEntry && typeof rawEntry === 'object' ? (rawEntry as { role?: unknown; parts?: unknown }) : {};
       const role = entry.role === 'model' ? 'model' : 'user';
       const rawParts = Array.isArray(entry.parts) ? entry.parts : [];
       const parts = rawParts
         .map((rawPart) => {
-          const part = (rawPart && typeof rawPart === 'object')
-            ? rawPart as { text?: unknown }
-            : {};
+          const part = rawPart && typeof rawPart === 'object' ? (rawPart as { text?: unknown }) : {};
           return sanitizeUserMessage(part.text).slice(0, MAX_CONTEXT_PART_LENGTH);
         })
-          .filter((text) => Boolean(text))
-          .slice(0, MAX_CONTEXT_PARTS)
-          .map((text) => ({ text }));
+        .filter((text) => Boolean(text))
+        .slice(0, MAX_CONTEXT_PARTS)
+        .map((text) => ({ text }));
 
       if (parts.length === 0) return null;
       return { role, parts };
@@ -444,7 +464,9 @@ const writeGeminiCache = (cacheKey: string, reply: string) => {
 const sha256Hex = async (input: string) => {
   const bytes = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 };
 
 serve(async (req) => {
@@ -457,8 +479,10 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const scopedSupabase = createAuthClient(authHeader);
@@ -468,39 +492,35 @@ serve(async (req) => {
     const activeCompanyId = payload?.activeCompanyId;
     const message = sanitizeUserMessage(payload?.message);
     const context = sanitizeConversationContext(payload?.context);
-    const currentPath = typeof payload?.currentPath === 'string'
-      ? payload.currentPath.slice(0, 300)
-      : null;
+    const currentPath = typeof payload?.currentPath === 'string' ? payload.currentPath.slice(0, 300) : null;
     resolvedUserId = authUser.id;
 
     if ((userId && userId !== resolvedUserId) || !message) {
-      return new Response(JSON.stringify({ error: 'Missing userId or message' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Missing userId or message' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     if (message.length > MAX_MESSAGE_LENGTH) {
-      return new Response(JSON.stringify({ error: `Message too long (max ${MAX_MESSAGE_LENGTH} chars)` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: `Message too long (max ${MAX_MESSAGE_LENGTH} chars)` }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const rateLimit = await enforceRateLimit(
-      supabase,
-      'ai-chatbot',
-      resolvedUserId,
-      CHATBOT_RATE_LIMIT,
-    );
+    const rateLimit = await enforceRateLimit(supabase, 'ai-chatbot', resolvedUserId, CHATBOT_RATE_LIMIT);
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit, corsHeaders);
     }
 
     const resolvedActiveCompanyId = await resolveActiveCompanyId(scopedSupabase, resolvedUserId, activeCompanyId);
 
-    const withCompanyScopeFallback = (name: string, buildQuery: (withScope: boolean) => any) => (
+    const withCompanyScopeFallback = (name: string, buildQuery: (withScope: boolean) => any) =>
       executeScopedQueryWithFallback(
         name,
         () => buildQuery(Boolean(resolvedActiveCompanyId)),
-        resolvedActiveCompanyId ? (() => buildQuery(false)) : null,
-      )
-    );
+        resolvedActiveCompanyId ? () => buildQuery(false) : null
+      );
 
     const [
       invoicesRes,
@@ -528,7 +548,8 @@ serve(async (req) => {
       withCompanyScopeFallback('invoices', (withScope) => {
         let query = scopedSupabase
           .from('invoices')
-          .select(`
+          .select(
+            `
             id,
             invoice_number,
             total_ttc,
@@ -541,7 +562,8 @@ serve(async (req) => {
             created_at,
             client:clients(company_name),
             items:invoice_items(total, quantity, unit_price, item_type, product_id, service_id)
-          `)
+          `
+          )
           .order('created_at', { ascending: false });
         if (withScope) query = applyCompanyScope(query, resolvedActiveCompanyId);
         return query;
@@ -633,11 +655,7 @@ serve(async (req) => {
           .eq('user_id', resolvedUserId)
           .order('created_at', { ascending: false });
         if (withScope) {
-          query = applyCompanyScope(
-            query,
-            resolvedActiveCompanyId,
-            { includeUnassigned: false },
-          );
+          query = applyCompanyScope(query, resolvedActiveCompanyId, { includeUnassigned: false });
         }
         return query;
       }).then((response) => coerceOptionalListResult('bank_connections', response)),
@@ -656,9 +674,7 @@ serve(async (req) => {
         if (resolvedActiveCompanyId) {
           companyQuery = companyQuery.eq('id', resolvedActiveCompanyId);
         }
-        return companyQuery
-          .maybeSingle()
-          .then((response) => coerceOptionalSingleResult('company', response));
+        return companyQuery.maybeSingle().then((response) => coerceOptionalSingleResult('company', response));
       })(),
       fetchScopedCount(scopedSupabase, 'purchase_orders', resolvedActiveCompanyId),
       fetchScopedCount(scopedSupabase, 'delivery_notes', resolvedActiveCompanyId),
@@ -719,12 +735,15 @@ serve(async (req) => {
     const totalPaid = canonicalRevenueCollection.collectedRevenue;
     const totalUnpaid = canonicalRevenueCollection.outstandingReceivables;
     const overdueInvoicesCount = canonicalRevenueCollection.invoicesOverdueCount;
-    const quoteCountByStatus = quotes.reduce((acc, quote) => {
-      const status = normalizeStatus(quote.status) || 'unknown';
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    const resolvedCompanyName = companyRes.data?.company_name || profileRes.data?.company_name || 'l\'entreprise';
+    const quoteCountByStatus = quotes.reduce(
+      (acc: Record<string, number>, quote: { status?: unknown }) => {
+        const status = normalizeStatus(quote.status) || 'unknown';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+    const resolvedCompanyName = companyRes.data?.company_name || profileRes.data?.company_name || "l'entreprise";
     const escapedCompanyName = escapeXml(resolvedCompanyName);
     const canonicalFacts: CanonicalAssistantFacts = {
       companyName: resolvedCompanyName,
@@ -752,11 +771,14 @@ serve(async (req) => {
 
     const deterministicReply = buildDeterministicMetricReply(message, canonicalFacts);
     if (deterministicReply) {
-      return new Response(JSON.stringify({
-        success: true,
-        reply: deterministicReply,
-        source: 'canonical-facts',
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          reply: deterministicReply,
+          source: 'canonical-facts',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const systemPrompt = `Tu es l'EXPERT-COMPTABLE & DIRECTEUR FINANCIER (CFO) DIGITAL de ${escapedCompanyName}.
@@ -772,7 +794,7 @@ Tu combines l'expertise d'un cabinet comptable traditionnel ET d'un directeur fi
 💰 RÉSULTATS FINANCIERS:
 - Chiffre d'affaires total: ${totalRevenue.toFixed(2)}€
 - Dépenses totales: ${totalExpenses.toFixed(2)}€
-- Résultat net (CA - Dépenses): ${(canonicalDashboard.metrics.netCashFlow).toFixed(2)}€
+- Résultat net (CA - Dépenses): ${canonicalDashboard.metrics.netCashFlow.toFixed(2)}€
 - Marge nette: ${profitMargin.toFixed(1)}%
 - Taux d'occupation: ${occupancyRate.toFixed(1)}%
 - Tendance CA (mois courant vs précédent): ${revenueTrend.toFixed(1)}%
@@ -800,19 +822,23 @@ Tu combines l'expertise d'un cabinet comptable traditionnel ET d'un directeur fi
 - Devis par statut: ${JSON.stringify(quoteCountByStatus)}
 
 📚 AUTRES MODULES (SCOPE SOCIÉTÉ ACTIF):
-${JSON.stringify({
-  suppliers_count: canonicalOperations.suppliers.totalSuppliers,
-  supplier_invoices_count: canonicalOperations.suppliers.supplierInvoices.totalCount,
-  supplier_orders_count: canonicalOperations.purchases.totalOrders,
-  purchase_orders_count: purchaseOrdersCount,
-  delivery_notes_count: deliveryNotesCount,
-  recurring_invoices_count: recurringInvoicesCount,
-  credit_notes_count: creditNotesCount,
-  bank_connections_count: canonicalOperations.bank.totalConnections,
-  bank_transactions_count: bankTransactionsCount,
-  receivables_count: receivablesCount,
-  payables_count: payablesCount,
-}, null, 2)}
+${JSON.stringify(
+  {
+    suppliers_count: canonicalOperations.suppliers.totalSuppliers,
+    supplier_invoices_count: canonicalOperations.suppliers.supplierInvoices.totalCount,
+    supplier_orders_count: canonicalOperations.purchases.totalOrders,
+    purchase_orders_count: purchaseOrdersCount,
+    delivery_notes_count: deliveryNotesCount,
+    recurring_invoices_count: recurringInvoicesCount,
+    credit_notes_count: creditNotesCount,
+    bank_connections_count: canonicalOperations.bank.totalConnections,
+    bank_transactions_count: bankTransactionsCount,
+    receivables_count: receivablesCount,
+    payables_count: payablesCount,
+  },
+  null,
+  2
+)}
 
 👥 PORTEFEUILLE CLIENTS (${clientsRes.data?.length || 0} clients actifs):
 ${JSON.stringify(sample(clientsRes.data, 20), null, 2)}
@@ -839,16 +865,24 @@ ${JSON.stringify(canonicalOperations, null, 2)}
 ${JSON.stringify(canonicalFacts, null, 2)}
 
 🏢 INFORMATIONS SOCIÉTÉ:
-${JSON.stringify({
-  ...(profileRes.data || {}),
-  ...(companyRes.data || {}),
-  active_company_id: resolvedActiveCompanyId,
-}, null, 2)}
+${JSON.stringify(
+  {
+    ...(profileRes.data || {}),
+    ...(companyRes.data || {}),
+    active_company_id: resolvedActiveCompanyId,
+  },
+  null,
+  2
+)}
 
 🖥️ CONTEXTE UI ACTUEL:
-${JSON.stringify({
-  current_path: currentPath || null,
-}, null, 2)}
+${JSON.stringify(
+  {
+    current_path: currentPath || null,
+  },
+  null,
+  2
+)}
 
 ═══════════════════════════════════════════════════════════════════
 🎯 TES RÔLES : EXPERT-COMPTABLE + CFO (DIRECTEUR FINANCIER)
@@ -931,26 +965,32 @@ ${JSON.stringify({
 
 Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la question de ton client de manière complète et professionnelle.`;
 
-    const geminiCacheKey = await sha256Hex(JSON.stringify({
-      user_id: resolvedUserId,
-      company_id: resolvedActiveCompanyId,
-      current_path: currentPath,
-      message,
-      context,
-      canonical_metrics: canonicalFacts.dashboard.metrics,
-      canonical_revenue: canonicalFacts.revenueCollection,
-      canonical_operations: canonicalFacts.operations,
-    }));
+    const geminiCacheKey = await sha256Hex(
+      JSON.stringify({
+        user_id: resolvedUserId,
+        company_id: resolvedActiveCompanyId,
+        current_path: currentPath,
+        message,
+        context,
+        canonical_metrics: canonicalFacts.dashboard.metrics,
+        canonical_revenue: canonicalFacts.revenueCollection,
+        canonical_operations: canonicalFacts.operations,
+      })
+    );
     const cachedGeminiReply = readGeminiCache(geminiCacheKey);
     if (cachedGeminiReply) {
-      return new Response(JSON.stringify({
-        success: true,
-        reply: cachedGeminiReply,
-        source: 'gemini-cache',
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          reply: cachedGeminiReply,
+          source: 'gemini-cache',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Chatbot');
+    const creditCost = await resolveCreditCost(supabase as any, CHATBOT_OPERATION_CODE);
+    creditConsumption = await consumeCredits(supabase as any, resolvedUserId, creditCost, 'AI Chatbot');
 
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
@@ -962,7 +1002,14 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
       body: JSON.stringify({
         contents: [
           { role: 'user', parts: [{ text: systemPrompt }] },
-          { role: 'model', parts: [{ text: 'Compris. En tant qu\'expert-comptable de votre entreprise, je suis à votre disposition pour vous accompagner dans la gestion comptable, fiscale et financière. Je vais analyser vos données en temps réel et vous apporter des conseils stratégiques personnalisés.' }] },
+          {
+            role: 'model',
+            parts: [
+              {
+                text: "Compris. En tant qu'expert-comptable de votre entreprise, je suis à votre disposition pour vous accompagner dans la gestion comptable, fiscale et financière. Je vais analyser vos données en temps réel et vous apporter des conseils stratégiques personnalisés.",
+              },
+            ],
+          },
           ...context,
           { role: 'user', parts: [{ text: message }] },
         ],
@@ -970,7 +1017,7 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
           temperature: 0.5,
           maxOutputTokens: 2048,
           topP: 0.9,
-          topK: 40
+          topK: 40,
         },
       }),
     });
@@ -983,16 +1030,17 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
 
     const result = await geminiRes.json();
     console.log('Gemini result structure:', JSON.stringify(result, null, 2));
-    const reply = result.candidates?.[0]?.content?.parts?.[0]?.text || 'Désolé, je n\'ai pas pu répondre.';
+    const reply = result.candidates?.[0]?.content?.parts?.[0]?.text || "Désolé, je n'ai pas pu répondre.";
     console.log('Extracted reply:', reply);
     writeGeminiCache(geminiCacheKey, reply);
 
-    return new Response(JSON.stringify({ success: true, reply, source: 'gemini-live' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ success: true, reply, source: 'gemini-live' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     if (creditConsumption && resolvedUserId) {
       try {
-        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Chatbot - error');
+        await refundCredits(supabase as any, resolvedUserId, creditConsumption, 'AI Chatbot - error');
       } catch {
         // Ignore secondary refund/auth failures in the error path.
       }
@@ -1000,7 +1048,9 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
 
     const status = error instanceof HttpError ? error.status : 500;
     console.error('AI chatbot error:', error);
-    return new Response(JSON.stringify({ error: 'An error occurred' }),
-      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: 'An error occurred' }), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

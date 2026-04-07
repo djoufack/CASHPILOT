@@ -1,6 +1,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { requireAuthenticatedUser } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createServiceClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+  resolveCreditCost,
+} from '../_shared/billing.ts';
 import { createRequestLogger } from '../_shared/logger.ts';
 
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -11,44 +17,50 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
+const ANOMALY_OPERATION_CODE = 'AI_ANOMALY_DETECT';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const logger = createRequestLogger(req);
+  const supabase = createServiceClient();
+  let resolvedUserId = '';
+  let creditConsumption = null;
 
   try {
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
     const authUser = await requireAuthenticatedUser(req);
-    const userId = authUser.id;
-
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    resolvedUserId = authUser.id;
 
     // Fetch recent financial data
     const [invoices, expenses, payments] = await Promise.all([
       supabase
         .from('invoices')
         .select('invoice_number, total_ttc, status, date, due_date')
-        .eq('user_id', userId)
+        .eq('user_id', resolvedUserId)
         .order('created_at', { ascending: false })
         .limit(50),
       supabase
         .from('expenses')
         .select('description, amount, category, expense_date')
-        .eq('user_id', userId)
+        .eq('user_id', resolvedUserId)
         .order('expense_date', { ascending: false })
         .limit(50),
       supabase
         .from('payments')
         .select('amount, payment_date, method')
-        .eq('user_id', userId)
+        .eq('user_id', resolvedUserId)
         .order('payment_date', { ascending: false })
         .limit(50),
     ]);
     if (invoices.error) throw invoices.error;
     if (expenses.error) throw expenses.error;
     if (payments.error) throw payments.error;
+
+    const creditCost = await resolveCreditCost(supabase as any, ANOMALY_OPERATION_CODE);
+    creditConsumption = await consumeCredits(supabase as any, resolvedUserId, creditCost, 'AI Anomaly Detection');
 
     const prompt = `Analyse ces données comptables et détecte les anomalies:
 
@@ -79,9 +91,19 @@ Ne retourne que les anomalies réelles, pas de faux positifs.`;
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    logger.done(500, error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    if (creditConsumption && resolvedUserId) {
+      try {
+        await refundCredits(supabase as any, resolvedUserId, creditConsumption, 'AI Anomaly Detection - error');
+      } catch {
+        // Ignore refund failures in error handling.
+      }
+    }
+
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    logger.done(status, message);
+    return new Response(JSON.stringify({ error: message }), {
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

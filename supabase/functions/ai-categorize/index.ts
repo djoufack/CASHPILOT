@@ -1,6 +1,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { requireAuthenticatedUser } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createServiceClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+  resolveCreditCost,
+} from '../_shared/billing.ts';
 
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
@@ -10,30 +16,50 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
+const CATEGORIZE_OPERATION_CODE = 'AI_CATEGORIZE';
+
 const CATEGORIES = [
-  'Fournitures de bureau', 'Logiciels & SaaS', 'Déplacements', 'Restauration',
-  'Marketing & Publicité', 'Loyer & Charges', 'Assurances', 'Honoraires',
-  'Télécommunications', 'Formation', 'Matériel informatique', 'Frais bancaires',
-  'Véhicule', 'Entretien & Réparations', 'Divers'
+  'Fournitures de bureau',
+  'Logiciels & SaaS',
+  'Déplacements',
+  'Restauration',
+  'Marketing & Publicité',
+  'Loyer & Charges',
+  'Assurances',
+  'Honoraires',
+  'Télécommunications',
+  'Formation',
+  'Matériel informatique',
+  'Frais bancaires',
+  'Véhicule',
+  'Entretien & Réparations',
+  'Divers',
 ];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const supabase = createServiceClient();
+  let resolvedUserId = '';
+  let creditConsumption = null;
 
   try {
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
     const authUser = await requireAuthenticatedUser(req);
-    const userId = authUser.id;
-
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    resolvedUserId = authUser.id;
     const { expenses } = await req.json();
 
     if (!expenses?.length) {
-      return new Response(JSON.stringify({ error: 'Missing expenses' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Missing expenses' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
+    const creditCost = await resolveCreditCost(supabase as any, CATEGORIZE_OPERATION_CODE);
+    creditConsumption = await consumeCredits(supabase as any, resolvedUserId, creditCost, 'AI Categorize');
 
     const prompt = `Catégorise ces dépenses dans une des catégories suivantes: ${CATEGORIES.join(', ')}.
 
@@ -57,10 +83,23 @@ Retourne un JSON array avec pour chaque dépense: { "index": number, "category":
     const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
     const categories = JSON.parse(text || '[]');
 
-    return new Response(JSON.stringify({ success: true, categories }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ success: true, categories }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (creditConsumption && resolvedUserId) {
+      try {
+        await refundCredits(supabase as any, resolvedUserId, creditConsumption, 'AI Categorize - error');
+      } catch {
+        // Ignore refund failures in error handling.
+      }
+    }
+
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

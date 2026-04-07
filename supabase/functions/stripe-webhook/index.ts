@@ -46,6 +46,35 @@ const normalizeSubscriptionStatus = (status?: string | null) => {
   return CANONICAL_SUBSCRIPTION_STATUSES.has(normalized) ? normalized : 'none';
 };
 
+const normalizeBillingInterval = (interval?: string | null) => {
+  if (!interval) return 'monthly';
+
+  const normalized = interval.toLowerCase();
+  if (normalized === 'year' || normalized === 'annual' || normalized === 'yearly') {
+    return 'yearly';
+  }
+
+  if (normalized === 'month' || normalized === 'monthly') {
+    return 'monthly';
+  }
+
+  return 'monthly';
+};
+
+const resolveSubscriptionBillingInterval = (subscription: Stripe.Subscription, fallback?: string | null) =>
+  normalizeBillingInterval(
+    subscription.items.data[0]?.price?.recurring?.interval ?? subscription.metadata?.billing_interval ?? fallback
+  );
+
+const buildRefillPeriodKey = (periodStartIso?: string | null) => {
+  if (!periodStartIso) return null;
+
+  const epochMs = new Date(periodStartIso).getTime();
+  if (!Number.isFinite(epochMs)) return null;
+
+  return String(Math.floor(epochMs / 1000));
+};
+
 const getEventMetadata = (event: Stripe.Event, extra: Record<string, string | number | boolean | null> = {}) => ({
   stripe_event_id: event.id,
   stripe_event_type: event.type,
@@ -162,7 +191,7 @@ const getSubscriptionState = async (supabase: any, userId: string): Promise<any>
   const { data, error } = await supabase
     .from('user_credits')
     .select(
-      'subscription_status, subscription_plan_id, subscription_credits, current_period_start, current_period_end, stripe_subscription_id, stripe_customer_id'
+      'subscription_status, subscription_plan_id, subscription_credits, current_period_start, current_period_end, stripe_subscription_id, stripe_customer_id, subscription_billing_interval, subscription_refill_anchor, subscription_last_refill_at'
     )
     .eq('user_id', userId)
     .maybeSingle();
@@ -269,6 +298,10 @@ serve(async (req) => {
         // Retrieve subscription to get current_period_end
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
         const canonicalSubscriptionStatus = normalizeSubscriptionStatus(sub.status);
+        const billingInterval = resolveSubscriptionBillingInterval(sub, session.metadata?.billing_interval);
+        const currentPeriodStart = new Date(sub.current_period_start * 1000).toISOString();
+        const currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
+        const initialRefillPeriodKey = buildRefillPeriodKey(currentPeriodStart);
 
         if (isGuest || !userId) {
           // --- Guest checkout: store as pending subscription ---
@@ -282,8 +315,8 @@ serve(async (req) => {
               plan_slug: planSlug,
               plan_id: planId,
               credits_per_month: creditsPerMonth,
-              billing_interval: session.metadata?.billing_interval || 'monthly',
-              current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+              billing_interval: billingInterval,
+              current_period_end: currentPeriodEnd,
               stripe_session_id: session.id,
             },
             { onConflict: 'stripe_session_id' }
@@ -331,8 +364,11 @@ serve(async (req) => {
               stripe_customer_id: session.customer as string,
               subscription_status: canonicalSubscriptionStatus,
               subscription_credits: creditsPerMonth,
-              current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+              current_period_start: currentPeriodStart,
+              current_period_end: currentPeriodEnd,
+              subscription_billing_interval: billingInterval,
+              subscription_refill_anchor: currentPeriodStart,
+              subscription_last_refill_at: currentPeriodStart,
               updated_at: new Date().toISOString(),
             })
             .eq('user_id', userId);
@@ -353,6 +389,8 @@ serve(async (req) => {
               subscription_id: subscriptionId,
               plan_id: planId || null,
               plan_slug: planSlug || null,
+              billing_interval: billingInterval,
+              refill_period_key: initialRefillPeriodKey,
             }),
           });
 
@@ -575,12 +613,11 @@ serve(async (req) => {
     }
 
     // ========================================
-    // invoice.paid — Monthly subscription renewal
+    // invoice.paid — Sync Stripe period and let DB refresh quota when due
     // ========================================
     if (event.type === 'invoice.paid') {
       const invoice = event.data.object as Stripe.Invoice;
       const subscriptionId = invoice.subscription as string;
-      const eventAlreadyProcessed = await findProcessedStripeEvent(supabase, event.id);
 
       // Skip if not a subscription invoice or first invoice (handled by checkout)
       if (!subscriptionId || invoice.billing_reason === 'subscription_create') {
@@ -592,7 +629,7 @@ serve(async (req) => {
       // Find user by stripe_subscription_id
       const { data: userCredits } = await supabase
         .from('user_credits')
-        .select('user_id, subscription_plan_id')
+        .select('user_id, subscription_billing_interval')
         .eq('stripe_subscription_id', subscriptionId)
         .single();
 
@@ -603,80 +640,64 @@ serve(async (req) => {
         });
       }
 
-      // Get plan credits
-      const { data: plan } = await supabase
-        .from('subscription_plans')
-        .select('credits_per_month, name, slug')
-        .eq('id', userCredits.subscription_plan_id)
-        .single();
-
-      if (!plan) {
-        console.error('Plan not found:', userCredits.subscription_plan_id);
-        return new Response(JSON.stringify({ received: true, status: 'plan_not_found' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (eventAlreadyProcessed) {
-        console.log(`Subscription renewal event already processed (${event.id})`);
-        return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Retrieve subscription for period end
+      // Retrieve subscription and let the billing engine decide whether a refill is due.
       const sub = await stripe.subscriptions.retrieve(subscriptionId);
       const canonicalSubscriptionStatus = normalizeSubscriptionStatus(sub.status);
+      const billingInterval = resolveSubscriptionBillingInterval(sub, userCredits.subscription_billing_interval);
       const currentPeriodStart = new Date(sub.current_period_start * 1000).toISOString();
       const currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
+      const stripeCustomerId = typeof sub.customer === 'string' ? sub.customer : null;
       const currentState = await getSubscriptionState(supabase, userCredits.user_id);
 
       if (
         currentState &&
         currentState.subscription_status === canonicalSubscriptionStatus &&
-        currentState.subscription_credits === plan.credits_per_month &&
         currentState.current_period_start === currentPeriodStart &&
         currentState.current_period_end === currentPeriodEnd &&
-        currentState.stripe_subscription_id === subscriptionId
+        currentState.stripe_subscription_id === subscriptionId &&
+        currentState.stripe_customer_id === stripeCustomerId &&
+        currentState.subscription_billing_interval === billingInterval &&
+        currentState.subscription_refill_anchor === currentPeriodStart
       ) {
-        console.log(`Subscription renewal already applied for user ${userCredits.user_id} (${subscriptionId})`);
+        await supabase.rpc('refresh_user_billing_state', {
+          target_user_id: userCredits.user_id,
+        });
+
+        console.log(`Subscription invoice already synced for user ${userCredits.user_id} (${subscriptionId})`);
         return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // Reset subscription credits to monthly quota
-      const { error: resetError } = await supabase
+      const { error: syncError } = await supabase
         .from('user_credits')
         .update({
-          subscription_credits: plan.credits_per_month,
           subscription_status: canonicalSubscriptionStatus,
           current_period_start: currentPeriodStart,
           current_period_end: currentPeriodEnd,
+          stripe_subscription_id: subscriptionId,
+          stripe_customer_id: stripeCustomerId,
+          subscription_billing_interval: billingInterval,
+          subscription_refill_anchor: currentPeriodStart,
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userCredits.user_id);
 
-      if (resetError) {
-        console.error('Failed to reset subscription credits:', resetError);
-        throw resetError;
+      if (syncError) {
+        console.error('Failed to sync subscription billing window:', syncError);
+        throw syncError;
       }
 
-      await supabase.from('credit_transactions').insert({
-        user_id: userCredits.user_id,
-        type: 'subscription_renewal',
-        amount: plan.credits_per_month,
-        description: `Renouvellement ${plan.name} — ${plan.credits_per_month} crédits`,
-        metadata: getEventMetadata(event, {
-          subscription_id: subscriptionId,
-          invoice_id: invoice.id,
-          plan_id: userCredits.subscription_plan_id || null,
-        }),
+      const { error: refreshError } = await supabase.rpc('refresh_user_billing_state', {
+        target_user_id: userCredits.user_id,
       });
 
-      console.log(
-        `Renewed ${plan.slug} for user ${userCredits.user_id} (${plan.credits_per_month} credits, status=${canonicalSubscriptionStatus})`
-      );
+      if (refreshError) {
+        console.error('Failed to refresh subscription quota after invoice sync:', refreshError);
+        throw refreshError;
+      }
+
+      console.log(`Subscription invoice synced for user ${userCredits.user_id} (${subscriptionId})`);
     }
 
     // ========================================
@@ -684,18 +705,32 @@ serve(async (req) => {
     // ========================================
     if (event.type === 'customer.subscription.updated') {
       const subscription = event.data.object as Stripe.Subscription;
-      const userId = subscription.metadata?.user_id;
+      let userId = subscription.metadata?.user_id;
 
       if (!userId) {
-        console.log('No user_id in subscription metadata, skipping');
-        return new Response(JSON.stringify({ received: true, status: 'no_metadata' }), {
+        const { data: linkedCredits, error: linkedCreditsError } = await supabase
+          .from('user_credits')
+          .select('user_id')
+          .eq('stripe_subscription_id', subscription.id)
+          .maybeSingle();
+
+        if (linkedCreditsError) {
+          throw linkedCreditsError;
+        }
+
+        userId = linkedCredits?.user_id || undefined;
+      }
+
+      if (!userId) {
+        console.log('No user linked to updated subscription, skipping');
+        return new Response(JSON.stringify({ received: true, status: 'user_not_found' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       const planSlug = subscription.metadata?.plan_slug;
       const planId = subscription.metadata?.plan_id;
-      const creditsPerMonth = parseInt(subscription.metadata?.credits_per_month || '0', 10);
+      const billingInterval = resolveSubscriptionBillingInterval(subscription, subscription.metadata?.billing_interval);
       const canonicalSubscriptionStatus = normalizeSubscriptionStatus(subscription.status);
       const currentPeriodStart = new Date(subscription.current_period_start * 1000).toISOString();
       const currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
@@ -705,12 +740,18 @@ serve(async (req) => {
         currentState &&
         currentState.subscription_status === canonicalSubscriptionStatus &&
         currentState.subscription_plan_id === (planId || null) &&
-        currentState.subscription_credits === creditsPerMonth &&
         currentState.current_period_start === currentPeriodStart &&
         currentState.current_period_end === currentPeriodEnd &&
         currentState.stripe_subscription_id === subscription.id &&
-        currentState.stripe_customer_id === (typeof subscription.customer === 'string' ? subscription.customer : null)
+        currentState.stripe_customer_id ===
+          (typeof subscription.customer === 'string' ? subscription.customer : null) &&
+        currentState.subscription_billing_interval === billingInterval &&
+        currentState.subscription_refill_anchor === currentPeriodStart
       ) {
+        await supabase.rpc('refresh_user_billing_state', {
+          target_user_id: userId,
+        });
+
         console.log(`Subscription update already applied for user ${userId} (${subscription.id})`);
         return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -721,17 +762,34 @@ serve(async (req) => {
         subscription_status: canonicalSubscriptionStatus,
         current_period_start: currentPeriodStart,
         current_period_end: currentPeriodEnd,
+        stripe_subscription_id: subscription.id,
+        stripe_customer_id: typeof subscription.customer === 'string' ? subscription.customer : null,
+        subscription_billing_interval: billingInterval,
+        subscription_refill_anchor: currentPeriodStart,
         updated_at: new Date().toISOString(),
       };
 
       if (planId) {
         updateData.subscription_plan_id = planId;
-        updateData.subscription_credits = creditsPerMonth;
       }
 
-      await supabase.from('user_credits').update(updateData).eq('user_id', userId);
+      const { error: updateError } = await supabase.from('user_credits').update(updateData).eq('user_id', userId);
 
-      console.log(`Subscription updated for user ${userId}: status=${canonicalSubscriptionStatus}, plan=${planSlug}`);
+      if (updateError) {
+        throw updateError;
+      }
+
+      const { error: refreshError } = await supabase.rpc('refresh_user_billing_state', {
+        target_user_id: userId,
+      });
+
+      if (refreshError) {
+        throw refreshError;
+      }
+
+      console.log(
+        `Subscription updated for user ${userId}: status=${canonicalSubscriptionStatus}, plan=${planSlug}, billing=${billingInterval}`
+      );
     }
 
     // ========================================
@@ -781,6 +839,9 @@ serve(async (req) => {
               subscription_credits: 0,
               stripe_subscription_id: null,
               subscription_plan_id: null,
+              subscription_billing_interval: 'monthly',
+              subscription_refill_anchor: null,
+              subscription_last_refill_at: null,
               current_period_start: null,
               current_period_end: null,
               updated_at: new Date().toISOString(),
@@ -826,6 +887,9 @@ serve(async (req) => {
             subscription_credits: 0,
             stripe_subscription_id: null,
             subscription_plan_id: null,
+            subscription_billing_interval: 'monthly',
+            subscription_refill_anchor: null,
+            subscription_last_refill_at: null,
             current_period_start: null,
             current_period_end: null,
             updated_at: new Date().toISOString(),

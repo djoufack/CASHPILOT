@@ -2,7 +2,14 @@
 // Parses voice transcripts into structured expense data using Google Gemini API
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createServiceClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+  resolveCreditCost,
+} from '../_shared/billing.ts';
 
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -13,17 +20,9 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const CREDIT_COST = 1;
+const VOICE_EXPENSE_OPERATION_CODE = 'AI_CATEGORIZE';
 
-const EXPENSE_CATEGORIES = [
-  'transport',
-  'restaurant',
-  'hotel',
-  'fournitures',
-  'telecom',
-  'services',
-  'other'
-] as const;
+const EXPENSE_CATEGORIES = ['transport', 'restaurant', 'hotel', 'fournitures', 'telecom', 'services', 'other'] as const;
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -50,13 +49,14 @@ serve(async (req) => {
     const { userId, text } = await req.json();
 
     if ((userId && userId !== resolvedUserId) || !text) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: userId, text' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Missing required fields: userId, text' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Voice Expense Parsing');
+    const creditCost = await resolveCreditCost(supabase as any, VOICE_EXPENSE_OPERATION_CODE);
+    creditConsumption = await consumeCredits(supabase as any, resolvedUserId, creditCost, 'AI Voice Expense Parsing');
 
     // Build the prompt for French voice transcript parsing
     const prompt = `Tu es un assistant expert en extraction de donnees de depenses a partir de transcriptions vocales en francais.
@@ -91,9 +91,9 @@ Regles:
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.2,
-          maxOutputTokens: 512
-        }
-      })
+          maxOutputTokens: 512,
+        },
+      }),
     });
 
     if (!geminiResponse.ok) {
@@ -129,9 +129,8 @@ Regles:
         category: EXPENSE_CATEGORIES.includes(expense.category) ? expense.category : 'other',
         expense_date: expense.expense_date || expense.date || new Date().toISOString().split('T')[0],
         description: String(expense.description || '').slice(0, 255),
-        confidence: Math.min(1, Math.max(0, Number(expense.confidence) || 0.5))
+        confidence: Math.min(1, Math.max(0, Number(expense.confidence) || 0.5)),
       };
-
     } catch (parseError) {
       throw new HttpError(422, 'extraction_failed');
     }
@@ -141,24 +140,25 @@ Regles:
       JSON.stringify({
         success: true,
         expense,
-        creditsRemaining: creditConsumption.available_credits
+        creditsRemaining: creditConsumption.available_credits,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
     if (creditConsumption && resolvedUserId) {
       try {
-        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Voice Expense - error');
+        await refundCredits(supabase as any, resolvedUserId, creditConsumption, 'AI Voice Expense - error');
       } catch {
         // Ignore refund failures in error handling.
       }
     }
 
     console.error('Voice expense parsing error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: error instanceof HttpError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

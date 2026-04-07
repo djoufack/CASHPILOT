@@ -1,5 +1,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createServiceClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+  resolveCreditCost,
+} from '../_shared/billing.ts';
 
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -10,7 +17,7 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const CREDIT_COST = 5;
+const TAX_OPTIMIZATION_OPERATION_CODE = 'AI_REPORT';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -53,7 +60,7 @@ serve(async (req) => {
         .select('amount, category, vat_amount')
         .eq('user_id', resolvedUserId)
         .gte('expense_date', startDate)
-        .lte('expense_date', endDate)
+        .lte('expense_date', endDate),
     ]);
 
     if (invoicesResult.error) {
@@ -64,7 +71,13 @@ serve(async (req) => {
       throw expensesResult.error;
     }
 
-    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Tax Optimization analysis');
+    const creditCost = await resolveCreditCost(supabase as any, TAX_OPTIMIZATION_OPERATION_CODE);
+    creditConsumption = await consumeCredits(
+      supabase as any,
+      resolvedUserId,
+      creditCost,
+      'AI Tax Optimization analysis'
+    );
 
     const paidInvoices = invoicesResult.data?.filter((invoice) => invoice.status === 'paid') || [];
     const expenses = expensesResult.data || [];
@@ -72,17 +85,21 @@ serve(async (req) => {
     const financialData = {
       revenue: paidInvoices.reduce((sum, invoice) => sum + (invoice.total_ht || 0), 0),
       expenses: expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0),
-      vatCollected: invoicesResult.data?.reduce((sum, invoice) => {
-        const totalHt = Number(invoice.total_ht || 0);
-        const totalTtc = Number(invoice.total_ttc || 0);
-        return sum + Math.max(0, (totalTtc - totalHt));
-      }, 0) || 0,
+      vatCollected:
+        invoicesResult.data?.reduce((sum, invoice) => {
+          const totalHt = Number(invoice.total_ht || 0);
+          const totalTtc = Number(invoice.total_ttc || 0);
+          return sum + Math.max(0, totalTtc - totalHt);
+        }, 0) || 0,
       vatDeductible: expenses.reduce((sum, expense) => sum + (expense.vat_amount || 0), 0),
-      expensesByCategory: expenses.reduce((acc: Record<string, number>, expense) => {
-        const category = expense.category || 'other';
-        acc[category] = (acc[category] || 0) + (expense.amount || 0);
-        return acc;
-      }, {} as Record<string, number>)
+      expensesByCategory: expenses.reduce(
+        (acc: Record<string, number>, expense) => {
+          const category = expense.category || 'other';
+          acc[category] = (acc[category] || 0) + (expense.amount || 0);
+          return acc;
+        },
+        {} as Record<string, number>
+      ),
     };
 
     const prompt = `Tu es un expert-comptable specialise en optimisation fiscale ${jurisdiction}.
@@ -121,9 +138,9 @@ Reponds UNIQUEMENT en JSON valide:
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.3,
-          maxOutputTokens: 2048
-        }
-      })
+          maxOutputTokens: 2048,
+        },
+      }),
     });
 
     if (!geminiRes.ok) {
@@ -145,25 +162,30 @@ Reponds UNIQUEMENT en JSON valide:
       throw new HttpError(422, 'tax_optimization_parse_failed');
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      optimization,
-      financialSummary: financialData,
-      creditsUsed: CREDIT_COST
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        optimization,
+        financialSummary: financialData,
+        creditsUsed: creditCost,
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     if (creditConsumption && resolvedUserId) {
       try {
-        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Tax Optimization - error');
+        await refundCredits(supabase as any, resolvedUserId, creditConsumption, 'AI Tax Optimization - error');
       } catch {
         // Ignore refund failures in error handling.
       }
     }
 
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: error instanceof HttpError ? error.status : 500,
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), {
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

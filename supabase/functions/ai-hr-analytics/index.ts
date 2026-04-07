@@ -6,6 +6,7 @@ import {
   HttpError,
   refundCredits,
   requireAuthenticatedUser,
+  resolveCreditCost,
 } from '../_shared/billing.ts';
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -16,11 +17,22 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const CREDIT_COST = 3;
 const ANALYTICS_RATE_LIMIT = { maxRequests: 30, windowMs: 15 * 60 * 1000, keyPrefix: 'ai-hr-analytics' };
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type AnalyticsAction = 'turnover_risk' | 'absenteeism_forecast' | 'headcount_forecast' | 'salary_benchmark';
+
+const resolveAnalyticsOperationCode = (action: AnalyticsAction): string => {
+  switch (action) {
+    case 'turnover_risk':
+      return 'AI_ANOMALY_DETECT';
+    case 'absenteeism_forecast':
+    case 'headcount_forecast':
+      return 'AI_FORECAST';
+    case 'salary_benchmark':
+      return 'AI_REPORT';
+  }
+};
 
 const toNumber = (value: unknown): number => {
   const parsed = Number(value);
@@ -729,11 +741,13 @@ serve(async (req) => {
       );
     }
 
-    creditConsumption = await consumeCredits(serviceClient, resolvedUserId, CREDIT_COST, 'AI HR Analytics');
+    const resolvedAction = action as AnalyticsAction;
+    const creditCost = await resolveCreditCost(serviceClient as any, resolveAnalyticsOperationCode(resolvedAction));
+    creditConsumption = await consumeCredits(serviceClient as any, resolvedUserId, creditCost, 'AI HR Analytics');
 
     let result: { success: boolean; data: unknown; message: string };
 
-    switch (action as AnalyticsAction) {
+    switch (resolvedAction) {
       case 'turnover_risk':
         result = await handleTurnoverRisk(scopedSupabase, companyId);
         break;
@@ -756,7 +770,7 @@ serve(async (req) => {
   } catch (error) {
     if (creditConsumption && resolvedUserId) {
       try {
-        await refundCredits(serviceClient, resolvedUserId, creditConsumption, 'AI HR Analytics - error');
+        await refundCredits(serviceClient as any, resolvedUserId, creditConsumption, 'AI HR Analytics - error');
       } catch {
         /* ignore secondary failures */
       }

@@ -231,23 +231,30 @@ export function usePeppol() {
       }
 
       const requestPromise = (async () => {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        const accessToken = sessionData?.session?.access_token;
-        if (!accessToken) {
-          throw new Error('Session expirée. Veuillez vous reconnecter.');
-        }
-
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
         if (!supabaseUrl || !anonKey) {
           throw new Error('Configuration Supabase manquante.');
         }
 
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-          const response = await fetch(`${supabaseUrl}/functions/v1/peppol-inbound`, {
+        const resolveAccessToken = async ({ allowRefresh = false, forceRefresh = false } = {}) => {
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) throw sessionError;
+          const currentToken = sessionData?.session?.access_token;
+          if (currentToken && !forceRefresh) return currentToken;
+
+          if (!allowRefresh) return null;
+
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) throw refreshError;
+          return refreshData?.session?.access_token || null;
+        };
+
+        const performRequest = async (accessToken) => {
+          if (!accessToken) {
+            throw new Error('Session expirée. Veuillez vous reconnecter.');
+          }
+          return await fetch(`${supabaseUrl}/functions/v1/peppol-inbound`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -261,6 +268,18 @@ export function usePeppol() {
             }),
             signal: controller.signal,
           });
+        };
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const initialToken = await resolveAccessToken({ allowRefresh: true });
+          let response = await performRequest(initialToken);
+
+          if (response.status === 401) {
+            const refreshedToken = await resolveAccessToken({ allowRefresh: true, forceRefresh: true });
+            response = await performRequest(refreshedToken);
+          }
 
           if (!response.ok) {
             const text = await response.text();

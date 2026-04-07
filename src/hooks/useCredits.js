@@ -11,12 +11,11 @@ export const useCredits = () => {
   const { t } = useTranslation();
   const { fullAccessOverride, accessLabel } = useEntitlements();
   const [credits, setCredits] = useState({ free_credits: 0, paid_credits: 0, subscription_credits: 0, total_used: 0 });
-  const [packages, setPackages] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const availableCredits = credits.free_credits + (credits.subscription_credits || 0) + credits.paid_credits;
-  const resolveRpcRow = (payload) => Array.isArray(payload) ? payload[0] : payload;
+  const resolveRpcRow = (payload) => (Array.isArray(payload) ? payload[0] : payload);
 
   const fetchCredits = useCallback(async () => {
     if (!supabase) {
@@ -39,11 +38,7 @@ export const useCredits = () => {
         throw refreshError;
       }
 
-      const { data, error } = await supabase
-        .from('user_credits')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      const { data, error } = await supabase.from('user_credits').select('*').eq('user_id', user.id).single();
 
       if (error) {
         throw error;
@@ -58,20 +53,6 @@ export const useCredits = () => {
       setLoading(false);
     }
   }, [user]);
-
-  const fetchPackages = useCallback(async () => {
-    if (!supabase) return;
-    try {
-      const { data } = await supabase
-        .from('credit_packages')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
-      setPackages(data || []);
-    } catch (err) {
-      console.error('Error fetching packages:', err);
-    }
-  }, []);
 
   const fetchTransactions = useCallback(async () => {
     if (!user || !supabase) return;
@@ -90,8 +71,7 @@ export const useCredits = () => {
 
   useEffect(() => {
     fetchCredits();
-    fetchPackages();
-  }, [fetchCredits, fetchPackages]);
+  }, [fetchCredits]);
 
   /**
    * Consume credits for an action (export, visualization, etc.)
@@ -118,7 +98,7 @@ export const useCredits = () => {
         toast({
           title: t('credits.insufficient'),
           description: t('credits.purchaseMore'),
-          variant: 'destructive'
+          variant: 'destructive',
         });
         return false;
       }
@@ -131,46 +111,9 @@ export const useCredits = () => {
       toast({
         title: t('common.error'),
         description: err.message,
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return false;
-    }
-  };
-
-  /**
-   * Add credits after successful Stripe payment
-   */
-  const addCredits = async (amount, stripeSessionId, stripePi) => {
-    if (!user || !supabase) return;
-    try {
-      const { error: updateError } = await supabase
-        .from('user_credits')
-        .update({
-          paid_credits: credits.paid_credits + amount,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
-
-      if (updateError) throw updateError;
-
-      await supabase
-        .from('credit_transactions')
-        .insert([{
-          user_id: user.id,
-          type: 'purchase',
-          amount: amount,
-          description: `Purchased ${amount} credits`,
-          stripe_session_id: stripeSessionId || null,
-          stripe_payment_intent: stripePi || null
-        }]);
-
-      await fetchCredits();
-      toast({
-        title: t('common.success'),
-        description: t('credits.purchased', { amount })
-      });
-    } catch (err) {
-      console.error('Error adding credits:', err);
     }
   };
 
@@ -179,13 +122,10 @@ export const useCredits = () => {
     availableCredits,
     unlimitedAccess: fullAccessOverride,
     unlimitedAccessLabel: accessLabel,
-    packages,
     transactions,
     loading,
     fetchCredits,
-    fetchPackages,
     fetchTransactions,
     consumeCredits,
-    addCredits
   };
 };

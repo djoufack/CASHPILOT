@@ -1,4 +1,103 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+
+type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+type WebhookEndpointRow = {
+  id: string;
+  user_id: string;
+  url: string;
+  secret: string;
+  events: string[];
+  is_active: boolean | null;
+  last_triggered_at: string | null;
+  failure_count: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+type WebhookEndpointInsert = {
+  user_id: string;
+  url: string;
+  secret: string;
+  events: string[];
+  is_active?: boolean | null;
+  last_triggered_at?: string | null;
+  failure_count?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type WebhookEndpointUpdate = {
+  url?: string;
+  secret?: string;
+  events?: string[];
+  is_active?: boolean | null;
+  last_triggered_at?: string | null;
+  failure_count?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type WebhookDeliveryRow = {
+  id: string;
+  webhook_endpoint_id: string;
+  event: string;
+  payload: Json;
+  status_code: number | null;
+  response_body: string | null;
+  delivered: boolean | null;
+  attempts: number | null;
+  created_at: string | null;
+};
+
+type WebhookDeliveryInsert = {
+  webhook_endpoint_id: string;
+  event: string;
+  payload: Json;
+  status_code?: number | null;
+  response_body?: string | null;
+  delivered?: boolean | null;
+  attempts?: number | null;
+  created_at?: string | null;
+};
+
+type WebhookDeliveryUpdate = {
+  webhook_endpoint_id?: string;
+  event?: string;
+  payload?: Json;
+  status_code?: number | null;
+  response_body?: string | null;
+  delivered?: boolean | null;
+  attempts?: number | null;
+  created_at?: string | null;
+};
+
+type WebhookDatabase = {
+  public: {
+    Tables: {
+      webhook_endpoints: {
+        Row: WebhookEndpointRow;
+        Insert: WebhookEndpointInsert;
+        Update: WebhookEndpointUpdate;
+        Relationships: [];
+      };
+      webhook_deliveries: {
+        Row: WebhookDeliveryRow;
+        Insert: WebhookDeliveryInsert;
+        Update: WebhookDeliveryUpdate;
+        Relationships: [];
+      };
+    };
+    Functions: {
+      increment_webhook_failure: {
+        Args: {
+          endpoint_id: string;
+        };
+        Returns: void;
+      };
+    };
+  };
+};
 
 export const SUPPORTED_WEBHOOK_EVENTS = [
   'invoice.created',
@@ -39,10 +138,10 @@ async function sleep(ms: number) {
 }
 
 async function deliverWebhook(
-  endpoint: { id: string; url: string; secret: string; failure_count: number },
+  endpoint: WebhookEndpointRow,
   event: string,
   payload: unknown,
-  supabase: ReturnType<typeof createClient>
+  supabase: SupabaseClient<WebhookDatabase>
 ): Promise<{ delivered: boolean; status_code?: number; error?: string; attempts: number }> {
   const encoder = new TextEncoder();
   const keyData = encoder.encode(endpoint.secret);
@@ -77,12 +176,13 @@ async function deliverWebhook(
 
       const responseBody = await res.text().catch(() => '');
       lastStatusCode = res.status;
+      const deliveryPayload = { event, data: payload } as Json;
 
       if (res.ok) {
         await supabase.from('webhook_deliveries').insert({
           webhook_endpoint_id: endpoint.id,
           event,
-          payload: { event, data: payload },
+          payload: deliveryPayload,
           status_code: res.status,
           response_body: responseBody.slice(0, 1000),
           delivered: true,
@@ -104,7 +204,7 @@ async function deliverWebhook(
         await supabase.from('webhook_deliveries').insert({
           webhook_endpoint_id: endpoint.id,
           event,
-          payload: { event, data: payload },
+          payload: deliveryPayload,
           status_code: res.status,
           response_body: responseBody.slice(0, 1000),
           delivered: false,
@@ -143,7 +243,7 @@ async function deliverWebhook(
 }
 
 export async function deliverWebhookEvent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient<WebhookDatabase>,
   userId: string,
   event: string,
   payload: unknown
@@ -163,8 +263,8 @@ export async function deliverWebhookEvent(
     return { success: true, delivered: 0, total_endpoints: 0, auto_disabled: 0, results: [] };
   }
 
-  const activeEndpoints = endpoints.filter((endpoint: { failure_count: number }) => endpoint.failure_count < 10);
-  const disabledEndpoints = endpoints.filter((endpoint: { failure_count: number }) => endpoint.failure_count >= 10);
+  const activeEndpoints = endpoints.filter((endpoint: WebhookEndpointRow) => (endpoint.failure_count ?? 0) < 10);
+  const disabledEndpoints = endpoints.filter((endpoint: WebhookEndpointRow) => (endpoint.failure_count ?? 0) >= 10);
 
   for (const endpoint of disabledEndpoints) {
     await supabase.from('webhook_endpoints').update({ is_active: false }).eq('id', endpoint.id);

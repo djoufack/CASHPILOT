@@ -6,6 +6,7 @@ import {
   HttpError,
   refundCredits,
   requireAuthenticatedUser,
+  requireEntitlement,
   resolveCreditCost,
 } from '../_shared/billing.ts';
 import { getScopedCompany } from '../_shared/companyScope.ts';
@@ -46,6 +47,7 @@ serve(async (req) => {
 
     const user = await requireAuthenticatedUser(req);
     const supabase = createAuthClient(authHeader);
+    await requireEntitlement(supabase as any, user.id, 'peppol.einvoicing');
     const serviceSupabase = createServiceClient();
     let payload: Record<string, unknown> = {};
     try {
@@ -131,9 +133,9 @@ serve(async (req) => {
     let creditDeduction = null;
 
     if (!alreadyValidated) {
-      const configurationCredits = await resolveCreditCost(supabase, 'PEPPOL_CONFIGURATION_OK');
+      const configurationCredits = await resolveCreditCost(supabase as any, 'PEPPOL_CONFIGURATION_OK');
       creditDeduction = await consumeCredits(
-        supabase,
+        supabase as any,
         user.id,
         configurationCredits,
         `Peppol configuration validated for ${company.company_name || user.id}`
@@ -155,7 +157,7 @@ serve(async (req) => {
     } catch (error) {
       if (creditDeduction) {
         await refundCredits(
-          supabase,
+          supabase as any,
           user.id,
           creditDeduction,
           `Refund Peppol configuration for ${company.company_name || user.id}`

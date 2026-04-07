@@ -1,5 +1,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createAuthClient, HttpError, refundCredits, requireAuthenticatedUser, resolveCreditCost } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createAuthClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+  requireEntitlement,
+  resolveCreditCost,
+} from '../_shared/billing.ts';
 import { resolveScradaCredentials } from '../_shared/scradaCredentials.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
@@ -8,7 +16,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   ...SECURITY_HEADERS,
 };
-
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -21,6 +28,7 @@ serve(async (req) => {
 
     const user = await requireAuthenticatedUser(req);
     const supabase = createAuthClient(authHeader);
+    await requireEntitlement(supabase as any, user.id, 'peppol.einvoicing');
 
     const { invoice_id } = await req.json();
     if (!invoice_id) throw new HttpError(400, 'invoice_id is required');
@@ -48,10 +56,7 @@ serve(async (req) => {
     if (!buyer.peppol_endpoint_id) throw new HttpError(400, 'Client has no Peppol endpoint ID');
 
     // Load company (seller) with Scrada credentials
-    let sellerQuery = supabase
-      .from('company')
-      .select('*')
-      .eq('user_id', user.id);
+    let sellerQuery = supabase.from('company').select('*').eq('user_id', user.id);
     if (invoice.company_id) {
       sellerQuery = sellerQuery.eq('id', invoice.company_id);
     } else {
@@ -70,15 +75,10 @@ serve(async (req) => {
 
     const senderEndpoint = `${seller.peppol_scheme_id || '0208'}:${seller.peppol_endpoint_id}`;
     const receiverEndpoint = `${buyer.peppol_scheme_id || '0208'}:${buyer.peppol_endpoint_id}`;
-    const peppolSendCredits = await resolveCreditCost(supabase, 'PEPPOL_SEND_INVOICE');
+    const peppolSendCredits = await resolveCreditCost(supabase as any, 'PEPPOL_SEND_INVOICE');
     const creditDescription = `Peppol send invoice ${invoice.invoice_number || invoice_id}`;
     const refundDescription = `Refund ${creditDescription}`;
-    const creditDeduction = await consumeCredits(
-      supabase,
-      user.id,
-      peppolSendCredits,
-      creditDescription,
-    );
+    const creditDeduction = await consumeCredits(supabase as any, user.id, peppolSendCredits, creditDescription);
     let refunded = false;
 
     try {
@@ -95,57 +95,77 @@ serve(async (req) => {
           'X-API-KEY': apiKey,
           'X-PASSWORD': password,
           'Content-Type': 'application/xml',
-          'Language': 'FR',
+          Language: 'FR',
         },
         body: ublXml,
       });
 
       if (!scradaResponse.ok) {
         const errText = await scradaResponse.text();
-        await refundCredits(supabase, user.id, creditDeduction, refundDescription);
+        await refundCredits(supabase as any, user.id, creditDeduction, refundDescription);
         refunded = true;
         await supabase.from('peppol_transmission_log').insert({
-          user_id: user.id, company_id: invoice.company_id || seller.id, invoice_id, direction: 'outbound', status: 'error',
-          ap_provider: 'scrada', sender_endpoint: senderEndpoint,
-          receiver_endpoint: receiverEndpoint, error_message: errText,
+          user_id: user.id,
+          company_id: invoice.company_id || seller.id,
+          invoice_id,
+          direction: 'outbound',
+          status: 'error',
+          ap_provider: 'scrada',
+          sender_endpoint: senderEndpoint,
+          receiver_endpoint: receiverEndpoint,
+          error_message: errText,
         });
-        await supabase.from('invoices')
+        await supabase
+          .from('invoices')
           .update({ peppol_status: 'error', peppol_error_message: errText })
           .eq('id', invoice_id);
 
         return new Response(JSON.stringify({ error: 'Scrada rejected the document', details: errText }), {
-          status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       const scradaData = await scradaResponse.json();
-      const documentId = typeof scradaData === 'string' ? scradaData : (scradaData.id || scradaData.guid);
+      const documentId = typeof scradaData === 'string' ? scradaData : scradaData.id || scradaData.guid;
 
       // Log success
       await supabase.from('peppol_transmission_log').insert({
-        user_id: user.id, company_id: invoice.company_id || seller.id, invoice_id, direction: 'outbound', status: 'sent',
-        ap_provider: 'scrada', ap_document_id: documentId,
-        sender_endpoint: senderEndpoint, receiver_endpoint: receiverEndpoint,
+        user_id: user.id,
+        company_id: invoice.company_id || seller.id,
+        invoice_id,
+        direction: 'outbound',
+        status: 'sent',
+        ap_provider: 'scrada',
+        ap_document_id: documentId,
+        sender_endpoint: senderEndpoint,
+        receiver_endpoint: receiverEndpoint,
       });
 
       // Update invoice
-      await supabase.from('invoices').update({
-        peppol_status: 'pending', peppol_sent_at: new Date().toISOString(),
-        peppol_document_id: documentId,
-      }).eq('id', invoice_id);
+      await supabase
+        .from('invoices')
+        .update({
+          peppol_status: 'pending',
+          peppol_sent_at: new Date().toISOString(),
+          peppol_document_id: documentId,
+        })
+        .eq('id', invoice_id);
 
       return new Response(JSON.stringify({ success: true, documentId, status: 'pending' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (error) {
       if (!refunded) {
-        await refundCredits(supabase, user.id, creditDeduction, refundDescription);
+        await refundCredits(supabase as any, user.id, creditDeduction, refundDescription);
       }
       throw error;
     }
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: error instanceof HttpError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: error instanceof HttpError ? error.status : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
@@ -154,7 +174,12 @@ serve(async (req) => {
 
 function escapeXml(str: string | null | undefined): string {
   if (str === null || str === undefined) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 function formatDate(date: string | null | undefined): string {
@@ -174,8 +199,7 @@ function generateUBLInvoice(invoice: any, seller: any, buyer: any, items: any[])
   const buyerRef = invoice.reference || invoice.invoice_number;
   const issueDate = invoice.date || invoice.invoice_date || invoice.created_at || null;
   const totalVat = Number(
-    invoice.total_vat ??
-    Math.max(0, Number(invoice.total_ttc || 0) - Number(invoice.total_ht || 0)),
+    invoice.total_vat ?? Math.max(0, Number(invoice.total_ttc || 0) - Number(invoice.total_ht || 0))
   );
 
   const groups: Record<number, { rate: number; taxableAmount: number }> = {};
@@ -184,10 +208,10 @@ function generateUBLInvoice(invoice: any, seller: any, buyer: any, items: any[])
     if (!groups[rate]) groups[rate] = { rate, taxableAmount: 0 };
     groups[rate].taxableAmount += Number(item.total || 0);
   }
-  const breakdown = Object.values(groups).map(g => ({
+  const breakdown = Object.values(groups).map((g) => ({
     rate: g.rate,
     taxableAmount: Number(g.taxableAmount.toFixed(2)),
-    taxAmount: Number((g.taxableAmount * g.rate / 100).toFixed(2)),
+    taxAmount: Number(((g.taxableAmount * g.rate) / 100).toFixed(2)),
     categoryId: g.rate === 0 ? 'Z' : 'S',
   }));
 
@@ -212,14 +236,19 @@ function generateUBLInvoice(invoice: any, seller: any, buyer: any, items: any[])
     </cac:Party></cac:${tag}>`;
   };
 
-  const subtotals = breakdown.map(b =>
-    `<cac:TaxSubtotal><cbc:TaxableAmount currencyID="${currency}">${fmt(b.taxableAmount)}</cbc:TaxableAmount><cbc:TaxAmount currencyID="${currency}">${fmt(b.taxAmount)}</cbc:TaxAmount><cac:TaxCategory><cbc:ID>${b.categoryId}</cbc:ID><cbc:Percent>${fmt(b.rate)}</cbc:Percent><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:TaxCategory></cac:TaxSubtotal>`
-  ).join('');
+  const subtotals = breakdown
+    .map(
+      (b) =>
+        `<cac:TaxSubtotal><cbc:TaxableAmount currencyID="${currency}">${fmt(b.taxableAmount)}</cbc:TaxableAmount><cbc:TaxAmount currencyID="${currency}">${fmt(b.taxAmount)}</cbc:TaxAmount><cac:TaxCategory><cbc:ID>${b.categoryId}</cbc:ID><cbc:Percent>${fmt(b.rate)}</cbc:Percent><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:TaxCategory></cac:TaxSubtotal>`
+    )
+    .join('');
 
-  const lines = items.map((item: any, i: number) => {
-    const rate = Number(item.tax_rate || 0);
-    return `<cac:InvoiceLine><cbc:ID>${i + 1}</cbc:ID><cbc:InvoicedQuantity unitCode="C62">${Number(item.quantity || 0)}</cbc:InvoicedQuantity><cbc:LineExtensionAmount currencyID="${currency}">${fmt(item.total)}</cbc:LineExtensionAmount><cac:Item><cbc:Name>${escapeXml(item.description || '')}</cbc:Name><cac:ClassifiedTaxCategory><cbc:ID>${rate === 0 ? 'Z' : 'S'}</cbc:ID><cbc:Percent>${fmt(rate)}</cbc:Percent><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:ClassifiedTaxCategory></cac:Item><cac:Price><cbc:PriceAmount currencyID="${currency}">${fmt(item.unit_price)}</cbc:PriceAmount></cac:Price></cac:InvoiceLine>`;
-  }).join('');
+  const lines = items
+    .map((item: any, i: number) => {
+      const rate = Number(item.tax_rate || 0);
+      return `<cac:InvoiceLine><cbc:ID>${i + 1}</cbc:ID><cbc:InvoicedQuantity unitCode="C62">${Number(item.quantity || 0)}</cbc:InvoicedQuantity><cbc:LineExtensionAmount currencyID="${currency}">${fmt(item.total)}</cbc:LineExtensionAmount><cac:Item><cbc:Name>${escapeXml(item.description || '')}</cbc:Name><cac:ClassifiedTaxCategory><cbc:ID>${rate === 0 ? 'Z' : 'S'}</cbc:ID><cbc:Percent>${fmt(rate)}</cbc:Percent><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:ClassifiedTaxCategory></cac:Item><cac:Price><cbc:PriceAmount currencyID="${currency}">${fmt(item.unit_price)}</cbc:PriceAmount></cac:Price></cac:InvoiceLine>`;
+    })
+    .join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
@@ -244,9 +273,3 @@ function generateUBLInvoice(invoice: any, seller: any, buyer: any, items: any[])
   ${lines}
 </Invoice>`;
 }
-
-
-
-
-
-

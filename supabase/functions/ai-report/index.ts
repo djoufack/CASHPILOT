@@ -1,6 +1,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { requireAuthenticatedUser } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createServiceClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+  resolveCreditCost,
+} from '../_shared/billing.ts';
 
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -11,20 +17,25 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
+const REPORT_OPERATION_CODE = 'AI_REPORT';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const supabase = createServiceClient();
+  let resolvedUserId = '';
+  let creditConsumption = null;
 
   try {
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
     const authUser = await requireAuthenticatedUser(req);
-    const userId = authUser.id;
+    resolvedUserId = authUser.id;
 
-    const rateLimit = checkRateLimit(userId, { maxRequests: 10, windowMs: 60_000, keyPrefix: 'ai-report' });
+    const rateLimit = checkRateLimit(resolvedUserId, { maxRequests: 10, windowMs: 60_000, keyPrefix: 'ai-report' });
     if (!rateLimit.allowed) return rateLimitResponse(rateLimit, corsHeaders);
 
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { period = 'month', reportType = 'summary' } = await req.json();
 
     const startDate = new Date();
@@ -33,17 +44,32 @@ serve(async (req) => {
     else if (period === 'year') startDate.setFullYear(startDate.getFullYear() - 1);
 
     const [invoices, expenses, payments, profile] = await Promise.all([
-      supabase.from('invoices').select('*').eq('user_id', userId).gte('date', startDate.toISOString().split('T')[0]),
-      supabase.from('expenses').select('*').eq('user_id', userId).gte('expense_date', startDate.toISOString().split('T')[0]),
-      supabase.from('payments').select('*').eq('user_id', userId).gte('payment_date', startDate.toISOString().split('T')[0]),
-      supabase.from('profiles').select('company_name, full_name').eq('user_id', userId).single(),
+      supabase
+        .from('invoices')
+        .select('*')
+        .eq('user_id', resolvedUserId)
+        .gte('date', startDate.toISOString().split('T')[0]),
+      supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_id', resolvedUserId)
+        .gte('expense_date', startDate.toISOString().split('T')[0]),
+      supabase
+        .from('payments')
+        .select('*')
+        .eq('user_id', resolvedUserId)
+        .gte('payment_date', startDate.toISOString().split('T')[0]),
+      supabase.from('profiles').select('company_name, full_name').eq('user_id', resolvedUserId).single(),
     ]);
     if (invoices.error) throw invoices.error;
     if (expenses.error) throw expenses.error;
     if (payments.error) throw payments.error;
     if (profile.error) throw profile.error;
 
-    const prompt = `Génère un rapport financier ${reportType === 'detailed' ? 'détaillé' : 'résumé'} pour ${profile.data?.company_name || 'l\'entreprise'} sur la période ${period}.
+    const creditCost = await resolveCreditCost(supabase as any, REPORT_OPERATION_CODE);
+    creditConsumption = await consumeCredits(supabase as any, resolvedUserId, creditCost, 'AI Report');
+
+    const prompt = `Génère un rapport financier ${reportType === 'detailed' ? 'détaillé' : 'résumé'} pour ${profile.data?.company_name || "l'entreprise"} sur la période ${period}.
 
 Données:
 - ${invoices.data?.length || 0} factures, total: ${invoices.data?.reduce((s: number, i: any) => s + parseFloat(i.total_ttc || 0), 0).toFixed(2)}€
@@ -76,10 +102,23 @@ Retourne un JSON: {
     if (!res.ok) throw new Error('Gemini API error');
     const report = JSON.parse((await res.json()).candidates?.[0]?.content?.parts?.[0]?.text || '{}');
 
-    return new Response(JSON.stringify({ success: true, report }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ success: true, report }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (creditConsumption && resolvedUserId) {
+      try {
+        await refundCredits(supabase as any, resolvedUserId, creditConsumption, 'AI Report - error');
+      } catch {
+        // Ignore refund failures in error handling.
+      }
+    }
+
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

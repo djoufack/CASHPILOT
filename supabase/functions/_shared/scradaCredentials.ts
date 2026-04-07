@@ -24,13 +24,10 @@ const importSecretKey = async (usage: KeyUsage[]) => {
     throw new HttpError(500, `${ENCRYPTION_ENV} must decode to 32 bytes`);
   }
 
-  return await crypto.subtle.importKey(
-    'raw',
-    keyBytes,
-    { name: 'AES-GCM' },
-    false,
-    usage,
-  );
+  // Force an owned ArrayBuffer to satisfy WebCrypto typing in Deno.
+  const keyData = Uint8Array.from(keyBytes).buffer as ArrayBuffer;
+
+  return await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, usage);
 };
 
 export const encryptSecretValue = async (plainValue: string | null | undefined) => {
@@ -63,21 +60,15 @@ export const decryptSecretValue = async (storedValue: string | null | undefined)
   const encrypted = decodeBase64(segments[2]);
   const key = await importSecretKey(['decrypt']);
 
-  const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    encrypted,
-  );
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted);
 
   return new TextDecoder().decode(decrypted);
 };
 
 export const resolveScradaCredentials = async (company: Record<string, unknown> | null | undefined) => {
-  const apiKey = await decryptSecretValue(
-    String(company?.scrada_api_key_encrypted || company?.scrada_api_key || ''),
-  );
+  const apiKey = await decryptSecretValue(String(company?.scrada_api_key_encrypted || company?.scrada_api_key || ''));
   const password = await decryptSecretValue(
-    String(company?.scrada_password_encrypted || company?.scrada_password || ''),
+    String(company?.scrada_password_encrypted || company?.scrada_password || '')
   );
 
   return {

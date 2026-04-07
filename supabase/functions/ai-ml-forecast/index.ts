@@ -1,5 +1,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createServiceClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+  resolveCreditCost,
+} from '../_shared/billing.ts';
 
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -10,7 +17,7 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const CREDIT_COST = 3;
+const ML_FORECAST_OPERATION_CODE = 'AI_FORECAST';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -38,7 +45,8 @@ serve(async (req) => {
       });
     }
 
-    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI ML Forecast analysis');
+    const creditCost = await resolveCreditCost(supabase as any, ML_FORECAST_OPERATION_CODE);
+    creditConsumption = await consumeCredits(supabase as any, resolvedUserId, creditCost, 'AI ML Forecast analysis');
 
     const prompt = `Tu es un expert en analyse financiere predictive et machine learning.
 Analyse ces donnees historiques et genere des previsions:
@@ -67,8 +75,8 @@ Reponds UNIQUEMENT en JSON valide:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.2, maxOutputTokens: 2048 }
-      })
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.2, maxOutputTokens: 2048 },
+      }),
     });
 
     if (!geminiRes.ok) {
@@ -90,20 +98,22 @@ Reponds UNIQUEMENT en JSON valide:
       throw new HttpError(422, 'forecast_parse_failed');
     }
 
-    return new Response(JSON.stringify({ success: true, forecast, creditsUsed: CREDIT_COST }), {
+    return new Response(JSON.stringify({ success: true, forecast, creditsUsed: creditCost }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     if (creditConsumption && resolvedUserId) {
       try {
-        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI ML Forecast - error');
+        await refundCredits(supabase as any, resolvedUserId, creditConsumption, 'AI ML Forecast - error');
       } catch {
         // Ignore refund failures in error handling.
       }
     }
 
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: error instanceof HttpError ? error.status : 500,
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), {
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

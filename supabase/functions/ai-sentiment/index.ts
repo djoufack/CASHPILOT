@@ -5,6 +5,7 @@ import {
   HttpError,
   refundCredits,
   requireAuthenticatedUser,
+  resolveCreditCost,
 } from '../_shared/billing.ts';
 
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
@@ -16,7 +17,7 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const CREDIT_COST = 2;
+const SENTIMENT_OPERATION_CODE = 'AI_REPORT';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -60,7 +61,8 @@ serve(async (req) => {
       clientData = data;
     }
 
-    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Sentiment Analysis');
+    const creditCost = await resolveCreditCost(supabase as any, SENTIMENT_OPERATION_CODE);
+    creditConsumption = await consumeCredits(supabase as any, resolvedUserId, creditCost, 'AI Sentiment Analysis');
 
     const prompt = `Analyse le sentiment de ces communications ${clientData ? `avec le client ${clientData.company_name}` : ''}:
 
@@ -107,20 +109,22 @@ Reponds UNIQUEMENT en JSON valide:
       throw new HttpError(422, 'sentiment_parse_failed');
     }
 
-    return new Response(JSON.stringify({ success: true, sentiment, creditsUsed: CREDIT_COST }), {
+    return new Response(JSON.stringify({ success: true, sentiment, creditsUsed: creditCost }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     if (creditConsumption && resolvedUserId) {
       try {
-        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Sentiment Analysis - error');
+        await refundCredits(supabase as any, resolvedUserId, creditConsumption, 'AI Sentiment Analysis - error');
       } catch {
         // Ignore refund failures in error handling.
       }
     }
 
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: error instanceof HttpError ? error.status : 500,
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), {
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

@@ -1,5 +1,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createServiceClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+  resolveCreditCost,
+} from '../_shared/billing.ts';
 
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -10,7 +17,7 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const CREDIT_COST = 4;
+const FRAUD_OPERATION_CODE = 'AI_ANOMALY_DETECT';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -53,7 +60,7 @@ serve(async (req) => {
         .from('expenses')
         .select('id, amount, category, expense_date, description, supplier_id')
         .eq('user_id', resolvedUserId)
-        .gte('expense_date', startDateIso)
+        .gte('expense_date', startDateIso),
     ]);
 
     if (invoicesResult.error) {
@@ -64,11 +71,17 @@ serve(async (req) => {
       throw expensesResult.error;
     }
 
-    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Fraud Detection analysis');
+    const creditCost = await resolveCreditCost(supabase as any, FRAUD_OPERATION_CODE);
+    creditConsumption = await consumeCredits(
+      supabase as any,
+      resolvedUserId,
+      creditCost,
+      'AI Fraud Detection analysis'
+    );
 
     const transactions = {
       invoices: invoicesResult.data || [],
-      expenses: expensesResult.data || []
+      expenses: expensesResult.data || [],
     };
 
     const prompt = `Analyse ces transactions pour detecter des fraudes potentielles:
@@ -104,8 +117,8 @@ Reponds UNIQUEMENT en JSON valide:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
-      })
+        generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
+      }),
     });
 
     if (!geminiRes.ok) {
@@ -121,29 +134,34 @@ Reponds UNIQUEMENT en JSON valide:
       throw new HttpError(422, 'fraud_analysis_parse_failed');
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      fraudAnalysis,
-      creditsUsed: CREDIT_COST,
-      analysisScope,
-      transactionsAnalyzed: {
-        invoices: transactions.invoices.length,
-        expenses: transactions.expenses.length
+    return new Response(
+      JSON.stringify({
+        success: true,
+        fraudAnalysis,
+        creditsUsed: creditCost,
+        analysisScope,
+        transactionsAnalyzed: {
+          invoices: transactions.invoices.length,
+          expenses: transactions.expenses.length,
+        },
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    );
   } catch (error) {
     if (creditConsumption && resolvedUserId) {
       try {
-        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Fraud Detection - error');
+        await refundCredits(supabase as any, resolvedUserId, creditConsumption, 'AI Fraud Detection - error');
       } catch {
         // Ignore refund failures in error handling.
       }
     }
 
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: error instanceof HttpError ? error.status : 500,
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), {
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

@@ -265,7 +265,18 @@ const AppRoutes = () => {
         <Route path="purchase-orders" element={page(PurchaseOrdersPage)} />
         <Route path="purchases" element={page(PurchasesPage)} />
         <Route path="supplier-invoices" element={page(SupplierInvoicesPage)} />
-        <Route path="peppol" element={page(PeppolPage)} />
+        <Route
+          path="peppol"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <EntitlementGate featureKey={ENTITLEMENT_KEYS.PEPPOL_EINVOICING} title="Peppol e-invoicing">
+                  <PeppolPage />
+                </EntitlementGate>
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
 
         {/* Stock (produits du User) */}
         <Route path="stock" element={page(StockManagement)} />

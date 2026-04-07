@@ -31,6 +31,42 @@ export const createServiceClient = () => createClient(resolveSupabaseUrl(), reso
 export const createAuthClient = (authHeader: string) =>
   createClient(resolveSupabaseUrl(), resolveAnonKey(), { global: { headers: { Authorization: authHeader } } });
 
+type CreditCostRow = {
+  cost?: number | string | null;
+};
+
+type BillingRpcArgsMap = {
+  user_has_entitlement: {
+    p_feature_key: string;
+    target_user_id: string;
+  };
+  consume_user_credits: {
+    target_user_id: string;
+    amount: number;
+    description: string;
+  };
+  refund_user_credits: {
+    target_user_id: string;
+    refund_free_credits: number;
+    refund_subscription_credits: number;
+    refund_paid_credits: number;
+    description: string;
+  };
+};
+
+type BillingRpcResultMap = {
+  user_has_entitlement: boolean | null;
+  consume_user_credits: CreditConsumptionResult | CreditConsumptionResult[] | null;
+  refund_user_credits: unknown;
+};
+
+type BillingRpcClient = {
+  rpc<FnName extends keyof BillingRpcArgsMap>(
+    fn: FnName,
+    args: BillingRpcArgsMap[FnName]
+  ): Promise<{ data: BillingRpcResultMap[FnName]; error: unknown }>;
+};
+
 const extractBearerToken = (authHeader: string) => {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   if (!token) {
@@ -84,7 +120,7 @@ export const resolveCreditCost = async (
     throw error;
   }
 
-  const cost = Number(data?.cost);
+  const cost = Number((data as CreditCostRow | null)?.cost);
   if (!Number.isFinite(cost) || cost <= 0) {
     throw new HttpError(500, `Missing active credit configuration for ${operationCode}`);
   }
@@ -97,7 +133,8 @@ export const requireEntitlement = async (
   userId: string,
   featureKey: string
 ) => {
-  const { data, error } = await supabase.rpc('user_has_entitlement', {
+  const billingSupabase = supabase as unknown as BillingRpcClient;
+  const { data, error } = await billingSupabase.rpc('user_has_entitlement', {
     p_feature_key: featureKey,
     target_user_id: userId,
   });
@@ -129,7 +166,8 @@ export const consumeCredits = async (
   amount: number,
   description: string
 ) => {
-  const { data, error } = await supabase.rpc('consume_user_credits', {
+  const billingSupabase = supabase as unknown as BillingRpcClient;
+  const { data, error } = await billingSupabase.rpc('consume_user_credits', {
     target_user_id: userId,
     amount,
     description,
@@ -157,7 +195,8 @@ export const refundCredits = async (
     return;
   }
 
-  const { error } = await supabase.rpc('refund_user_credits', {
+  const billingSupabase = supabase as unknown as BillingRpcClient;
+  const { error } = await billingSupabase.rpc('refund_user_credits', {
     target_user_id: userId,
     refund_free_credits: deduction.deducted_free_credits || 0,
     refund_subscription_credits: deduction.deducted_subscription_credits || 0,

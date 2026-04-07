@@ -6,6 +6,7 @@ import {
   HttpError,
   refundCredits,
   requireAuthenticatedUser,
+  resolveCreditCost,
 } from '../_shared/billing.ts';
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -16,7 +17,7 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const CREDIT_COST = 2;
+const HR_CHATBOT_OPERATION_CODE = 'AI_CHATBOT';
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_CONTEXT_MESSAGES = 10;
 const HR_RATE_LIMIT = { maxRequests: 40, windowMs: 15 * 60 * 1000, keyPrefix: 'ai-hr-chatbot' };
@@ -66,15 +67,11 @@ const resolveEmployeeId = async (
   userId: string,
   companyId: string | null
 ): Promise<string | null> => {
-  let query = supabase
-    .from('hr_employees')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .limit(1)
-    .maybeSingle();
-  if (companyId) query = query.eq('company_id', companyId);
-  const { data } = await query;
+  let query = supabase.from('hr_employees').select('id').eq('user_id', userId).eq('status', 'active').limit(1);
+  if (companyId) {
+    query = query.eq('company_id', companyId);
+  }
+  const { data } = await query.maybeSingle();
   return data?.id || null;
 };
 
@@ -201,11 +198,12 @@ const handleGetPayslipInfo = async (
     .select('contract_type, pay_basis, hourly_rate, monthly_salary, start_date, end_date, status')
     .eq('employee_id', employeeId)
     .eq('status', 'active')
-    .limit(1)
-    .maybeSingle();
-  if (companyId) contractQuery = contractQuery.eq('company_id', companyId);
+    .limit(1);
+  if (companyId) {
+    contractQuery = contractQuery.eq('company_id', companyId);
+  }
 
-  const { data: contract } = await contractQuery;
+  const { data: contract } = await contractQuery.maybeSingle();
 
   // Group items by period
   const periods: Record<string, { period: string; items: unknown[]; total: number }> = {};
@@ -390,7 +388,8 @@ serve(async (req) => {
       );
     }
 
-    creditConsumption = await consumeCredits(serviceClient, resolvedUserId, CREDIT_COST, 'AI HR Chatbot');
+    const creditCost = await resolveCreditCost(serviceClient as any, HR_CHATBOT_OPERATION_CODE);
+    creditConsumption = await consumeCredits(serviceClient as any, resolvedUserId, creditCost, 'AI HR Chatbot');
 
     let result: { success: boolean; data: unknown; message: string };
 
@@ -418,7 +417,7 @@ serve(async (req) => {
   } catch (error) {
     if (creditConsumption && resolvedUserId) {
       try {
-        await refundCredits(serviceClient, resolvedUserId, creditConsumption, 'AI HR Chatbot - error');
+        await refundCredits(serviceClient as any, resolvedUserId, creditConsumption, 'AI HR Chatbot - error');
       } catch {
         /* ignore secondary failures */
       }
