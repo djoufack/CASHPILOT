@@ -55,6 +55,9 @@ const resolveInboundSenderName = (doc: Record<string, unknown>): string | null =
     doc.legalName,
   ]);
 
+const resolveInboundSenderPeppolId = (doc: Record<string, unknown>): string | null =>
+  pickFirstText([doc.peppolSenderID, doc.senderID, doc.senderPeppolId, doc.sender_peppol_id, doc.sender]);
+
 const resolveInboundInvoiceRef = (doc: Record<string, unknown>): string | null =>
   pickFirstText([doc.invoiceNumber, doc.number, doc.invoiceNo, doc.internalNumber, doc.reference]);
 
@@ -70,6 +73,75 @@ const resolveInboundReceivedAt = (doc: Record<string, unknown>): string =>
       doc.c2Timestamp,
     ]) || new Date().toISOString()
   );
+
+const resolveRegistrationName = (payload: unknown): string | null => {
+  if (!payload || typeof payload !== 'object') return null;
+  const root = payload as Record<string, unknown>;
+  const nested = root.data && typeof root.data === 'object' ? (root.data as Record<string, unknown>) : null;
+  const details = root.details && typeof root.details === 'object' ? (root.details as Record<string, unknown>) : null;
+  return pickFirstText([
+    root.name,
+    root.companyName,
+    root.legalName,
+    root.partyName,
+    root.registeredName,
+    nested?.name,
+    nested?.companyName,
+    nested?.legalName,
+    nested?.partyName,
+    details?.name,
+    details?.companyName,
+    details?.legalName,
+    details?.partyName,
+  ]);
+};
+
+const decodeXmlText = (value: string | null): string | null => {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+};
+
+const captureFirstXmlValue = (xml: string, pattern: RegExp): string | null => {
+  const match = xml.match(pattern);
+  if (!match) return null;
+  return decodeXmlText(match[1] || null);
+};
+
+const extractInboundUblMetadata = (
+  ublXml: string
+): { senderName: string | null; invoiceNumber: string | null; invoiceDate: string | null } => {
+  const supplierSection =
+    ublXml.match(/<cac:AccountingSupplierParty[\s\S]*?<\/cac:AccountingSupplierParty>/i)?.[0] || ublXml;
+
+  const senderName = pickFirstText([
+    captureFirstXmlValue(supplierSection, /<cbc:RegistrationName[^>]*>([\s\S]*?)<\/cbc:RegistrationName>/i),
+    captureFirstXmlValue(supplierSection, /<cbc:Name[^>]*>([\s\S]*?)<\/cbc:Name>/i),
+    captureFirstXmlValue(ublXml, /<cbc:RegistrationName[^>]*>([\s\S]*?)<\/cbc:RegistrationName>/i),
+  ]);
+
+  const invoiceNumber = pickFirstText([
+    captureFirstXmlValue(ublXml, /<Invoice[\s\S]*?<cbc:ID[^>]*>([\s\S]*?)<\/cbc:ID>/i),
+    captureFirstXmlValue(ublXml, /<cbc:ID[^>]*>([\s\S]*?)<\/cbc:ID>/i),
+  ]);
+
+  const invoiceDate = pickFirstText([
+    captureFirstXmlValue(ublXml, /<cbc:IssueDate[^>]*>([\s\S]*?)<\/cbc:IssueDate>/i),
+    captureFirstXmlValue(ublXml, /<cbc:TaxPointDate[^>]*>([\s\S]*?)<\/cbc:TaxPointDate>/i),
+  ]);
+
+  return {
+    senderName: senderName || null,
+    invoiceNumber: invoiceNumber || null,
+    invoiceDate: invoiceDate || null,
+  };
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -125,6 +197,36 @@ serve(async (req) => {
     if (action === 'sync') {
       const endpointErrors: string[] = [];
       let hadSuccessfulFetch = false;
+      const senderNameCache = new Map<string, string | null>();
+      const ublMetadataCache = new Map<
+        string,
+        { senderName: string | null; invoiceNumber: string | null; invoiceDate: string | null } | null
+      >();
+
+      const resolveSenderCommercialName = async (senderPeppolId: string | null): Promise<string | null> => {
+        const normalized = String(senderPeppolId || '').trim();
+        if (!normalized) return null;
+        if (senderNameCache.has(normalized)) return senderNameCache.get(normalized) || null;
+
+        const checkUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolRegistration/check/${encodeURIComponent(normalized)}`;
+        try {
+          const response = await fetch(checkUrl, {
+            method: 'GET',
+            headers: { ...scradaHeaders, Accept: 'application/json' },
+          });
+          if (!response.ok) {
+            senderNameCache.set(normalized, null);
+            return null;
+          }
+          const payload = await response.json().catch(() => null);
+          const name = resolveRegistrationName(payload);
+          senderNameCache.set(normalized, name || null);
+          return name || null;
+        } catch {
+          senderNameCache.set(normalized, null);
+          return null;
+        }
+      };
 
       const fetchDocumentsFromPath = async (path: string): Promise<Record<string, unknown>[] | null> => {
         const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}${path}`;
@@ -142,6 +244,33 @@ serve(async (req) => {
         const scradaPayload = await scradaResponse.json().catch(() => null);
         hadSuccessfulFetch = true;
         return normalizeInboundDocuments(scradaPayload);
+      };
+
+      const resolveDocumentUblMetadata = async (
+        documentId: string
+      ): Promise<{ senderName: string | null; invoiceNumber: string | null; invoiceDate: string | null } | null> => {
+        const normalized = String(documentId || '').trim();
+        if (!normalized) return null;
+        if (ublMetadataCache.has(normalized)) return ublMetadataCache.get(normalized) || null;
+
+        const ublUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/${encodeURIComponent(normalized)}`;
+        try {
+          const response = await fetch(ublUrl, {
+            method: 'GET',
+            headers: { ...scradaHeaders, Accept: 'application/xml' },
+          });
+          if (!response.ok) {
+            ublMetadataCache.set(normalized, null);
+            return null;
+          }
+          const ublXml = await response.text();
+          const metadata = extractInboundUblMetadata(ublXml);
+          ublMetadataCache.set(normalized, metadata);
+          return metadata;
+        } catch {
+          ublMetadataCache.set(normalized, null);
+          return null;
+        }
       };
 
       const candidateDocuments = new Map<string, { doc: Record<string, unknown>; shouldConfirm: boolean }>();
@@ -198,7 +327,7 @@ serve(async (req) => {
 
       const { data: existingDocs, error: existingDocsError } = await supabase
         .from('peppol_inbound_documents')
-        .select('id, scrada_document_id, sender_name, invoice_number, received_at')
+        .select('id, scrada_document_id, sender_peppol_id, sender_name, invoice_number, invoice_date, received_at')
         .eq('user_id', user.id)
         .eq('company_id', companyId)
         .in('scrada_document_id', candidateIds);
@@ -212,15 +341,33 @@ serve(async (req) => {
         const existing = existingByDocId.get(docId);
         if (existing) {
           const updatePayload: Record<string, unknown> = {};
-          const senderName = resolveInboundSenderName(payload.doc);
-          const invoiceRef = resolveInboundInvoiceRef(payload.doc);
+          const senderPeppolId =
+            resolveInboundSenderPeppolId(payload.doc) || String(existing.sender_peppol_id || '').trim() || null;
+          let senderName = resolveInboundSenderName(payload.doc);
+          if (!senderName && senderPeppolId) {
+            senderName = await resolveSenderCommercialName(senderPeppolId);
+          }
+          let invoiceRef = resolveInboundInvoiceRef(payload.doc);
+          let invoiceDate = String(payload.doc.invoiceDate || '').trim() || null;
+          if (!senderName || !invoiceRef || !invoiceDate) {
+            const ublMetadata = await resolveDocumentUblMetadata(docId);
+            if (!senderName && ublMetadata?.senderName) senderName = ublMetadata.senderName;
+            if (!invoiceRef && ublMetadata?.invoiceNumber) invoiceRef = ublMetadata.invoiceNumber;
+            if (!invoiceDate && ublMetadata?.invoiceDate) invoiceDate = ublMetadata.invoiceDate;
+          }
           const receivedAt = resolveInboundReceivedAt(payload.doc);
 
+          if (!String(existing.sender_peppol_id || '').trim() && senderPeppolId) {
+            updatePayload.sender_peppol_id = senderPeppolId;
+          }
           if (!String(existing.sender_name || '').trim() && senderName) {
             updatePayload.sender_name = senderName;
           }
           if (!String(existing.invoice_number || '').trim() && invoiceRef) {
             updatePayload.invoice_number = invoiceRef;
+          }
+          if (!String(existing.invoice_date || '').trim() && invoiceDate) {
+            updatePayload.invoice_date = invoiceDate;
           }
           if (!String(existing.received_at || '').trim() && receivedAt) {
             updatePayload.received_at = receivedAt;
@@ -286,23 +433,40 @@ serve(async (req) => {
       }
 
       try {
-        const inboundRows = newDocuments.map(({ docId, doc }) => ({
-          user_id: user.id,
-          company_id: companyId,
-          scrada_document_id: docId,
-          sender_peppol_id: String(doc.peppolSenderID || doc.senderID || '').trim() || null,
-          sender_name: resolveInboundSenderName(doc),
-          document_type: String(doc.documentType || 'invoice'),
-          invoice_number: resolveInboundInvoiceRef(doc),
-          invoice_date: String(doc.invoiceDate || '').trim() || null,
-          total_excl_vat: Number(doc.totalExclVat || doc.totalExclVAT || 0) || null,
-          total_vat: Number(doc.totalVat || doc.totalVAT || 0) || null,
-          total_incl_vat: Number(doc.totalInclVat || doc.totalInclVAT || 0) || null,
-          currency: String(doc.currency || 'EUR'),
-          status: 'new',
-          metadata: doc,
-          received_at: resolveInboundReceivedAt(doc),
-        }));
+        const inboundRows: Record<string, unknown>[] = [];
+        for (const { docId, doc } of newDocuments) {
+          const senderPeppolId = resolveInboundSenderPeppolId(doc);
+          let senderName = resolveInboundSenderName(doc);
+          if (!senderName && senderPeppolId) {
+            senderName = await resolveSenderCommercialName(senderPeppolId);
+          }
+          let invoiceNumber = resolveInboundInvoiceRef(doc);
+          let invoiceDate = String(doc.invoiceDate || '').trim() || null;
+          if (!senderName || !invoiceNumber || !invoiceDate) {
+            const ublMetadata = await resolveDocumentUblMetadata(docId);
+            if (!senderName && ublMetadata?.senderName) senderName = ublMetadata.senderName;
+            if (!invoiceNumber && ublMetadata?.invoiceNumber) invoiceNumber = ublMetadata.invoiceNumber;
+            if (!invoiceDate && ublMetadata?.invoiceDate) invoiceDate = ublMetadata.invoiceDate;
+          }
+
+          inboundRows.push({
+            user_id: user.id,
+            company_id: companyId,
+            scrada_document_id: docId,
+            sender_peppol_id: senderPeppolId,
+            sender_name: senderName,
+            document_type: String(doc.documentType || 'invoice'),
+            invoice_number: invoiceNumber,
+            invoice_date: invoiceDate,
+            total_excl_vat: Number(doc.totalExclVat || doc.totalExclVAT || 0) || null,
+            total_vat: Number(doc.totalVat || doc.totalVAT || 0) || null,
+            total_incl_vat: Number(doc.totalInclVat || doc.totalInclVAT || 0) || null,
+            currency: String(doc.currency || 'EUR'),
+            status: 'new',
+            metadata: doc,
+            received_at: resolveInboundReceivedAt(doc),
+          });
+        }
 
         const { error: insertDocsError } = await supabase.from('peppol_inbound_documents').insert(inboundRows);
         if (insertDocsError) throw insertDocsError;

@@ -88,6 +88,7 @@ const PeppolPage = () => {
     fetchInvoiceItems,
     syncingInbound,
     syncInbound,
+    fetchInboundUbl,
     fetchInboundPdf,
     warmInboundDocuments,
     sendInboundToGed,
@@ -663,6 +664,38 @@ const PeppolPage = () => {
       }
     },
     [downloadBlob, fetchInboundPdf, getInboundActionKey, t, toast]
+  );
+
+  const handleDownloadInboundUbl = useCallback(
+    async (doc) => {
+      if (!doc?.scrada_document_id) return;
+      setInboundActionDocId(getInboundActionKey(doc));
+      try {
+        const ublXml = await fetchInboundUbl(doc.scrada_document_id, {
+          cachedUbl: doc?.ubl_xml || null,
+          timeoutMs: 60_000,
+        });
+        if (!ublXml) {
+          throw new Error('Document UBL indisponible.');
+        }
+        const safeRef = String(doc.invoice_number || doc.scrada_document_id).replace(/[^a-zA-Z0-9._-]/g, '_');
+        const xmlBlob = new Blob([ublXml], { type: 'application/xml;charset=utf-8' });
+        downloadBlob(xmlBlob, `Peppol-Inbound-${safeRef}.xml`);
+        toast({
+          title: t('peppol.exportUBL', 'Exporter UBL Peppol'),
+          description: t('common.success', 'Termine'),
+        });
+      } catch (err) {
+        toast({
+          title: t('common.error'),
+          description: err?.message || 'Echec export UBL',
+          variant: 'destructive',
+        });
+      } finally {
+        setInboundActionDocId(null);
+      }
+    },
+    [downloadBlob, fetchInboundUbl, getInboundActionKey, t, toast]
   );
 
   useEffect(() => {
@@ -2277,6 +2310,9 @@ const PeppolPage = () => {
                           <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
                             Facture recue (Scrada)
                           </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
+                            Documents
+                          </th>
                           <th className="text-right p-3 font-medium text-gray-300 uppercase text-xs tracking-wider">
                             Actions
                           </th>
@@ -2321,6 +2357,28 @@ const PeppolPage = () => {
                                 <span className="text-orange-400 text-sm font-medium">
                                   {resolveInboundScradaInvoiceRef(doc, linkedSupplierInvoice)}
                                 </span>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDownloadInboundPdf(doc)}
+                                    disabled={rowBusy}
+                                    className="h-8 border-gray-700 text-gray-300 hover:bg-gray-800"
+                                  >
+                                    PDF
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDownloadInboundUbl(doc)}
+                                    disabled={rowBusy}
+                                    className="h-8 border-gray-700 text-gray-300 hover:bg-gray-800"
+                                  >
+                                    XML
+                                  </Button>
+                                </div>
                               </td>
                               <td className="p-3 text-right">
                                 <DropdownMenu>
