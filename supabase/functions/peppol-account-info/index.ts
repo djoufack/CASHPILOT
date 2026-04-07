@@ -12,6 +12,34 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
+const normalizePeppolToken = (value: unknown): string => String(value || '').trim();
+
+const addCandidate = (target: Set<string>, scheme: string, raw: unknown) => {
+  const token = normalizePeppolToken(raw);
+  if (!token) return;
+
+  if (token.includes(':')) {
+    target.add(token);
+    return;
+  }
+
+  target.add(`${scheme}:${token}`);
+
+  const compact = token.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  if (!compact) return;
+
+  // Common BE edge case: some systems store the enterprise number without "BE",
+  // while others expose VAT with "BE" prefix (or the opposite).
+  if (compact.startsWith('BE')) {
+    const withoutBe = compact.slice(2);
+    if (withoutBe) target.add(`${scheme}:${withoutBe}`);
+    target.add(`${scheme}:${compact}`);
+    return;
+  }
+
+  target.add(`${scheme}:BE${compact}`);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -69,27 +97,6 @@ serve(async (req) => {
       return null;
     })();
 
-    const registrationStatusPromise = (async () => {
-      if (!company.peppol_endpoint_id) return null;
-      const peppolId = `${company.peppol_scheme_id || '0208'}:${company.peppol_endpoint_id}`;
-      try {
-        const regRes = await fetchWithTimeout(
-          `${companyUrl}/peppolRegistration/check/${encodeURIComponent(peppolId)}`,
-          { method: 'GET', headers },
-          requestTimeoutMs
-        );
-        if (regRes.ok) {
-          return { registered: true, details: await regRes.json() };
-        }
-        if (regRes.status === 404) {
-          return { registered: false };
-        }
-      } catch {
-        /* ignore */
-      }
-      return null;
-    })();
-
     const recentDocumentsPromise = (async () => {
       try {
         const docsRes = await fetchWithTimeout(
@@ -122,12 +129,56 @@ serve(async (req) => {
       return [];
     })();
 
-    const [companyProfile, registrationStatus, recentDocuments, supportedProfiles] = await Promise.all([
+    const [companyProfile, recentDocuments, supportedProfiles] = await Promise.all([
       companyProfilePromise,
-      registrationStatusPromise,
       recentDocumentsPromise,
       supportedProfilesPromise,
     ]);
+
+    const registrationStatusPromise = (async () => {
+      const scheme = String(company.peppol_scheme_id || '0208').trim() || '0208';
+      const candidates = new Set<string>();
+      addCandidate(candidates, scheme, company.peppol_endpoint_id);
+      addCandidate(candidates, scheme, companyProfile?.vatNumber);
+      addCandidate(candidates, scheme, companyProfile?.vat_number);
+      addCandidate(candidates, scheme, companyProfile?.endpointId);
+      addCandidate(candidates, scheme, companyProfile?.endpoint_id);
+
+      if (candidates.size === 0) return null;
+
+      const errors: Array<{ candidate: string; status: number }> = [];
+      for (const peppolId of candidates) {
+        try {
+          const regRes = await fetchWithTimeout(
+            `${companyUrl}/peppolRegistration/check/${encodeURIComponent(peppolId)}`,
+            { method: 'GET', headers },
+            requestTimeoutMs
+          );
+
+          if (regRes.ok) {
+            return {
+              registered: true,
+              checkedId: peppolId,
+              details: await regRes.json(),
+            };
+          }
+
+          if (regRes.status !== 404) {
+            errors.push({ candidate: peppolId, status: regRes.status });
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
+      return {
+        registered: false,
+        checkedIds: Array.from(candidates),
+        ...(errors.length ? { warnings: errors } : {}),
+      };
+    })();
+
+    const registrationStatus = await registrationStatusPromise;
 
     return new Response(
       JSON.stringify({
