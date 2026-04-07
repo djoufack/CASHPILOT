@@ -149,6 +149,23 @@ def build():
     # Slide 3
     s = prs.slides.add_slide(prs.slide_layouts[6])
     set_background(s)
+    add_title(s, "Definitions simples des sigles SAP")
+    add_bullets(
+        s,
+        "Glossaire FI / CO / AA",
+        [
+            "FI (Finance Accounting): comptabilite generale, ecritures, TVA, rapprochements.",
+            "CO (Controlling): axes analytiques pour piloter couts, marges et performance.",
+            "AA (Asset Accounting): immobilisations, amortissements et suivi des actifs.",
+            "Consolidation: pilotage multi-entites et intercompany.",
+            "Close: orchestration de la cloture periodique et de la conformite.",
+        ],
+    )
+    add_footer(s)
+
+    # Slide 4
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    set_background(s)
     add_title(s, "Quand utiliser le cockpit SAP")
     add_bullets(
         s,
@@ -163,7 +180,7 @@ def build():
     )
     add_footer(s)
 
-    # Slide 4
+    # Slide 5
     s = prs.slides.add_slide(prs.slide_layouts[6])
     set_background(s)
     add_title(s, "Plus-value SAP pour CashPilot")

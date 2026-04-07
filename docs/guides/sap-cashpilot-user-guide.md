@@ -35,6 +35,28 @@ Chaque domaine expose:
 - des metriques de progression,
 - une roadmap de workstreams.
 
+### 2.1) Definitions explicites des sigles
+
+- `FI` = `Finance Accounting`
+  Utilite: tenir la comptabilite generale (journal, grand livre, comptes, TVA, rapprochements).
+  Quand l'utiliser: des que vous devez fiabiliser les ecritures et produire des etats comptables.
+
+- `CO` = `Controlling`
+  Utilite: piloter les couts et la rentabilite via des axes analytiques (centre de cout, projet, activite).
+  Quand l'utiliser: quand vous voulez comprendre "ou la marge se fait ou se perd".
+
+- `AA` = `Asset Accounting`
+  Utilite: gerer les immobilisations (acquisition, amortissement, cession, suivi des actifs).
+  Quand l'utiliser: des que vous avez des actifs durables (materiel, equipements, vehicules, IT).
+
+- `Consolidation`
+  Utilite: agreger plusieurs societes et gerer les sujets intercompany.
+  Quand l'utiliser: en contexte groupe ou portefeuille multi-entites.
+
+- `Close`
+  Utilite: organiser la cloture de periode (mensuelle/trimestrielle/annuelle).
+  Quand l'utiliser: pour reduire les retards de cloture et securiser la conformite.
+
 ## 3) Quand utiliser le cockpit SAP
 
 Utiliser le module SAP dans 4 moments clefs:
