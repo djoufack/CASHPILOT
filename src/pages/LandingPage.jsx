@@ -456,6 +456,7 @@ const LandingPage = () => {
   const navLinks = [
     { href: '#features', label: copy.nav.features },
     { href: '#latest', label: copy.nav.latest },
+    { href: '#sap', label: copy.nav.sap || 'SAP' },
     { href: '#simulation', label: copy.nav.simulations },
     { href: '#audience', label: copy.nav.audience },
     { href: '#advantages', label: copy.nav.advantages },
@@ -580,6 +581,12 @@ const LandingPage = () => {
       tagClassName: 'peppol-card-tag tag-purple',
       ...copy.peppol.cards[2],
     },
+  ];
+
+  const sapCards = [
+    { icon: Landmark, className: 'sim-indigo', ...copy.sap.cards[0] },
+    { icon: Clock, className: 'sim-blue', ...copy.sap.cards[1] },
+    { icon: Target, className: 'sim-green', ...copy.sap.cards[2] },
   ];
 
   const countryIds = ['france', 'belgium', 'ohada'];
@@ -1190,6 +1197,81 @@ const LandingPage = () => {
               <CheckCircle2 />
               <span>{copy.mcp.exampleResult}</span>
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* SAP Cockpit Section */}
+      <section id="sap" className="section section-simulation">
+        <div className="section-bg">
+          <div className="bg-gradient simulation-gradient"></div>
+          <div className="bg-particles" id="sap-particles"></div>
+        </div>
+
+        <div className="container">
+          <div className="section-header">
+            <div className="section-badge badge-blue">
+              <Landmark />
+              <span>{copy.sap.badge}</span>
+            </div>
+            <h2 className="section-title">{copy.sap.title}</h2>
+            <p className="section-description">{copy.sap.description}</p>
+          </div>
+
+          <div className="simulation-grid">
+            {sapCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.title} className="simulation-card">
+                  <div className={`sim-icon ${card.className}`}>
+                    <Icon />
+                  </div>
+                  <h4 className="sim-title">{card.title}</h4>
+                  <p className="sim-question">{card.description}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="simulation-features-card">
+            <h3 className="features-card-title">{copy.sap.noviceTitle}</h3>
+            <div className="features-grid">
+              {(copy.sap.noviceSteps || []).map((step) => (
+                <div key={step} className="feature-item feature-amber">
+                  <div className="feature-icon">
+                    <CheckCircle2 />
+                  </div>
+                  <div className="feature-content">
+                    <p>{step}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="simulation-features-card" style={{ marginTop: '1rem' }}>
+            <h3 className="features-card-title">{copy.sap.valueTitle}</h3>
+            <div className="features-grid">
+              {(copy.sap.valueItems || []).map((item) => (
+                <div key={item} className="feature-item feature-blue">
+                  <div className="feature-icon">
+                    <Sparkles />
+                  </div>
+                  <div className="feature-content">
+                    <p>{item}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
+              <button
+                className="btn btn-hero-secondary magnetic-btn"
+                onClick={() => window.open('/guide/#sap-cockpit', '_blank')}
+              >
+                <span className="btn-text">{copy.sap.cta}</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>

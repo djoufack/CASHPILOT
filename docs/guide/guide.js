@@ -249,6 +249,7 @@
       sub_creances_dettes: 'Receivables & Payables',
       sub_tresorerie: 'Cash Flow',
       sub_plan_comptable: 'Chart of Accounts',
+      sub_sap_cockpit: 'SAP cockpit (CashPilot)',
       sub_bilan_resultat: 'Balance Sheet & P&L',
       sub_declaration_tva: 'VAT Return',
       sub_estimation_impot: 'Tax Estimation',
@@ -312,7 +313,7 @@
       toc_05: 'Financial Management',
       toc_05_desc: 'Expenses, receivables, payables, cash flow',
       toc_06: 'Accounting',
-      toc_06_desc: 'Chart of accounts, balance sheet, P&L, VAT',
+      toc_06_desc: 'Chart of accounts, SAP cockpit, balance sheet, P&L, VAT',
       toc_07: 'Projects & Time',
       toc_07_desc: 'Projects, timesheets, tasks',
       toc_08: 'Stock & Products',
@@ -434,6 +435,18 @@
       s6_title_2: 'Accounting',
       s6_subtitle:
         'A complete accounting module with 10 tabs: chart of accounts, balance sheet, income statement, VAT, tax estimation and bank reconciliation.',
+      s6_sap_bloc_title: 'CashPilot SAP cockpit (FI, CO, AA, Consolidation, Close)',
+      s6_sap_bloc_intro:
+        'The SAP module in CashPilot is not a full SAP ERP. It is a finance control cockpit that helps teams prioritize accounting work and progress step by step, including non-accountants.',
+      s6_sap_what_title: 'What is it for?',
+      s6_sap_what_desc:
+        'It centralizes one global score, module metrics and a roadmap of actions so you know where to act first without jumping between many screens.',
+      s6_sap_when_title: 'When should you use it?',
+      s6_sap_when_desc:
+        'From onboarding, then in weekly/monthly finance reviews, before period close, and for multi-entity structuring projects.',
+      s6_sap_value_title: 'What value does it bring to CashPilot?',
+      s6_sap_value_desc:
+        'It turns isolated accounting features into a guided and measurable execution path, easier to adopt for beginners.',
       s6_plan_title: 'Chart of Accounts',
       s6_plan_desc:
         'Import your chart of accounts from a CSV. Search and filter by code or account type. Presets for France, Belgium and OHADA.',
@@ -648,6 +661,7 @@
       sub_creances_dettes: 'Vorderingen & Schulden',
       sub_tresorerie: 'Kasstroom',
       sub_plan_comptable: 'Rekeningschema',
+      sub_sap_cockpit: 'SAP-cockpit (CashPilot)',
       sub_bilan_resultat: 'Balans & Resultaat',
       sub_declaration_tva: 'BTW-aangifte',
       sub_estimation_impot: 'Belastingschatting',
@@ -709,7 +723,7 @@
       toc_05: 'Financieel beheer',
       toc_05_desc: 'Uitgaven, vorderingen, schulden, kasstroom',
       toc_06: 'Boekhouding',
-      toc_06_desc: 'Rekeningschema, balans, resultaat, BTW',
+      toc_06_desc: 'Rekeningschema, SAP-cockpit, balans, resultaat, BTW',
       toc_07: 'Projecten & Tijd',
       toc_07_desc: 'Projecten, urenstaten, taken',
       toc_08: 'Voorraad & Producten',
@@ -827,6 +841,18 @@
       s6_title_2: 'Boekhouding',
       s6_subtitle:
         'Een complete boekhoudmodule met 10 tabbladen: rekeningschema, balans, resultatenrekening, BTW, belastingschatting en bankreconciliatie.',
+      s6_sap_bloc_title: 'CashPilot SAP-cockpit (FI, CO, AA, Consolidation, Close)',
+      s6_sap_bloc_intro:
+        'De SAP-module in CashPilot is geen volledig SAP-ERP. Het is een stuurcockpit voor finance die teams helpt boekhoudprioriteiten te ordenen en stap voor stap uit te voeren, ook voor niet-boekhouders.',
+      s6_sap_what_title: 'Waarvoor dient dit?',
+      s6_sap_what_desc:
+        'Het centraliseert één globale score, metrics per module en een actieroadmap zodat u snel weet waar u eerst moet handelen.',
+      s6_sap_when_title: 'Wanneer gebruikt u dit?',
+      s6_sap_when_desc:
+        'Vanaf onboarding, daarna in wekelijkse/maandelijkse reviews, vóór periodeafsluiting en bij multi-entiteitstrajecten.',
+      s6_sap_value_title: 'Welke meerwaarde brengt dit voor CashPilot?',
+      s6_sap_value_desc:
+        'Het maakt van losse boekhoudfuncties één geleid en meetbaar uitvoeringspad dat ook voor beginners duidelijk blijft.',
       s6_plan_title: 'Rekeningschema',
       s6_plan_desc:
         'Importeer uw rekeningschema vanuit een CSV. Zoek en filter op code of rekeningtype. Voorinstellingen voor Frankrijk, Belgi\u00eb en OHADA.',
@@ -1092,6 +1118,7 @@
       comptabilite: [
         'sub_overview',
         'sub_plan_comptable',
+        'sub_sap_cockpit',
         'sub_bilan_resultat',
         'sub_declaration_tva',
         'sub_estimation_impot',
@@ -1156,6 +1183,14 @@
     apply('[data-i18n="hero_read"]', 'hero_read');
     apply('[data-i18n="hero_powered"]', 'hero_powered');
     apply('[data-i18n="hero_explore"]', 'hero_explore');
+    apply('[data-i18n="s6_sap_bloc_title"]', 's6_sap_bloc_title');
+    apply('[data-i18n="s6_sap_bloc_intro"]', 's6_sap_bloc_intro');
+    apply('[data-i18n="s6_sap_what_title"]', 's6_sap_what_title');
+    apply('[data-i18n="s6_sap_what_desc"]', 's6_sap_what_desc');
+    apply('[data-i18n="s6_sap_when_title"]', 's6_sap_when_title');
+    apply('[data-i18n="s6_sap_when_desc"]', 's6_sap_when_desc');
+    apply('[data-i18n="s6_sap_value_title"]', 's6_sap_value_title');
+    apply('[data-i18n="s6_sap_value_desc"]', 's6_sap_value_desc');
 
     // TOC
     var tocSection = document.getElementById('toc');

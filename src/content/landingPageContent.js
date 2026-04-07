@@ -9,6 +9,7 @@ export const landingPageContent = {
       pricing: 'Prix',
       mcpTools: 'MCP Tools',
       guide: 'Guide',
+      sap: 'Cockpit SAP',
       peppol: 'Peppol',
       peppolGuide: 'Guide Peppol',
       login: 'Connexion',
@@ -381,6 +382,42 @@ export const landingPageContent = {
       imageAlt: 'Connexion CashPilot - Peppol via Scrada : configuration, forfaits et bénéfices',
       cta: 'Voir le guide complet',
     },
+    sap: {
+      badge: 'Cockpit SAP CashPilot',
+      title: 'À quoi sert le module SAP dans CashPilot ?',
+      description:
+        'Le cockpit SAP de CashPilot structure votre progression comptable par domaines (FI, CO, AA, Consolidation, Close) avec une lecture simple, même si vous débutez en comptabilité.',
+      cards: [
+        {
+          title: "Ce que c'est concrètement",
+          description:
+            'Un cockpit de maturité: score global, métriques par module, roadmap opérationnelle et accès directs vers les écrans métier.',
+        },
+        {
+          title: "Quand l'utiliser",
+          description:
+            'Au démarrage, puis en rituel hebdo/mensuel, avant clôture de période, et pendant tout projet de structuration finance/compta multi-sociétés.',
+        },
+        {
+          title: 'Ce que ça change pour vos équipes',
+          description:
+            'Moins de dispersion, priorités claires, meilleure adoption des novices, et un pilotage CFO/compta aligné sur des étapes mesurables.',
+        },
+      ],
+      noviceTitle: 'Parcours conseillé pour débuter (3 étapes)',
+      noviceSteps: [
+        '1) Ouvrez le cockpit SAP pour voir le score global et les modules les plus faibles.',
+        "2) Consultez les bulles d'information de chaque bloc pour comprendre les chiffres sans jargon.",
+        '3) Créez un workstream roadmap par action prioritaire et suivez son statut jusqu’à “Terminé”.',
+      ],
+      valueTitle: 'Plus-value directe pour CashPilot',
+      valueItems: [
+        'Passe d’un ensemble de fonctionnalités à un parcours guidé end-to-end.',
+        'Réduit les erreurs de pilotage grâce à une vue unique des priorités finance.',
+        'Accélère la montée en compétence des utilisateurs non experts en compta.',
+      ],
+      cta: 'Voir le guide SAP pour débutants',
+    },
     advantages: {
       title: 'Pourquoi choisir CashPilot ?',
       description: 'Des avantages qui font la différence',
@@ -430,6 +467,7 @@ export const landingPageContent = {
       pricing: 'Pricing',
       mcpTools: 'MCP Tools',
       guide: 'Guide',
+      sap: 'SAP Cockpit',
       peppol: 'Peppol',
       peppolGuide: 'Peppol Guide',
       login: 'Log in',
@@ -791,6 +829,42 @@ export const landingPageContent = {
       imageAlt: 'CashPilot - Peppol via Scrada connection: setup, plans, and benefits',
       cta: 'See the full guide',
     },
+    sap: {
+      badge: 'CashPilot SAP cockpit',
+      title: 'What is the SAP module in CashPilot for?',
+      description:
+        'The SAP cockpit structures accounting progress by domain (FI, CO, AA, Consolidation, Close) with a beginner-friendly reading layer.',
+      cards: [
+        {
+          title: 'What it is in practice',
+          description:
+            'A maturity cockpit: global score, module metrics, operational roadmap, and direct links to the right business screens.',
+        },
+        {
+          title: 'When to use it',
+          description:
+            'At onboarding, then weekly/monthly reviews, before period close, and during any finance/accounting structuring initiative.',
+        },
+        {
+          title: 'What it changes for teams',
+          description:
+            'Less fragmentation, clear priorities, faster novice onboarding, and aligned CFO/accounting execution around measurable steps.',
+        },
+      ],
+      noviceTitle: 'Recommended beginner flow (3 steps)',
+      noviceSteps: [
+        '1) Open the SAP cockpit to see the global score and weakest modules.',
+        '2) Read the info bubbles on each block to understand the metrics without technical accounting jargon.',
+        '3) Create one roadmap workstream per priority action and move it to “Done”.',
+      ],
+      valueTitle: 'Direct value for CashPilot',
+      valueItems: [
+        'Turns isolated features into a guided end-to-end finance journey.',
+        'Reduces steering mistakes with one consolidated priority view.',
+        'Speeds up adoption for non-accountants.',
+      ],
+      cta: 'See the beginner SAP guide',
+    },
     advantages: {
       title: 'Why choose CashPilot?',
       description: 'Advantages that truly stand out',
@@ -840,6 +914,7 @@ export const landingPageContent = {
       pricing: 'Prijzen',
       mcpTools: 'MCP Tools',
       guide: 'Gids',
+      sap: 'SAP-cockpit',
       peppol: 'Peppol',
       peppolGuide: 'Peppol-gids',
       login: 'Inloggen',
@@ -1211,6 +1286,42 @@ export const landingPageContent = {
       ],
       imageAlt: 'CashPilot - Peppol via Scrada: configuratie, formules en voordelen',
       cta: 'Bekijk de volledige gids',
+    },
+    sap: {
+      badge: 'CashPilot SAP-cockpit',
+      title: 'Waarvoor dient de SAP-module in CashPilot?',
+      description:
+        'De SAP-cockpit structureert uw boekhoudkundige voortgang per domein (FI, CO, AA, Consolidation, Close) met een duidelijke, beginnersvriendelijke lezing.',
+      cards: [
+        {
+          title: 'Wat het concreet is',
+          description:
+            'Een maturiteitscockpit: globale score, metrics per module, operationele roadmap en directe links naar de juiste schermen.',
+        },
+        {
+          title: 'Wanneer gebruiken',
+          description:
+            'Bij opstart, daarna wekelijks/maandelijks, vóór periodeafsluiting en tijdens elk traject om finance/boekhouding te structureren.',
+        },
+        {
+          title: 'Wat het verandert voor teams',
+          description:
+            'Minder versnippering, duidelijke prioriteiten, snellere adoptie door beginners en betere afstemming tussen CFO en boekhouding.',
+        },
+      ],
+      noviceTitle: 'Aanbevolen startpad (3 stappen)',
+      noviceSteps: [
+        '1) Open de SAP-cockpit om de globale score en zwakste modules te zien.',
+        '2) Lees de infobubbels per blok om de cijfers zonder vakjargon te begrijpen.',
+        '3) Maak per prioritaire actie één roadmap-workstream en zet die op “Klaar”.',
+      ],
+      valueTitle: 'Directe meerwaarde voor CashPilot',
+      valueItems: [
+        'Maakt van losse functies een geleid end-to-end finance-traject.',
+        'Vermindert stuurfouten met één geconsolideerde prioriteitenweergave.',
+        'Versnelt de adoptie voor niet-boekhouders.',
+      ],
+      cta: 'Bekijk de SAP-beginnersgids',
     },
     advantages: {
       title: 'Waarom kiezen voor CashPilot?',
