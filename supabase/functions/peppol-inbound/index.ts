@@ -108,6 +108,42 @@ const decodeXmlText = (value: string | null): string | null => {
     .trim();
 };
 
+const compactErrorBody = (value: string | null): string => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  return text.length > 280 ? `${text.slice(0, 277)}...` : text;
+};
+
+const fetchScradaWithFallback = async (
+  urls: string[],
+  options: RequestInit
+): Promise<{ response: Response; url: string }> => {
+  let bestFailure: { response: Response; url: string; body: string } | null = null;
+
+  for (const url of urls) {
+    const response = await fetch(url, options);
+    if (response.ok) {
+      return { response, url };
+    }
+
+    const body = await response.text().catch(() => '');
+    if (!bestFailure || response.status !== 404) {
+      bestFailure = { response, url, body };
+    }
+  }
+
+  if (!bestFailure) {
+    throw new HttpError(502, 'Scrada request failed');
+  }
+
+  const status = bestFailure.response.status;
+  const reason = compactErrorBody(bestFailure.body);
+  const endpoint = bestFailure.url.replace(/^https?:\/\/[^/]+/i, '');
+  const message = reason ? `Scrada error ${status} on ${endpoint}: ${reason}` : `Scrada error ${status} on ${endpoint}`;
+
+  throw new HttpError(status === 404 ? 404 : 502, message);
+};
+
 const captureFirstXmlValue = (xml: string, pattern: RegExp): string | null => {
   const match = xml.match(pattern);
   if (!match) return null;
@@ -606,16 +642,15 @@ serve(async (req) => {
     }
 
     if (action === 'get_ubl' && body.document_id) {
-      const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/${body.document_id}`;
-      const scradaResponse = await fetch(scradaUrl, {
+      const encodedDocumentId = encodeURIComponent(String(body.document_id));
+      const candidates = [
+        `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/${encodedDocumentId}`,
+        `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolInbound/document/${encodedDocumentId}`,
+      ];
+      const { response: scradaResponse } = await fetchScradaWithFallback(candidates, {
         method: 'GET',
         headers: { ...scradaHeaders, Accept: 'application/xml' },
       });
-
-      if (!scradaResponse.ok) {
-        throw new HttpError(404, 'Document not found in Scrada');
-      }
-
       const ublXml = await scradaResponse.text();
       return new Response(JSON.stringify({ ubl: ublXml }), {
         status: 200,
@@ -624,16 +659,15 @@ serve(async (req) => {
     }
 
     if (action === 'get_pdf' && body.document_id) {
-      const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/${body.document_id}/pdf`;
-      const scradaResponse = await fetch(scradaUrl, {
+      const encodedDocumentId = encodeURIComponent(String(body.document_id));
+      const candidates = [
+        `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/${encodedDocumentId}/pdf`,
+        `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolInbound/document/${encodedDocumentId}/pdf`,
+      ];
+      const { response: scradaResponse } = await fetchScradaWithFallback(candidates, {
         method: 'GET',
         headers: { ...scradaHeaders, Accept: 'application/pdf' },
       });
-
-      if (!scradaResponse.ok) {
-        throw new HttpError(404, 'PDF not available');
-      }
-
       const pdfBuffer = await scradaResponse.arrayBuffer();
       return new Response(pdfBuffer, {
         status: 200,
