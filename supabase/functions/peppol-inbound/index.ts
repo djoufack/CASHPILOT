@@ -143,6 +143,43 @@ const extractInboundUblMetadata = (
   };
 };
 
+const looksLikePeppolId = (value: string | null): boolean => {
+  const text = String(value || '').trim();
+  if (!text) return false;
+  return /^\d{4}:[A-Za-z0-9._-]+$/i.test(text);
+};
+
+const shouldUpdateSenderName = (
+  existingSenderName: unknown,
+  existingSenderPeppolId: unknown,
+  newSenderName: string | null
+): boolean => {
+  const existingName = String(existingSenderName || '').trim();
+  const existingPeppolId = String(existingSenderPeppolId || '').trim();
+  const candidate = String(newSenderName || '').trim();
+  if (!candidate) return false;
+  if (!existingName) return true;
+  if (existingName === candidate) return false;
+  if (looksLikePeppolId(existingName)) return true;
+  if (existingPeppolId && existingName === existingPeppolId) return true;
+  return false;
+};
+
+const shouldUpdateInvoiceNumber = (existingInvoiceNumber: unknown, newInvoiceNumber: string | null): boolean => {
+  const existingValue = String(existingInvoiceNumber || '').trim();
+  const candidate = String(newInvoiceNumber || '').trim();
+  if (!candidate) return false;
+  if (!existingValue) return true;
+  if (existingValue === candidate) return false;
+
+  // Older syncs may have stored ordinal placeholders (1,2,3,4) instead of invoice references.
+  if (/^\d{1,4}$/.test(existingValue)) {
+    return true;
+  }
+
+  return false;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -273,6 +310,58 @@ serve(async (req) => {
         }
       };
 
+      const backfillStoredInboundDocuments = async (): Promise<number> => {
+        const { data: storedDocs, error: storedDocsError } = await supabase
+          .from('peppol_inbound_documents')
+          .select('id, scrada_document_id, sender_peppol_id, sender_name, invoice_number, invoice_date')
+          .eq('user_id', user.id)
+          .eq('company_id', companyId)
+          .order('received_at', { ascending: false })
+          .limit(25);
+        if (storedDocsError) throw storedDocsError;
+
+        let backfilled = 0;
+        for (const row of storedDocs || []) {
+          const docId = String(row.scrada_document_id || '').trim();
+          if (!docId) continue;
+
+          const senderPeppolId = String(row.sender_peppol_id || '').trim() || null;
+          let senderNameFromRegistry: string | null = null;
+          if (senderPeppolId) {
+            senderNameFromRegistry = await resolveSenderCommercialName(senderPeppolId);
+          }
+
+          const ublMetadata = await resolveDocumentUblMetadata(docId);
+          const candidateSenderName = senderNameFromRegistry || ublMetadata?.senderName || null;
+          const candidateInvoiceNumber = ublMetadata?.invoiceNumber || null;
+          const candidateInvoiceDate = ublMetadata?.invoiceDate || null;
+
+          const updatePayload: Record<string, unknown> = {};
+          if (shouldUpdateSenderName(row.sender_name, row.sender_peppol_id, candidateSenderName)) {
+            updatePayload.sender_name = candidateSenderName;
+          }
+          if (shouldUpdateInvoiceNumber(row.invoice_number, candidateInvoiceNumber)) {
+            updatePayload.invoice_number = candidateInvoiceNumber;
+          }
+          if (!String(row.invoice_date || '').trim() && candidateInvoiceDate) {
+            updatePayload.invoice_date = candidateInvoiceDate;
+          }
+
+          if (Object.keys(updatePayload).length > 0) {
+            const { error: updateError } = await supabase
+              .from('peppol_inbound_documents')
+              .update(updatePayload)
+              .eq('id', String(row.id || ''))
+              .eq('user_id', user.id)
+              .eq('company_id', companyId);
+            if (updateError) throw updateError;
+            backfilled += 1;
+          }
+        }
+
+        return backfilled;
+      };
+
       const candidateDocuments = new Map<string, { doc: Record<string, unknown>; shouldConfirm: boolean }>();
       const addDocuments = (docs: Record<string, unknown>[], shouldConfirm: boolean) => {
         for (const doc of docs) {
@@ -311,12 +400,14 @@ serve(async (req) => {
 
       const candidateIds = Array.from(candidateDocuments.keys());
       if (candidateIds.length === 0) {
+        const backfilledDocuments = await backfillStoredInboundDocuments();
         return new Response(
           JSON.stringify({
             synced: true,
             totalFromScrada: 0,
             newDocuments: 0,
             requiredCredits: 0,
+            backfilledDocuments,
           }),
           {
             status: 200,
@@ -360,10 +451,10 @@ serve(async (req) => {
           if (!String(existing.sender_peppol_id || '').trim() && senderPeppolId) {
             updatePayload.sender_peppol_id = senderPeppolId;
           }
-          if (!String(existing.sender_name || '').trim() && senderName) {
+          if (shouldUpdateSenderName(existing.sender_name, existing.sender_peppol_id, senderName)) {
             updatePayload.sender_name = senderName;
           }
-          if (!String(existing.invoice_number || '').trim() && invoiceRef) {
+          if (shouldUpdateInvoiceNumber(existing.invoice_number, invoiceRef)) {
             updatePayload.invoice_number = invoiceRef;
           }
           if (!String(existing.invoice_date || '').trim() && invoiceDate) {
