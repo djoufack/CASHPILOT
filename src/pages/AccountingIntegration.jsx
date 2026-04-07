@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -71,11 +71,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { ENTITLEMENT_KEYS, filterEntitledItems } from '@/utils/subscriptionEntitlements';
+import { useSearchParams } from 'react-router-dom';
+
+const DEFAULT_TAB = 'dashboard';
 
 const AccountingIntegration = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const now = new Date();
   const year = now.getFullYear();
 
@@ -245,29 +249,43 @@ const AccountingIntegration = () => {
     }
   };
 
-  const tabs = [
-    { value: 'dashboard', label: 'Tableau de bord', icon: BarChart3 },
-    { value: 'coa', label: 'Plan comptable', icon: FileText },
-    { value: 'balance', label: 'Bilan', icon: Scale },
-    { value: 'income', label: 'Compte de résultat', icon: TrendingUp },
-    { value: 'diagnostic', label: 'Diagnostic Financier', icon: Activity },
-    { value: 'annexes', label: 'Annexes', icon: ClipboardList },
-    { value: 'vat', label: 'TVA', icon: Receipt },
-    { value: 'tax', label: 'Estimation impôt', icon: Calculator },
-    { value: 'mappings', label: 'Mappings', icon: Settings },
-    { value: 'rates', label: 'Taux de TVA', icon: Percent },
-    {
-      value: 'reconciliation',
-      label: 'Rapprochement',
-      icon: Landmark,
-      featureKey: ENTITLEMENT_KEYS.BANK_RECONCILIATION,
-    },
-    { value: 'fixedAssets', label: t('accounting.fixedAssets.title'), icon: Building2 },
-    { value: 'closing', label: t('accounting.closingAssistant.tabLabel', 'Clôture assistée'), icon: CalendarCheck2 },
-    { value: 'analytique', label: t('accounting.analytique.title'), icon: BarChart2 },
-    { value: 'init', label: 'Initialisation', icon: Settings2 },
-  ];
-  const visibleTabs = filterEntitledItems(tabs, hasEntitlement);
+  const tabs = useMemo(
+    () => [
+      { value: 'dashboard', label: 'Tableau de bord', icon: BarChart3 },
+      { value: 'coa', label: 'Plan comptable', icon: FileText },
+      { value: 'balance', label: 'Bilan', icon: Scale },
+      { value: 'income', label: 'Compte de résultat', icon: TrendingUp },
+      { value: 'diagnostic', label: 'Diagnostic Financier', icon: Activity },
+      { value: 'annexes', label: 'Annexes', icon: ClipboardList },
+      { value: 'vat', label: 'TVA', icon: Receipt },
+      { value: 'tax', label: 'Estimation impôt', icon: Calculator },
+      { value: 'mappings', label: 'Mappings', icon: Settings },
+      { value: 'rates', label: 'Taux de TVA', icon: Percent },
+      {
+        value: 'reconciliation',
+        label: 'Rapprochement',
+        icon: Landmark,
+        featureKey: ENTITLEMENT_KEYS.BANK_RECONCILIATION,
+      },
+      { value: 'fixedAssets', label: t('accounting.fixedAssets.title'), icon: Building2 },
+      { value: 'closing', label: t('accounting.closingAssistant.tabLabel', 'Clôture assistée'), icon: CalendarCheck2 },
+      { value: 'analytique', label: t('accounting.analytique.title'), icon: BarChart2 },
+      { value: 'init', label: 'Initialisation', icon: Settings2 },
+    ],
+    [t]
+  );
+  const visibleTabs = useMemo(() => filterEntitledItems(tabs, hasEntitlement), [tabs, hasEntitlement]);
+  const visibleTabValues = useMemo(() => new Set(visibleTabs.map((tab) => tab.value)), [visibleTabs]);
+  const resolveActiveTab = useCallback(
+    (value) => (value && visibleTabValues.has(value) ? value : DEFAULT_TAB),
+    [visibleTabValues]
+  );
+  const [activeTab, setActiveTab] = useState(() => resolveActiveTab(searchParams.get('tab')));
+
+  useEffect(() => {
+    const nextTab = resolveActiveTab(searchParams.get('tab'));
+    setActiveTab((currentTab) => (currentTab === nextTab ? currentTab : nextTab));
+  }, [resolveActiveTab, searchParams]);
 
   // ─── Initialization Wizard ─────────────────────────────────────────
   if (isInitialized === false) {
@@ -428,7 +446,7 @@ const AccountingIntegration = () => {
 
       {/* Tabs */}
       {!loading && (
-        <Tabs defaultValue="dashboard" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-gray-950 to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-gray-950 to-transparent" />

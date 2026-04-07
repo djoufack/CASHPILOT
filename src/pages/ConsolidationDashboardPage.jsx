@@ -83,6 +83,7 @@ export default function ConsolidationDashboardPage() {
     consolidatedBalance,
     cashPosition,
     intercompanyTransactions,
+    portfolioConsolidationScope,
     loading,
     error,
     fetchPortfolios,
@@ -90,6 +91,7 @@ export default function ConsolidationDashboardPage() {
     fetchConsolidatedBalance,
     fetchCashPosition,
     fetchIntercompanyTransactions,
+    fetchPortfolioConsolidationScope,
   } = useConsolidation();
 
   const [selectedPortfolioId, setSelectedPortfolioId] = useState('');
@@ -133,21 +135,22 @@ export default function ConsolidationDashboardPage() {
       fetchConsolidatedBalance(selectedPortfolioId, endDate),
       fetchCashPosition(selectedPortfolioId),
       fetchIntercompanyTransactions(selectedPortfolioId),
+      fetchPortfolioConsolidationScope(selectedPortfolioId, endDate),
       fetchConsolidatedPnl(selectedPortfolioId, prev.startDate, prev.endDate),
       fetchConsolidatedBalance(selectedPortfolioId, prev.endDate),
       fetchCashPosition(selectedPortfolioId),
     ]);
 
-    const _consolLabels = ['pnl', 'balance', 'cash', 'intercompany', 'prevPnl', 'prevBalance', 'prevCash'];
+    const _consolLabels = ['pnl', 'balance', 'cash', 'intercompany', 'scope', 'prevPnl', 'prevBalance', 'prevCash'];
     _consolResults.forEach((r, i) => {
       if (r.status === 'rejected')
         console.error(`ConsolidationDashboard fetch "${_consolLabels[i]}" failed:`, r.reason);
     });
 
     const _cv = (i) => (_consolResults[i].status === 'fulfilled' ? _consolResults[i].value : null);
-    const prevPnlData = _cv(4);
-    const prevBalanceData = _cv(5);
-    const prevCashData = _cv(6);
+    const prevPnlData = _cv(5);
+    const prevBalanceData = _cv(6);
+    const prevCashData = _cv(7);
 
     setPreviousPnl(prevPnlData);
     setPreviousBalance(prevBalanceData);
@@ -159,6 +162,7 @@ export default function ConsolidationDashboardPage() {
     fetchConsolidatedBalance,
     fetchCashPosition,
     fetchIntercompanyTransactions,
+    fetchPortfolioConsolidationScope,
   ]);
 
   // Reload data when portfolio or period changes
@@ -171,6 +175,10 @@ export default function ConsolidationDashboardPage() {
   const selectedPortfolio = portfolios.find((p) => p.id === selectedPortfolioId);
   const currency = selectedPortfolio?.base_currency || 'EUR';
 
+  const consolidationScopeRows = useMemo(() => {
+    return Array.isArray(portfolioConsolidationScope) ? portfolioConsolidationScope : [];
+  }, [portfolioConsolidationScope]);
+
   const entityRows = useMemo(
     () =>
       buildConsolidatedEntityRows({
@@ -178,8 +186,15 @@ export default function ConsolidationDashboardPage() {
         balanceByCompany: consolidatedBalance?.by_company || [],
         cashByCompany: cashPosition?.by_company || [],
         intercompanyTransactions: intercompanyTransactions || [],
+        consolidationScope: consolidationScopeRows,
       }),
-    [consolidatedPnl?.by_company, consolidatedBalance?.by_company, cashPosition?.by_company, intercompanyTransactions]
+    [
+      consolidatedPnl?.by_company,
+      consolidatedBalance?.by_company,
+      cashPosition?.by_company,
+      intercompanyTransactions,
+      consolidationScopeRows,
+    ]
   );
 
   const visibleEntityRows = useMemo(
@@ -239,6 +254,22 @@ export default function ConsolidationDashboardPage() {
       return scopedCompanyIds.has(sourceId) || scopedCompanyIds.has(targetId);
     });
   }, [entityScope, intercompanyTransactions, scopedCompanyIds]);
+
+  const consolidationScopeSummary = useMemo(() => {
+    const total = consolidationScopeRows.length;
+    const full = consolidationScopeRows.filter((row) => row.consolidation_method === 'full').length;
+    const proportional = consolidationScopeRows.filter((row) => row.consolidation_method === 'proportional').length;
+    const equity = consolidationScopeRows.filter((row) => row.consolidation_method === 'equity').length;
+    const excluded = consolidationScopeRows.filter((row) => row.consolidation_method === 'exclude').length;
+
+    return {
+      total,
+      full,
+      proportional,
+      equity,
+      excluded,
+    };
+  }, [consolidationScopeRows]);
 
   return (
     <>
@@ -350,6 +381,47 @@ export default function ConsolidationDashboardPage() {
         {/* Main content */}
         {selectedPortfolioId && (
           <>
+            {consolidationScopeSummary.total > 0 && (
+              <Card className="mb-6 bg-[#0f1528]/80 border-white/10 backdrop-blur-sm">
+                <CardContent className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                      {t('consolidation.scopeSummaryTitle', 'Scope consolidation')}
+                    </p>
+                    <p className="text-sm text-slate-300">
+                      {t('consolidation.scopeSummaryDescription', {
+                        defaultValue:
+                          '{{total}} entites en scope, avec methode de consolidation et pourcentages applies au calcul.',
+                        total: consolidationScopeSummary.total,
+                      })}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-200">
+                      {t('consolidation.scopeSummaryFull', '{{count}} plein', {
+                        count: consolidationScopeSummary.full,
+                      })}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-200">
+                      {t('consolidation.scopeSummaryProportional', '{{count}} proportionnel', {
+                        count: consolidationScopeSummary.proportional,
+                      })}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-200">
+                      {t('consolidation.scopeSummaryEquity', '{{count}} mise en equivalence', {
+                        count: consolidationScopeSummary.equity,
+                      })}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-200">
+                      {t('consolidation.scopeSummaryExcluded', '{{count}} exclus', {
+                        count: consolidationScopeSummary.excluded,
+                      })}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* KPI Cards */}
             <div className="mb-6">
               <ConsolidationKpiCards

@@ -35,6 +35,64 @@ const SCOPE_OPTIONS = [
   { value: 'attention', labelKey: 'consolidation.scopeAttention', fallback: 'Entites en attention' },
 ];
 
+const CONSOLIDATION_METHOD_LABELS = {
+  full: {
+    labelKey: 'consolidation.methodFull',
+    fallbackLabel: 'Integrale',
+  },
+  proportional: {
+    labelKey: 'consolidation.methodProportional',
+    fallbackLabel: 'Proportionnelle',
+  },
+  equity: {
+    labelKey: 'consolidation.methodEquity',
+    fallbackLabel: 'Mise en equivalence',
+  },
+  exclude: {
+    labelKey: 'consolidation.methodExclude',
+    fallbackLabel: 'Hors perimetre',
+  },
+};
+
+function toPercent(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatPercent(value) {
+  const percent = toPercent(value);
+  if (percent == null) return '—';
+  return `${percent.toFixed(2)}%`;
+}
+
+function formatWeight(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return '—';
+  const normalized = numericValue <= 1 ? numericValue * 100 : numericValue;
+  return `${normalized.toFixed(2)}%`;
+}
+
+function getConsolidationMethodLabel(method, t) {
+  const normalizedMethod = String(method || 'full').toLowerCase();
+  const label = CONSOLIDATION_METHOD_LABELS[normalizedMethod] || CONSOLIDATION_METHOD_LABELS.full;
+  return t(label.labelKey, label.fallbackLabel);
+}
+
+function getScopeStatus(row, t) {
+  const inScope = row?.isInScope ?? row?.is_in_scope;
+  if (inScope === false) {
+    return {
+      label: t('consolidation.scopeOutOfScope', 'Hors perimetre'),
+      className: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
+    };
+  }
+
+  return {
+    label: t('consolidation.scopeInScope', 'Dans le perimetre'),
+    className: 'bg-emerald-500/15 text-emerald-200 border-emerald-500/30',
+  };
+}
+
 export default function ConsolidatedEntitiesTable({
   rows = [],
   scope = 'all',
@@ -132,6 +190,16 @@ export default function ConsolidatedEntitiesTable({
                 <TableRow className="border-white/10 hover:bg-transparent">
                   <TableHead className="text-slate-400 text-xs">{t('consolidation.company', 'Societe')}</TableHead>
                   <TableHead className="text-slate-400 text-xs">{t('common.status')}</TableHead>
+                  <TableHead className="text-slate-400 text-xs">
+                    {t('consolidation.consolidationMethod', 'Methode')}
+                  </TableHead>
+                  <TableHead className="text-slate-400 text-xs text-right">
+                    {t('consolidation.ownershipControl', 'Ownership / control')}
+                  </TableHead>
+                  <TableHead className="text-slate-400 text-xs text-right">
+                    {t('consolidation.consolidationWeight', 'Poids')}
+                  </TableHead>
+                  <TableHead className="text-slate-400 text-xs">{t('consolidation.scope', 'Perimetre')}</TableHead>
                   <TableHead className="text-slate-400 text-xs text-right">
                     {t('consolidation.consolidatedRevenue')}
                   </TableHead>
@@ -146,15 +214,41 @@ export default function ConsolidatedEntitiesTable({
                 {rows.map((row) => {
                   const style = STATUS_STYLES[row.status] || STATUS_STYLES.inactive;
                   const StatusIcon = style.icon;
+                  const scopeStatus = getScopeStatus(row, t);
+                  const methodLabel = getConsolidationMethodLabel(
+                    row.consolidation_method ?? row.consolidationMethod,
+                    t
+                  );
+                  const ownershipPct = row.ownership_pct ?? row.ownershipPct;
+                  const controlPct = row.control_pct ?? row.controlPct;
+                  const weight = row.consolidation_weight ?? row.consolidationWeight;
+                  const isOutOfScope = (row?.isInScope ?? row?.is_in_scope) === false;
 
                   return (
-                    <TableRow key={row.companyId} className="border-white/5 hover:bg-white/5">
+                    <TableRow
+                      key={row.companyId}
+                      className={`border-white/5 hover:bg-white/5 ${isOutOfScope ? 'opacity-70' : ''}`}
+                    >
                       <TableCell className="text-white text-sm font-medium">{row.companyName}</TableCell>
                       <TableCell>
                         <Badge className={`gap-1 text-[10px] border ${style.badge}`}>
                           <StatusIcon className="h-3 w-3" />
                           {t(style.labelKey, style.fallbackLabel)}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="border border-cyan-500/30 bg-cyan-500/15 text-cyan-200 text-[10px]">
+                          {methodLabel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-white text-sm tabular-nums whitespace-nowrap">
+                        {formatPercent(ownershipPct)} / {formatPercent(controlPct)}
+                      </TableCell>
+                      <TableCell className="text-right text-white text-sm tabular-nums whitespace-nowrap">
+                        {formatWeight(weight)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`text-[10px] border ${scopeStatus.className}`}>{scopeStatus.label}</Badge>
                       </TableCell>
                       <TableCell className="text-right text-white text-sm tabular-nums">
                         {formatCurrency(row.revenue || 0, currency)}

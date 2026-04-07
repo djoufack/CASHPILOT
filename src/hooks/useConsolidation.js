@@ -42,6 +42,17 @@ function normalizeConsolidatedPnlPayload(payload) {
   };
 }
 
+function normalizePortfolioConsolidationScopeRow(row) {
+  const isInScope = row?.is_in_scope;
+  return {
+    ...row,
+    ownership_pct: row?.ownership_pct == null ? null : toSafeNumber(row?.ownership_pct),
+    control_pct: row?.control_pct == null ? null : toSafeNumber(row?.control_pct),
+    consolidation_weight: row?.consolidation_weight == null ? null : toSafeNumber(row?.consolidation_weight),
+    is_in_scope: typeof isInScope === 'boolean' ? isInScope : null,
+  };
+}
+
 export function useConsolidation() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -52,6 +63,7 @@ export function useConsolidation() {
   const [consolidatedBalance, setConsolidatedBalance] = useState(null);
   const [cashPosition, setCashPosition] = useState(null);
   const [intercompanyTransactions, setIntercompanyTransactions] = useState([]);
+  const [portfolioConsolidationScope, setPortfolioConsolidationScope] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -62,7 +74,21 @@ export function useConsolidation() {
     try {
       const { data, error: fetchError } = await supabase
         .from('company_portfolios')
-        .select('*, company_portfolio_members(id, company_id, company:company(id, company_name))')
+        .select(
+          `
+          *,
+          company_portfolio_members(
+            id,
+            company_id,
+            consolidation_method,
+            ownership_pct,
+            control_pct,
+            effective_from,
+            effective_to,
+            company:company(id, company_name)
+          )
+        `
+        )
         .eq('user_id', user.id)
         .eq('is_active', true)
         .order('portfolio_name');
@@ -101,6 +127,34 @@ export function useConsolidation() {
         setError(err.message);
         toast({ variant: 'destructive', title: t('common.error'), description: err.message });
         return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, toast, t]
+  );
+
+  const fetchPortfolioConsolidationScope = useCallback(
+    async (portfolioId, asOfDate = null) => {
+      if (!user || !portfolioId) return [];
+      setLoading(true);
+      setError(null);
+      try {
+        const { data, error: rpcError } = await supabase.rpc('get_portfolio_consolidation_scope', {
+          p_portfolio_id: portfolioId,
+          p_as_of_date: asOfDate || undefined,
+        });
+
+        if (rpcError) throw rpcError;
+
+        const normalized = Array.isArray(data) ? data.map(normalizePortfolioConsolidationScopeRow) : [];
+        setPortfolioConsolidationScope(normalized);
+        return normalized;
+      } catch (err) {
+        setError(err.message);
+        toast({ variant: 'destructive', title: t('common.error'), description: err.message });
+        setPortfolioConsolidationScope([]);
+        return [];
       } finally {
         setLoading(false);
       }
@@ -216,6 +270,7 @@ export function useConsolidation() {
     consolidatedBalance,
     cashPosition,
     intercompanyTransactions,
+    portfolioConsolidationScope,
     loading,
     error,
     fetchPortfolios,
@@ -223,5 +278,6 @@ export function useConsolidation() {
     fetchConsolidatedBalance,
     fetchCashPosition,
     fetchIntercompanyTransactions,
+    fetchPortfolioConsolidationScope,
   };
 }

@@ -9,7 +9,18 @@ describe('consolidationEntityInsights', () => {
   it('builds merged entity rows with pending elimination tracking', () => {
     const rows = buildConsolidatedEntityRows({
       pnlByCompany: [
-        { company_id: 'c1', company_name: 'Alpha', revenue: 1200, expenses: 800, net_income: 400 },
+        {
+          company_id: 'c1',
+          company_name: 'Alpha',
+          revenue: 1200,
+          expenses: 800,
+          net_income: 400,
+          consolidation_method: 'full',
+          ownership_pct: 100,
+          control_pct: 100,
+          consolidation_weight: 1,
+          is_in_scope: true,
+        },
         { company_id: 'c2', company_name: 'Beta', revenue: 0, expenses: 0, net_income: 0 },
       ],
       balanceByCompany: [
@@ -36,6 +47,11 @@ describe('consolidationEntityInsights', () => {
       expenses: 800,
       netIncome: 400,
       cashBalance: 900,
+      consolidationMethod: 'full',
+      ownershipPct: 100,
+      controlPct: 100,
+      consolidationWeight: 1,
+      isInScope: true,
       pendingEliminationCount: 2,
       pendingEliminationAmount: 160,
       status: 'attention',
@@ -49,6 +65,74 @@ describe('consolidationEntityInsights', () => {
       pendingEliminationAmount: 40,
       status: 'attention',
     });
+  });
+
+  it('maps consolidation metadata into entity rows without changing legacy behavior when absent', () => {
+    const rows = buildConsolidatedEntityRows({
+      consolidationScope: [
+        {
+          company_id: 'c1',
+          company_name: 'Alpha Holdings',
+          consolidation_method: 'full',
+          ownership_pct: 100,
+          control_pct: 100,
+          consolidation_weight: 1,
+          is_in_scope: true,
+        },
+        {
+          company_id: 'c4',
+          company_name: 'Delta Group',
+          method: 'equity',
+          ownership: 35,
+          control: 40,
+          weight: 0.4,
+          isInScope: true,
+        },
+        {
+          company_id: 'c5',
+          company_name: 'Excluded Co',
+          consolidation_method: 'exclude',
+          ownership_pct: 0,
+          control_pct: 0,
+          consolidation_weight: 0,
+          is_in_scope: false,
+        },
+      ],
+    });
+
+    expect(rows).toHaveLength(3);
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          companyId: 'c1',
+          companyName: 'Alpha Holdings',
+          consolidationMethod: 'full',
+          ownershipPct: 100,
+          controlPct: 100,
+          consolidationWeight: 1,
+          isInScope: true,
+        }),
+        expect.objectContaining({
+          companyId: 'c4',
+          companyName: 'Delta Group',
+          consolidationMethod: 'equity',
+          ownershipPct: 35,
+          controlPct: 40,
+          consolidationWeight: 0.4,
+          isInScope: true,
+        }),
+        expect.objectContaining({
+          companyId: 'c5',
+          companyName: 'Excluded Co',
+          consolidationMethod: 'exclude',
+          ownershipPct: 0,
+          controlPct: 0,
+          consolidationWeight: 0,
+          isInScope: false,
+          status: 'inactive',
+        }),
+      ])
+    );
   });
 
   it('filters rows by scope and computes summary counters', () => {

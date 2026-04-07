@@ -122,6 +122,8 @@ const AccountantDashboardPage = lazyRetry(() => import('./pages/AccountantDashbo
 const EmbeddedBankingPage = lazyRetry(() => import('./pages/EmbeddedBankingPage'));
 const GoCardlessCallbackPage = lazyRetry(() => import('./pages/GoCardlessCallbackPage'));
 const ConsolidationDashboardPage = lazyRetry(() => import('./pages/ConsolidationDashboardPage'));
+const SapProgramPage = lazyRetry(() => import('./pages/SapProgramPage'));
+const SapModulePage = lazyRetry(() => import('./pages/SapModulePage'));
 
 // Game Changer Features — Wave 3
 const SmartDunningPage = lazyRetry(() => import('./pages/SmartDunningPage'));
@@ -426,6 +428,8 @@ const AppRoutes = () => {
         <Route path="accountant-dashboard" element={page(AccountantDashboardPage)} />
         <Route path="embedded-banking" element={page(EmbeddedBankingPage)} />
         <Route path="consolidation" element={page(ConsolidationDashboardPage)} />
+        <Route path="sap" element={page(SapProgramPage)} />
+        <Route path="sap/:moduleKey" element={page(SapModulePage)} />
 
         {/* Wave 3: Smart Dunning, Employee Portal, Recon IA, Tax Filing */}
         <Route path="smart-dunning" element={page(SmartDunningPage)} />

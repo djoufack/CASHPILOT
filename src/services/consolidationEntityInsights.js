@@ -53,13 +53,96 @@ function isPendingStatus(status) {
   return PENDING_STATUSES.has(String(status || '').toLowerCase());
 }
 
+function toNullableNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeConsolidationScopeEntry(entry = {}) {
+  const method = String(entry.consolidation_method ?? entry.consolidationMethod ?? entry.method ?? '').trim();
+  const companyName = normalizeCompanyName(entry.company_name || entry.companyName || entry.name, 0);
+  const ownershipPct = toNullableNumber(entry.ownership_pct ?? entry.ownershipPct ?? entry.ownership);
+  const controlPct = toNullableNumber(entry.control_pct ?? entry.controlPct ?? entry.control);
+  const consolidationWeight = toNullableNumber(entry.consolidation_weight ?? entry.consolidationWeight ?? entry.weight);
+  const isInScopeRaw = entry.is_in_scope ?? entry.isInScope;
+  const isInScope = typeof isInScopeRaw === 'boolean' ? isInScopeRaw : method ? method !== 'exclude' : null;
+
+  return {
+    companyName,
+    consolidationMethod: method || null,
+    ownershipPct,
+    controlPct,
+    consolidationWeight,
+    isInScope,
+  };
+}
+
+function buildConsolidationScopeIndex(consolidationScope) {
+  const index = new Map();
+
+  const setScope = (companyId, entry) => {
+    if (!companyId) return;
+    index.set(String(companyId), normalizeConsolidationScopeEntry(entry));
+  };
+
+  if (Array.isArray(consolidationScope)) {
+    consolidationScope.forEach((entry, fallbackIndex) => {
+      const companyId = entry?.company_id || entry?.companyId || entry?.id || `scope-company-${fallbackIndex + 1}`;
+      setScope(companyId, entry);
+    });
+    return index;
+  }
+
+  if (consolidationScope && typeof consolidationScope === 'object') {
+    Object.entries(consolidationScope).forEach(([companyId, entry]) => {
+      setScope(companyId, entry);
+    });
+  }
+
+  return index;
+}
+
+function extractScopeMetadata(source = {}) {
+  const hasScopeFields =
+    source.consolidation_method != null ||
+    source.consolidationMethod != null ||
+    source.method != null ||
+    source.ownership_pct != null ||
+    source.ownershipPct != null ||
+    source.ownership != null ||
+    source.control_pct != null ||
+    source.controlPct != null ||
+    source.control != null ||
+    source.consolidation_weight != null ||
+    source.consolidationWeight != null ||
+    source.weight != null ||
+    source.is_in_scope != null ||
+    source.isInScope != null;
+
+  return hasScopeFields ? normalizeConsolidationScopeEntry(source) : null;
+}
+
+function applyScopeMetadata(bucket, scope) {
+  if (!scope) return;
+  if (scope.companyName) {
+    bucket.companyName = bucket.companyName || scope.companyName;
+  }
+  bucket.consolidationMethod = scope.consolidationMethod;
+  bucket.ownershipPct = scope.ownershipPct;
+  bucket.controlPct = scope.controlPct;
+  bucket.consolidationWeight = scope.consolidationWeight;
+  bucket.isInScope = scope.isInScope;
+}
+
 export function buildConsolidatedEntityRows({
   pnlByCompany = [],
   balanceByCompany = [],
   cashByCompany = [],
   intercompanyTransactions = [],
+  consolidationScope = [],
 } = {}) {
   const buckets = new Map();
+  const scopeIndex = buildConsolidationScopeIndex(consolidationScope);
 
   (pnlByCompany || []).forEach((snapshot, index) => {
     const { companyId, companyName } = resolveCompanyIdentity(snapshot, 'pnl-company', index);
@@ -67,6 +150,7 @@ export function buildConsolidatedEntityRows({
     bucket.revenue = toNumber(snapshot.revenue);
     bucket.expenses = Math.abs(toNumber(snapshot.expenses));
     bucket.netIncome = toNumber(snapshot.net_income ?? snapshot.netIncome);
+    applyScopeMetadata(bucket, extractScopeMetadata(snapshot));
   });
 
   (balanceByCompany || []).forEach((snapshot, index) => {
@@ -75,12 +159,19 @@ export function buildConsolidatedEntityRows({
     bucket.assets = toNumber(snapshot.assets);
     bucket.liabilities = toNumber(snapshot.liabilities);
     bucket.equity = toNumber(snapshot.equity);
+    applyScopeMetadata(bucket, extractScopeMetadata(snapshot));
   });
 
   (cashByCompany || []).forEach((snapshot, index) => {
     const { companyId, companyName } = resolveCompanyIdentity(snapshot, 'cash-company', index);
     const bucket = ensureBucket(buckets, companyId, companyName);
     bucket.cashBalance = toNumber(snapshot.cash_balance ?? snapshot.cashBalance);
+    applyScopeMetadata(bucket, extractScopeMetadata(snapshot));
+  });
+
+  scopeIndex.forEach((scope, companyId) => {
+    const bucket = ensureBucket(buckets, companyId, scope.companyName);
+    applyScopeMetadata(bucket, scope);
   });
 
   (intercompanyTransactions || []).forEach((transaction, index) => {
@@ -134,11 +225,15 @@ export function buildConsolidatedEntityRows({
     const activityScore = metricActivity + Math.abs(bucket.pendingEliminationAmount);
     const hasPending = bucket.pendingEliminationCount > 0;
     const hasActivity = activityScore > EPSILON || bucket.totalIntercompanyCount > 0;
-    const status = hasPending ? 'attention' : hasActivity ? 'active' : 'inactive';
+    const outOfScope = bucket.isInScope === false;
+    const status = outOfScope ? 'inactive' : hasPending ? 'attention' : hasActivity ? 'active' : 'inactive';
+    const consolidationWeight =
+      bucket.consolidationWeight == null ? (bucket.isInScope === false ? 0 : 1) : bucket.consolidationWeight;
 
     return {
       ...bucket,
       pendingEliminationAmount: toNumber(bucket.pendingEliminationAmount),
+      consolidationWeight,
       activityScore,
       status,
     };

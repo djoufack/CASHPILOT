@@ -198,6 +198,16 @@ const MobileMenu = ({ isOpen, onClose }) => {
           { path: '/app/embedded-banking', label: t('nav.embeddedBanking', 'Banking intégré'), icon: Landmark },
           { path: '/app/recon-ia', label: t('nav.reconIA', 'Rapprochement IA'), icon: Sparkles },
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
+          { path: '/app/sap', label: t('nav.sap', 'SAP'), icon: Landmark },
+          { path: '/app/sap/fi', label: t('nav.sapFi', 'SAP FI'), icon: Landmark },
+          { path: '/app/sap/co', label: t('nav.sapCo', 'SAP CO'), icon: Landmark },
+          { path: '/app/sap/aa', label: t('nav.sapAa', 'SAP AA'), icon: Landmark },
+          {
+            path: '/app/sap/consolidation',
+            label: t('nav.sapConsolidation', 'SAP Consolidation'),
+            icon: Landmark,
+          },
+          { path: '/app/sap/close', label: t('nav.sapClose', 'SAP Close'), icon: Landmark },
           ...(isOhadaZone
             ? [
                 {
