@@ -12,20 +12,28 @@ import { supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
  * @param {string} params.filePath - Storage path of the uploaded file
  * @param {string} params.fileType - MIME type (application/pdf, image/jpeg, image/png)
  * @param {string} params.userId - User ID
- * @param {string} params.accessToken - User's session access token for JWT verification
+ * @param {string} params.accessToken - User session JWT (required)
  * @returns {Promise<Object>} Extracted invoice data
  */
 export const extractInvoiceData = async ({ filePath, fileType, userId, accessToken }) => {
   if (!supabaseUrl) {
     throw new Error('Supabase URL not configured');
   }
+  if (!accessToken) {
+    throw new Error('Session utilisateur indisponible.');
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${accessToken}`,
+  };
+  if (supabaseAnonKey) {
+    headers.apikey = supabaseAnonKey;
+  }
 
   const response = await fetch(`${supabaseUrl}/functions/v1/extract-invoice`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken || supabaseAnonKey}`,
-    },
+    headers,
     body: JSON.stringify({ filePath, fileType, userId }),
   });
 

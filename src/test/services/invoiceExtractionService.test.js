@@ -50,33 +50,25 @@ describe('invoiceExtractionService.extractInvoiceData', () => {
         headers: expect.objectContaining({
           'Content-Type': 'application/json',
           Authorization: 'Bearer jwt-token',
+          apikey: 'anon-key',
         }),
       })
     );
   });
 
-  it('falls back to anon key when access token is not provided', async () => {
-    const fetchSpy = vi.fn().mockResolvedValue({
-      ok: true,
-      json: vi.fn().mockResolvedValue({ data: { ok: true } }),
-    });
+  it('throws when access token is missing', async () => {
+    const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
-    const { extractInvoiceData } = await loadService({ anonKey: 'public-anon' });
-    await extractInvoiceData({
-      filePath: 'documents/invoice.png',
-      fileType: 'image/png',
-      userId: 'user-2',
-    });
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      'https://supabase.example.com/functions/v1/extract-invoice',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: 'Bearer public-anon',
-        }),
+    const { extractInvoiceData } = await loadService();
+    await expect(
+      extractInvoiceData({
+        filePath: 'documents/invoice.png',
+        fileType: 'image/png',
+        userId: 'user-2',
       })
-    );
+    ).rejects.toThrow('Session utilisateur indisponible.');
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -99,6 +91,7 @@ describe('invoiceExtractionService.extractInvoiceData', () => {
         filePath: 'documents/invoice.pdf',
         fileType: 'application/pdf',
         userId: 'user-1',
+        accessToken: 'jwt-token',
       })
     ).rejects.toThrow(expectedMessage);
   });
@@ -117,6 +110,7 @@ describe('invoiceExtractionService.extractInvoiceData', () => {
         filePath: 'documents/invoice.pdf',
         fileType: 'application/pdf',
         userId: 'user-1',
+        accessToken: 'jwt-token',
       })
     ).rejects.toThrow('Extraction failed');
   });
