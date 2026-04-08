@@ -2,7 +2,14 @@
 // Extracts structured data from supplier invoices using Google Gemini API
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createAuthClient,
+  createServiceClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+} from '../_shared/billing.ts';
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
@@ -43,7 +50,16 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const supabase = createServiceClient();
+  const authHeader = req.headers.get('Authorization') || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const supabase = createAuthClient(authHeader);
+  const serviceSupabase = createServiceClient();
   let resolvedUserId = '';
   let creditConsumption = null;
 
@@ -60,10 +76,10 @@ serve(async (req) => {
 
     // Ensure the authenticated user matches the requested userId
     if (userId && userId !== resolvedUserId) {
-      return new Response(
-        JSON.stringify({ error: 'User ID mismatch with authenticated user' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'User ID mismatch with authenticated user' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Rate limiting: 10 extractions per 15 minutes per user
@@ -78,30 +94,35 @@ serve(async (req) => {
     }
 
     if (!filePath || !fileType) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: filePath, fileType' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Missing required fields: filePath, fileType' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Validate file type against allowed MIME types
     const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     if (!ALLOWED_MIME_TYPES.includes(fileType)) {
-      return new Response(
-        JSON.stringify({ error: 'Unsupported file type' }),
-        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Unsupported file type' }), {
+        status: 422,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Validate file path belongs to authenticated user (prevent IDOR)
     if (!filePath.startsWith(resolvedUserId + '/')) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid file path' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid file path' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Invoice Extraction');
+    creditConsumption = await consumeCredits(
+      supabase as ReturnType<typeof createServiceClient>,
+      resolvedUserId,
+      CREDIT_COST,
+      'AI Invoice Extraction'
+    );
 
     // 3. Download file from Supabase Storage
     const { data: fileData, error: downloadError } = await supabase.storage
@@ -129,19 +150,21 @@ serve(async (req) => {
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
 
     const geminiBody = {
-      contents: [{
-        parts: [
-          {
-            inlineData: {
-              mimeType: fileType,
-              data: base64Data,
+      contents: [
+        {
+          parts: [
+            {
+              inlineData: {
+                mimeType: fileType,
+                data: base64Data,
+              },
             },
-          },
-          {
-            text: EXTRACTION_PROMPT,
-          },
-        ],
-      }],
+            {
+              text: EXTRACTION_PROMPT,
+            },
+          ],
+        },
+      ],
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.1,
@@ -173,27 +196,42 @@ serve(async (req) => {
     }
 
     // 7. Return extracted data
-    return new Response(
-      JSON.stringify({ success: true, data: extractedData }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ success: true, data: extractedData }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     if (creditConsumption && resolvedUserId) {
       try {
-        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Invoice Extraction - error');
+        await refundCredits(
+          serviceSupabase as ReturnType<typeof createServiceClient>,
+          resolvedUserId,
+          creditConsumption,
+          'AI Invoice Extraction - error'
+        );
       } catch {
         // Ignore refund failures in error handling.
       }
     }
 
     console.error('Extract invoice error:', error);
+    const genericMessage =
+      error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof (error as { message?: unknown }).message === 'string'
+        ? (error as { message: string }).message
+        : null;
     const status = error instanceof HttpError ? error.status : 500;
-    const message = error instanceof HttpError ? error.message : 'Extraction failed';
+    const message =
+      error instanceof HttpError
+        ? error.message
+        : error instanceof Error && error.message
+          ? error.message
+          : genericMessage || 'Extraction failed';
 
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: message }), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
