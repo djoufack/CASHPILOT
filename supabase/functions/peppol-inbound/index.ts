@@ -15,6 +15,7 @@ import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Expose-Headers': 'content-type, content-disposition, x-cashpilot-source-format',
   ...SECURITY_HEADERS,
 };
 
@@ -112,6 +113,31 @@ const compactErrorBody = (value: string | null): string => {
   const text = String(value || '').trim();
   if (!text) return '';
   return text.length > 280 ? `${text.slice(0, 277)}...` : text;
+};
+
+const sanitizeFileSegment = (value: string | null, fallback: string): string => {
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+  const normalized = raw.replace(/[^A-Za-z0-9._-]/g, '_');
+  return normalized || fallback;
+};
+
+const resolveInboundDownloadFormat = (value: unknown): 'pdf' | 'ubl' | 'original' => {
+  const format = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (format === 'pdf') return 'pdf';
+  if (format === 'xml' || format === 'ubl') return 'ubl';
+  return 'original';
+};
+
+const resolveInboundExtensionFromContentType = (contentType: string, fallback: string): string => {
+  const mime = String(contentType || '').toLowerCase();
+  if (mime.includes('pdf')) return 'pdf';
+  if (mime.includes('json')) return 'json';
+  if (mime.includes('xml')) return 'xml';
+  if (mime.includes('zip')) return 'zip';
+  return fallback;
 };
 
 const fetchScradaWithFallback = async (
@@ -675,7 +701,43 @@ serve(async (req) => {
       });
     }
 
-    throw new HttpError(400, 'Unknown action. Use: list, sync, get_ubl, get_pdf');
+    if (action === 'download' && body.document_id) {
+      const encodedDocumentId = encodeURIComponent(String(body.document_id));
+      const requestedFormat = resolveInboundDownloadFormat(body.format);
+      const formatSuffix = requestedFormat === 'pdf' ? '/pdf' : '';
+      const candidates = [
+        `${scradaBaseUrl}/company/${company.scrada_company_id}/peppol/inbound/document/${encodedDocumentId}${formatSuffix}`,
+        `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolInbound/document/${encodedDocumentId}${formatSuffix}`,
+      ];
+      const { response: scradaResponse } = await fetchScradaWithFallback(candidates, {
+        method: 'GET',
+        headers: {
+          ...scradaHeaders,
+          Accept: requestedFormat === 'pdf' ? 'application/pdf' : 'application/xml, text/xml, */*',
+        },
+      });
+
+      const payload = await scradaResponse.arrayBuffer();
+      const contentType =
+        scradaResponse.headers.get('content-type') ||
+        (requestedFormat === 'pdf' ? 'application/pdf' : 'application/xml;charset=utf-8');
+      const safeDocumentId = sanitizeFileSegment(String(body.document_id), 'document');
+      const defaultExtension = requestedFormat === 'pdf' ? 'pdf' : requestedFormat === 'ubl' ? 'xml' : 'dat';
+      const extension = resolveInboundExtensionFromContentType(contentType, defaultExtension);
+      const fileName = `Peppol-Inbound-${safeDocumentId}.${extension}`;
+
+      return new Response(payload, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': contentType,
+          'Content-Disposition': `attachment; filename="${fileName}"`,
+          'x-cashpilot-source-format': requestedFormat,
+        },
+      });
+    }
+
+    throw new HttpError(400, 'Unknown action. Use: list, sync, get_ubl, get_pdf, download');
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: error instanceof HttpError ? error.status : 500,

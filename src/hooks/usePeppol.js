@@ -288,9 +288,13 @@ export function usePeppol() {
   }, [invokeInboundAction, user]);
 
   const fetchInboundAction = useCallback(
-    async (action, documentId, { asBlob = false, timeoutMs = 20000 } = {}) => {
+    async (action, documentId, { asBlob = false, timeoutMs = 20000, payload = {}, withResponseMeta = false } = {}) => {
       if (!documentId) return null;
-      const inFlightKey = `${action}:${String(documentId)}:${asBlob ? 'blob' : 'json'}`;
+      const payloadKey =
+        payload && typeof payload === 'object' && Object.keys(payload).length > 0 ? JSON.stringify(payload) : '';
+      const inFlightKey = `${action}:${String(documentId)}:${asBlob ? 'blob' : 'json'}:${
+        withResponseMeta ? 'meta' : 'plain'
+      }:${payloadKey}`;
 
       if (inboundFetchInFlightRef.current.has(inFlightKey)) {
         return inboundFetchInFlightRef.current.get(inFlightKey);
@@ -331,6 +335,7 @@ export function usePeppol() {
               action,
               company_id: company?.id || null,
               document_id: documentId,
+              ...(payload && typeof payload === 'object' ? payload : {}),
             }),
             signal: controller.signal,
           });
@@ -362,7 +367,15 @@ export function usePeppol() {
           if (asBlob) {
             const blob = await response.blob();
             if (!blob || blob.size === 0) {
-              throw new Error('PDF vide retourné par Scrada.');
+              throw new Error('Document vide retourne par Scrada.');
+            }
+            if (withResponseMeta) {
+              return {
+                blob,
+                contentType: response.headers.get('content-type') || '',
+                contentDisposition: response.headers.get('content-disposition') || '',
+                sourceFormat: response.headers.get('x-cashpilot-source-format') || '',
+              };
             }
             return blob;
           }
@@ -395,12 +408,14 @@ export function usePeppol() {
 
   const fetchInboundUbl = useCallback(
     async (documentId, options = {}) => {
-      if (!documentId) return null;
       const localUbl = toText(options?.cachedUbl || '');
       if (localUbl) {
-        inboundUblCacheRef.current.set(documentId, localUbl);
+        if (documentId) {
+          inboundUblCacheRef.current.set(documentId, localUbl);
+        }
         return localUbl;
       }
+      if (!documentId) return null;
       if (inboundUblCacheRef.current.has(documentId)) {
         return inboundUblCacheRef.current.get(documentId);
       }
@@ -424,6 +439,21 @@ export function usePeppol() {
       const pdfBlob = await fetchInboundAction('get_pdf', documentId, { asBlob: true, timeoutMs });
       inboundPdfCacheRef.current.set(documentId, pdfBlob);
       return pdfBlob;
+    },
+    [fetchInboundAction]
+  );
+
+  const fetchInboundDocumentBinary = useCallback(
+    async (documentId, options = {}) => {
+      if (!documentId) return null;
+      const format = toText(options?.format || 'original').toLowerCase() || 'original';
+      const timeoutMs = Number(options?.timeoutMs || 60_000);
+      return await fetchInboundAction('download', documentId, {
+        asBlob: true,
+        timeoutMs,
+        payload: { format },
+        withResponseMeta: true,
+      });
     },
     [fetchInboundAction]
   );
@@ -1445,6 +1475,7 @@ export function usePeppol() {
     syncInbound,
     fetchInboundUbl,
     fetchInboundPdf,
+    fetchInboundDocumentBinary,
     warmInboundDocuments,
     sendInboundToGed,
     listGedXmlDocuments,

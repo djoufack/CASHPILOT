@@ -68,6 +68,55 @@ import PeppolSettings from '@/components/settings/PeppolSettings';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 
+const toSafeInboundReference = (doc) =>
+  String(doc?.invoice_number || doc?.scrada_document_id || 'document').replace(/[^a-zA-Z0-9._-]/g, '_');
+
+const parseFilenameFromContentDisposition = (contentDisposition) => {
+  const header = String(contentDisposition || '').trim();
+  if (!header) return null;
+
+  const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]).trim() || null;
+    } catch {
+      return utf8Match[1].trim() || null;
+    }
+  }
+
+  const filenameMatch = header.match(/filename="?([^\";]+)"?/i);
+  return filenameMatch?.[1]?.trim() || null;
+};
+
+const extensionFromContentType = (contentType, fallback = 'dat') => {
+  const mime = String(contentType || '').toLowerCase();
+  if (mime.includes('pdf')) return 'pdf';
+  if (mime.includes('xml')) return 'xml';
+  if (mime.includes('json')) return 'json';
+  if (mime.includes('zip')) return 'zip';
+  return fallback;
+};
+
+const buildInboundDownloadFilename = (doc, { contentDisposition, contentType, format = 'original' } = {}) => {
+  const safeRef = toSafeInboundReference(doc);
+  const normalizedFormat = String(format || 'original').toLowerCase();
+  const defaultExt =
+    normalizedFormat === 'pdf'
+      ? 'pdf'
+      : normalizedFormat === 'ubl' || normalizedFormat === 'xml'
+        ? 'xml'
+        : extensionFromContentType(contentType, 'dat');
+  const fallbackName = `Peppol-Inbound-${safeRef}.${defaultExt}`;
+
+  const fromHeader = parseFilenameFromContentDisposition(contentDisposition);
+  if (!fromHeader) return fallbackName;
+
+  const sanitized = fromHeader.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
+  if (!sanitized) return fallbackName;
+  if (/\.[a-z0-9]{2,8}$/i.test(sanitized)) return sanitized;
+  return `${sanitized}.${defaultExt}`;
+};
+
 const PeppolPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -91,6 +140,7 @@ const PeppolPage = () => {
     syncInbound,
     fetchInboundUbl,
     fetchInboundPdf,
+    fetchInboundDocumentBinary,
     warmInboundDocuments,
     sendInboundToGed,
     listGedXmlDocuments,
@@ -685,7 +735,7 @@ const PeppolPage = () => {
         } catch {
           pdfBlob = await fetchInboundPdf(doc.scrada_document_id, { forceRefresh: true, timeoutMs: 60_000 });
         }
-        const safeRef = String(doc.invoice_number || doc.scrada_document_id).replace(/[^a-zA-Z0-9._-]/g, '_');
+        const safeRef = toSafeInboundReference(doc);
         downloadBlob(pdfBlob, `Peppol-Inbound-${safeRef}.pdf`);
         toast({
           title: t('peppol.exportPDF', 'Exporter en PDF'),
@@ -706,17 +756,17 @@ const PeppolPage = () => {
 
   const handleDownloadInboundUbl = useCallback(
     async (doc) => {
-      if (!doc?.scrada_document_id) return;
+      if (!doc?.scrada_document_id && !doc?.ubl_xml) return;
       setInboundActionDocId(getInboundActionKey(doc));
       try {
-        const ublXml = await fetchInboundUbl(doc.scrada_document_id, {
+        const ublXml = await fetchInboundUbl(doc?.scrada_document_id || null, {
           cachedUbl: doc?.ubl_xml || null,
           timeoutMs: 60_000,
         });
         if (!ublXml) {
           throw new Error('Document UBL indisponible.');
         }
-        const safeRef = String(doc.invoice_number || doc.scrada_document_id).replace(/[^a-zA-Z0-9._-]/g, '_');
+        const safeRef = toSafeInboundReference(doc);
         const xmlBlob = new Blob([ublXml], { type: 'application/xml;charset=utf-8' });
         downloadBlob(xmlBlob, `Peppol-Inbound-${safeRef}.xml`);
         toast({
@@ -734,6 +784,55 @@ const PeppolPage = () => {
       }
     },
     [downloadBlob, fetchInboundUbl, getInboundActionKey, t, toast]
+  );
+
+  const handleDownloadInboundOriginal = useCallback(
+    async (doc) => {
+      if (!doc?.scrada_document_id) return;
+      setInboundActionDocId(getInboundActionKey(doc));
+      try {
+        const binaryPayload = await fetchInboundDocumentBinary(doc.scrada_document_id, {
+          format: 'original',
+          timeoutMs: 60_000,
+        });
+        const blob = binaryPayload?.blob || null;
+        if (!blob) throw new Error('Document source indisponible.');
+
+        const filename = buildInboundDownloadFilename(doc, {
+          contentDisposition: binaryPayload?.contentDisposition,
+          contentType: binaryPayload?.contentType,
+          format: binaryPayload?.sourceFormat || 'original',
+        });
+        downloadBlob(blob, filename);
+        toast({
+          title: t('export.download', 'Telecharger'),
+          description: t('common.success', 'Termine'),
+        });
+      } catch (err) {
+        try {
+          const ublXmlFallback = await fetchInboundUbl(doc.scrada_document_id, {
+            cachedUbl: doc?.ubl_xml || null,
+            timeoutMs: 60_000,
+          });
+          if (!ublXmlFallback) throw err;
+          const fallbackName = `Peppol-Inbound-${toSafeInboundReference(doc)}.xml`;
+          downloadBlob(new Blob([ublXmlFallback], { type: 'application/xml;charset=utf-8' }), fallbackName);
+          toast({
+            title: t('export.download', 'Telecharger'),
+            description: t('common.success', 'Termine'),
+          });
+        } catch {
+          toast({
+            title: t('common.error'),
+            description: err?.message || 'Echec export document source',
+            variant: 'destructive',
+          });
+        }
+      } finally {
+        setInboundActionDocId(null);
+      }
+    },
+    [downloadBlob, fetchInboundDocumentBinary, fetchInboundUbl, getInboundActionKey, t, toast]
   );
 
   useEffect(() => {
@@ -2552,6 +2651,15 @@ const PeppolPage = () => {
                                   >
                                     XML
                                   </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDownloadInboundOriginal(doc)}
+                                    disabled={rowBusy}
+                                    className="h-8 border-gray-700 text-gray-300 hover:bg-gray-800"
+                                  >
+                                    Source
+                                  </Button>
                                 </div>
                               </td>
                               <td className="p-3 text-right">
@@ -2587,6 +2695,13 @@ const PeppolPage = () => {
                                     >
                                       <Download className="w-4 h-4 text-emerald-400" />
                                       {t('peppol.exportPDF', 'Exporter en PDF')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleDownloadInboundOriginal(doc)}
+                                      className="gap-2 cursor-pointer hover:bg-gray-800"
+                                    >
+                                      <Download className="w-4 h-4 text-cyan-400" />
+                                      {t('export.download', 'Telecharger')} source
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator className="bg-gray-700" />
                                     <DropdownMenuItem
