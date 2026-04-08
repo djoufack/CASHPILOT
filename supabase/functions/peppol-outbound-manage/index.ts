@@ -11,6 +11,10 @@ const corsHeaders = {
 };
 
 type JsonRecord = Record<string, unknown>;
+type ManagedAction = 'cancel_network' | 'delete_local' | 'delete_invoice_db' | 'purge_peppol_db';
+
+const OUTBOUND_IMPORT_NOTE_PREFIX = 'Import PDF Peppol';
+const ALLOWED_ACTIONS: ManagedAction[] = ['cancel_network', 'delete_local', 'delete_invoice_db', 'purge_peppol_db'];
 
 type CancelAttemptResult =
   | { ok: true; endpoint: string; response: unknown }
@@ -165,67 +169,117 @@ serve(async (req) => {
     const supabase = createAuthClient(authHeader);
 
     const body = await req.json().catch(() => ({}));
-    const action = String(body?.action || '').trim();
+    const action = String(body?.action || '').trim() as ManagedAction;
     const invoiceId = String(body?.invoice_id || '').trim();
+    const requestedCompanyId = String(body?.company_id || '').trim();
+
+    if (!ALLOWED_ACTIONS.includes(action)) {
+      throw new HttpError(400, `action must be one of: ${ALLOWED_ACTIONS.join(', ')}`);
+    }
+
+    if (action === 'purge_peppol_db') {
+      const scoped = await getScopedCompany<JsonRecord>(supabase, user.id, 'id', requestedCompanyId || undefined);
+      const scopedCompanyId = String(scoped.company?.id || requestedCompanyId || '').trim();
+      if (!scopedCompanyId) throw new HttpError(404, 'Company profile not found');
+
+      const { data: importedInvoices, error: importedInvoicesError } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('company_id', scopedCompanyId)
+        .ilike('notes', `${OUTBOUND_IMPORT_NOTE_PREFIX}%`);
+      if (importedInvoicesError) throw importedInvoicesError;
+
+      const invoiceIds = (importedInvoices || []).map((row) => String((row as JsonRecord).id || '')).filter(Boolean);
+      if (invoiceIds.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            action,
+            company_id: scopedCompanyId,
+            deleted_invoices: 0,
+            message: 'No imported Peppol outbound invoices found',
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { error: deleteLogError } = await supabase
+        .from('peppol_transmission_log')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('company_id', scopedCompanyId)
+        .in('invoice_id', invoiceIds);
+      if (deleteLogError) throw deleteLogError;
+
+      const { error: deleteItemsError } = await supabase.from('invoice_items').delete().in('invoice_id', invoiceIds);
+      if (deleteItemsError) throw deleteItemsError;
+
+      const { error: deleteInvoicesError } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('company_id', scopedCompanyId)
+        .in('id', invoiceIds);
+      if (deleteInvoicesError) throw deleteInvoicesError;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          action,
+          company_id: scopedCompanyId,
+          deleted_invoices: invoiceIds.length,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!invoiceId) throw new HttpError(400, 'invoice_id is required');
-    if (!['cancel_network', 'delete_local'].includes(action)) {
-      throw new HttpError(400, 'action must be one of: cancel_network, delete_local');
-    }
 
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
-      .select('id, invoice_number, user_id, company_id, peppol_status, peppol_document_id')
+      .select('id, invoice_number, user_id, company_id, peppol_status, peppol_document_id, notes')
       .eq('id', invoiceId)
       .eq('user_id', user.id)
       .single();
+    if (invoiceError || !invoice) throw new HttpError(404, 'Invoice not found');
 
-    if (invoiceError || !invoice) {
-      throw new HttpError(404, 'Invoice not found');
-    }
+    const companyId = String(invoice.company_id || '');
 
-    let company: JsonRecord | null = null;
+    if (action === 'delete_invoice_db') {
+      const notesText = String(invoice.notes || '');
+      if (!notesText.startsWith(OUTBOUND_IMPORT_NOTE_PREFIX)) {
+        throw new HttpError(409, 'Only invoices imported from PDF Peppol queue can be deleted from this action');
+      }
 
-    if (invoice.company_id) {
-      const { data: directCompany, error: directCompanyError } = await supabase
-        .from('company')
-        .select(
-          'id, scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted'
-        )
-        .eq('id', invoice.company_id)
+      const { error: deleteLogError } = await supabase
+        .from('peppol_transmission_log')
+        .delete()
         .eq('user_id', user.id)
-        .maybeSingle();
+        .eq('company_id', companyId)
+        .eq('invoice_id', invoice.id);
+      if (deleteLogError) throw deleteLogError;
 
-      if (directCompanyError) throw directCompanyError;
-      company = (directCompany || null) as JsonRecord | null;
-    }
+      const { error: deleteItemsError } = await supabase.from('invoice_items').delete().eq('invoice_id', invoice.id);
+      if (deleteItemsError) throw deleteItemsError;
 
-    if (!company) {
-      const scoped = await getScopedCompany<JsonRecord>(
-        supabase,
-        user.id,
-        'id, scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted',
-        invoice.company_id || body?.company_id
+      const { error: deleteInvoiceError } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('id', invoice.id)
+        .eq('user_id', user.id);
+      if (deleteInvoiceError) throw deleteInvoiceError;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          action,
+          invoice_id: invoice.id,
+          message: 'Invoice deleted from database',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-      company = scoped.company;
     }
-
-    if (!company) throw new HttpError(404, 'Company profile not found');
-
-    const { apiKey, password } = await resolveScradaCredentials(company);
-
-    if (!company.scrada_company_id || !apiKey || !password) {
-      throw new HttpError(400, 'Scrada credentials not configured for this company');
-    }
-
-    const scradaBaseUrl = Deno.env.get('SCRADA_API_URL') || 'https://api.scrada.be/v1';
-    const scradaHeaders = {
-      'X-API-KEY': apiKey,
-      'X-PASSWORD': password,
-      Language: 'FR',
-    };
-
-    const companyId = String(invoice.company_id || company.id || '');
 
     if (action === 'delete_local') {
       if (['delivered', 'accepted'].includes(String(invoice.peppol_status || '').toLowerCase())) {
@@ -268,6 +322,47 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    let company: JsonRecord | null = null;
+
+    if (invoice.company_id) {
+      const { data: directCompany, error: directCompanyError } = await supabase
+        .from('company')
+        .select(
+          'id, scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted'
+        )
+        .eq('id', invoice.company_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (directCompanyError) throw directCompanyError;
+      company = (directCompany || null) as JsonRecord | null;
+    }
+
+    if (!company) {
+      const scoped = await getScopedCompany<JsonRecord>(
+        supabase,
+        user.id,
+        'id, scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted',
+        invoice.company_id || requestedCompanyId
+      );
+      company = scoped.company;
+    }
+
+    if (!company) throw new HttpError(404, 'Company profile not found');
+
+    const { apiKey, password } = await resolveScradaCredentials(company);
+
+    if (!company.scrada_company_id || !apiKey || !password) {
+      throw new HttpError(400, 'Scrada credentials not configured for this company');
+    }
+
+    const scradaBaseUrl = Deno.env.get('SCRADA_API_URL') || 'https://api.scrada.be/v1';
+    const scradaHeaders = {
+      'X-API-KEY': apiKey,
+      'X-PASSWORD': password,
+      Language: 'FR',
+    };
 
     if (!invoice.peppol_document_id) {
       throw new HttpError(400, 'No Peppol document found on this invoice');

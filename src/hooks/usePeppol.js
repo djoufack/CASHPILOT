@@ -465,10 +465,12 @@ export function usePeppol() {
       }
       const supplierName = (doc?.sender_name || `Fournisseur ${doc?.sender_peppol_id || ''}`).trim();
       const baseName = supplierName || `Fournisseur ${String(doc?.scrada_document_id || '').slice(0, 8)}`;
+      const senderPeppolId = toText(doc?.sender_peppol_id);
+      const peppolNote = senderPeppolId ? `Peppol sender: ${senderPeppolId}` : null;
 
       let query = supabase
         .from('suppliers')
-        .select('id, company_name')
+        .select('id, company_name, contact_person, notes')
         .eq('user_id', user.id)
         .eq('company_id', company.id)
         .ilike('company_name', baseName)
@@ -477,7 +479,36 @@ export function usePeppol() {
 
       const { data: existingSupplier, error: lookupError } = await query.maybeSingle();
       if (lookupError) throw lookupError;
-      if (existingSupplier) return existingSupplier;
+      if (existingSupplier) {
+        const patch = {};
+        const incomingContact = toText(doc?.sender_name);
+        const currentContact = toText(existingSupplier.contact_person);
+        if (incomingContact && incomingContact !== currentContact) {
+          patch.contact_person = incomingContact;
+        }
+
+        if (peppolNote) {
+          const currentNotes = toText(existingSupplier.notes);
+          if (!currentNotes.includes(peppolNote)) {
+            patch.notes = currentNotes ? `${currentNotes}\n${peppolNote}` : peppolNote;
+          }
+        }
+
+        if (Object.keys(patch).length > 0) {
+          const { data: updatedSupplier, error: updateError } = await supabase
+            .from('suppliers')
+            .update(patch)
+            .eq('id', existingSupplier.id)
+            .eq('user_id', user.id)
+            .eq('company_id', company.id)
+            .select('id, company_name, contact_person, notes')
+            .single();
+          if (updateError) throw updateError;
+          return updatedSupplier;
+        }
+
+        return existingSupplier;
+      }
 
       const { data: createdSupplier, error: createError } = await supabase
         .from('suppliers')
@@ -486,11 +517,11 @@ export function usePeppol() {
           company_id: company.id,
           company_name: baseName,
           contact_person: doc?.sender_name || null,
-          notes: doc?.sender_peppol_id ? `Peppol sender: ${doc.sender_peppol_id}` : null,
+          notes: peppolNote,
           status: 'active',
           supplier_type: 'service',
         })
-        .select('id, company_name')
+        .select('id, company_name, contact_person, notes')
         .single();
       if (createError) throw createError;
       return createdSupplier;
@@ -596,10 +627,21 @@ export function usePeppol() {
           doc_category: 'accounting',
           confidentiality_level: 'internal',
           notes: `Source Peppol entrant: ${doc.scrada_document_id}`,
-          tags: ['peppol', 'scrada', 'inbound'],
+          tags: ['peppol', 'scrada', 'inbound', 'paid'],
         },
         { onConflict: 'company_id,source_table,source_id' }
       );
+
+      // Mark supplier invoice as paid so accounting payment entries are generated automatically by DB triggers.
+      const { error: paymentStatusError } = await supabase
+        .from('supplier_invoices')
+        .update({
+          payment_status: 'paid',
+        })
+        .eq('id', createdInvoice.id)
+        .eq('user_id', user.id)
+        .eq('company_id', company.id);
+      if (paymentStatusError) throw paymentStatusError;
 
       // Mark inbound Peppol document as integrated in accounting workflow.
       const inboundMetadata = doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
@@ -612,6 +654,7 @@ export function usePeppol() {
             supplier_invoice_id: createdInvoice.id,
             accounting_integration_status: 'integrated',
             accounting_integrated_at: new Date().toISOString(),
+            supplier_invoice_payment_status: 'paid',
           },
         })
         .eq('id', doc.id)

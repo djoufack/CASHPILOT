@@ -132,7 +132,10 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.extract-invoice]
-verify_jwt = true
+# Keep gateway JWT validation disabled to avoid "Invalid JWT"/401 rejects
+# observed in preview/prod sessions; function enforces auth internally
+# via requireAuthenticatedUser.
+verify_jwt = false
 
 [functions.generate-recurring]
 verify_jwt = false
