@@ -63,6 +63,7 @@ import {
 import { Link } from 'react-router-dom';
 import InvoicePreview from '@/components/InvoicePreview';
 import { exportUBL } from '@/services/exportUBL';
+import { buildPeppolQueueAssessment } from '@/services/peppolValidation';
 import PeppolSettings from '@/components/settings/PeppolSettings';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
@@ -93,8 +94,13 @@ const PeppolPage = () => {
     warmInboundDocuments,
     sendInboundToGed,
     listGedXmlDocuments,
+    listGedScannableDocuments,
     downloadGedXmlDocument,
     importAndSendExternalUbl,
+    importDiskFilesToOutboundQueue,
+    importGedDocumentsToOutboundQueue,
+    importingOutboundQueue,
+    outboundImportProgress,
     managingOutbound,
     cancelOutboundNetwork,
     deleteOutboundLocal,
@@ -131,6 +137,12 @@ const PeppolPage = () => {
   const [loadingGedXmlDocs, setLoadingGedXmlDocs] = useState(false);
   const [sendingExternal, setSendingExternal] = useState(false);
   const [purgingPeppol, setPurgingPeppol] = useState(false);
+  const [pdfQueueDialogOpen, setPdfQueueDialogOpen] = useState(false);
+  const [pdfImportSource, setPdfImportSource] = useState('disk');
+  const [diskQueueFiles, setDiskQueueFiles] = useState([]);
+  const [gedScannableDocuments, setGedScannableDocuments] = useState([]);
+  const [selectedGedScannableIds, setSelectedGedScannableIds] = useState([]);
+  const [loadingGedScannableDocs, setLoadingGedScannableDocs] = useState(false);
   const [outboundViewMode, setOutboundViewMode] = useState('list');
   const [inboundViewMode, setInboundViewMode] = useState('list');
   const warmedInboundIdsRef = useRef(new Set());
@@ -189,6 +201,23 @@ const PeppolPage = () => {
     return { total, delivered, pending, errors };
   }, [invoices]);
 
+  const outboundQueueAssessmentById = useMemo(() => {
+    const map = new Map();
+    (invoices || []).forEach((invoice) => {
+      const totalVat = Number(
+        invoice?.total_vat ?? Math.max(0, Number(invoice?.total_ttc || 0) - Number(invoice?.total_ht || 0))
+      );
+      const assessment = buildPeppolQueueAssessment({
+        invoice: { ...invoice, total_vat: totalVat },
+        seller: company || {},
+        buyer: invoice?.client || {},
+        items: Array.isArray(invoice?.items) ? invoice.items : [],
+      });
+      map.set(invoice.id, assessment);
+    });
+    return map;
+  }, [company, invoices]);
+
   const inboundSupplierInvoiceById = useMemo(() => {
     const map = new Map();
     (inboundSupplierInvoices || []).forEach((invoice) => {
@@ -222,6 +251,10 @@ const PeppolPage = () => {
     if (statusFilter !== 'all') {
       if (statusFilter === 'eligible') {
         result = result.filter((inv) => inv.client?.peppol_endpoint_id);
+      } else if (statusFilter === 'ready') {
+        result = result.filter((inv) => outboundQueueAssessmentById.get(inv.id)?.ready === true);
+      } else if (statusFilter === 'to_fix') {
+        result = result.filter((inv) => outboundQueueAssessmentById.get(inv.id)?.ready === false);
       } else {
         result = result.filter((inv) => inv.peppol_status === statusFilter);
       }
@@ -237,7 +270,7 @@ const PeppolPage = () => {
     }
 
     return result;
-  }, [invoices, statusFilter, searchQuery]);
+  }, [invoices, outboundQueueAssessmentById, statusFilter, searchQuery]);
 
   // --- Send dialog ---
   const handleOpenSendDialog = async (invoice) => {
@@ -396,7 +429,12 @@ const PeppolPage = () => {
       .toLowerCase();
     const hasDocumentId = String(invoice.peppol_document_id || '').trim().length > 0;
     const notes = String(invoice.notes || '').toLowerCase();
-    return (status && status !== 'none') || hasDocumentId || notes.includes('import ubl externe');
+    return (
+      (status && status !== 'none') ||
+      hasDocumentId ||
+      notes.includes('import ubl externe') ||
+      notes.includes('import pdf peppol')
+    );
   }, []);
 
   const handleDeleteOutboundFromDb = async (invoice) => {
@@ -754,6 +792,93 @@ const PeppolPage = () => {
       setLoadingGedXmlDocs(false);
     }
   }, [listGedXmlDocuments]);
+
+  const openPdfQueueDialog = useCallback(async () => {
+    setPdfQueueDialogOpen(true);
+    setPdfImportSource('disk');
+    setDiskQueueFiles([]);
+    setSelectedGedScannableIds([]);
+    setLoadingGedScannableDocs(true);
+    try {
+      const docs = await listGedScannableDocuments();
+      setGedScannableDocuments(docs);
+    } catch {
+      setGedScannableDocuments([]);
+    } finally {
+      setLoadingGedScannableDocs(false);
+    }
+  }, [listGedScannableDocuments]);
+
+  const toggleGedScannableSelection = useCallback((id) => {
+    setSelectedGedScannableIds((current) => {
+      if (current.includes(id)) {
+        return current.filter((entry) => entry !== id);
+      }
+      return [...current, id];
+    });
+  }, []);
+
+  const handleImportPdfToQueue = useCallback(async () => {
+    try {
+      let result = { total: 0, imported: [], failed: [] };
+      if (pdfImportSource === 'disk') {
+        if (diskQueueFiles.length === 0) {
+          throw new Error('Selectionnez au moins un fichier PDF/image.');
+        }
+        result = await importDiskFilesToOutboundQueue(diskQueueFiles);
+      } else {
+        const selectedDocs = gedScannableDocuments.filter((doc) => selectedGedScannableIds.includes(doc.id));
+        if (selectedDocs.length === 0) {
+          throw new Error('Selectionnez au moins un document GED.');
+        }
+        result = await importGedDocumentsToOutboundQueue(selectedDocs);
+      }
+
+      const importedCount = Number(result?.imported?.length || 0);
+      const failedCount = Number(result?.failed?.length || 0);
+      const failurePreview = (result?.failed || [])
+        .slice(0, 3)
+        .map((item) => `${item.fileName}: ${item.message}`)
+        .join('\n');
+
+      if (importedCount > 0) {
+        toast({
+          title: t('common.success', 'Succes'),
+          description: `${importedCount} facture(s) ajoutee(s) a la file d'envoi Peppol.`,
+        });
+        setActiveTab('outbound');
+      }
+
+      if (failedCount > 0) {
+        toast({
+          title: t('common.error', 'Erreur'),
+          description: failurePreview || `${failedCount} document(s) en echec.`,
+          variant: 'destructive',
+        });
+      }
+
+      if (importedCount > 0 && failedCount === 0) {
+        setPdfQueueDialogOpen(false);
+        setDiskQueueFiles([]);
+        setSelectedGedScannableIds([]);
+      }
+    } catch (error) {
+      toast({
+        title: t('common.error', 'Erreur'),
+        description: error?.message || String(error),
+        variant: 'destructive',
+      });
+    }
+  }, [
+    diskQueueFiles,
+    gedScannableDocuments,
+    importDiskFilesToOutboundQueue,
+    importGedDocumentsToOutboundQueue,
+    pdfImportSource,
+    selectedGedScannableIds,
+    t,
+    toast,
+  ]);
 
   const handleExternalUblSend = useCallback(async () => {
     setSendingExternal(true);
@@ -1526,6 +1651,15 @@ const PeppolPage = () => {
             <Button
               variant="outline"
               size="sm"
+              onClick={openPdfQueueDialog}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {t('peppol.importPdfToQueue', 'Importer PDF -> File d envoi')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={openExternalSendDialog}
               className="border-gray-700 text-gray-300 hover:bg-gray-800"
             >
@@ -1780,6 +1914,8 @@ const PeppolPage = () => {
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
                   <SelectItem value="all">Tous</SelectItem>
                   <SelectItem value="eligible">Eligible Peppol</SelectItem>
+                  <SelectItem value="ready">Pret a envoyer</SelectItem>
+                  <SelectItem value="to_fix">A corriger</SelectItem>
                   <SelectItem value="none">{t('peppol.status.none')}</SelectItem>
                   <SelectItem value="pending">{t('peppol.status.pending')}</SelectItem>
                   <SelectItem value="sent">{t('peppol.status.sent')}</SelectItem>
@@ -1925,6 +2061,9 @@ const PeppolPage = () => {
                             {t('peppol.peppolStatus')}
                           </th>
                           <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
+                            File d envoi
+                          </th>
+                          <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
                             Statut metier
                           </th>
                           <th className="text-left p-3 font-medium text-gray-300 uppercase text-xs tracking-wider hidden lg:table-cell">
@@ -1942,21 +2081,29 @@ const PeppolPage = () => {
                         {filteredInvoices.map((invoice) => {
                           const client = invoice.client;
                           const hasEndpoint = !!client?.peppol_endpoint_id;
+                          const queueAssessment = outboundQueueAssessmentById.get(invoice.id) || {
+                            ready: false,
+                            reasons: ['Validation indisponible.'],
+                            reasonText: 'Validation indisponible.',
+                          };
                           const isPeppolRow = isPeppolInvoiceRow(invoice);
                           const rowBusy = managingOutbound && outboundActionInvoiceId === invoice.id;
                           const inDispute = isBusinessDisputed(invoice);
                           const canSend =
+                            queueAssessment.ready &&
                             hasEndpoint &&
                             (!invoice.peppol_status ||
                               invoice.peppol_status === 'none' ||
                               invoice.peppol_status === 'error' ||
                               invoice.peppol_status === 'cancelled');
-                          const sendDisabledReason = !hasEndpoint
-                            ? t('peppol.clientNoEndpoint')
-                            : t(
-                                'peppolPage.sendUnavailableStatus',
-                                'Envoi indisponible pour ce statut. Utilisez les actions de suivi.'
-                              );
+                          const sendDisabledReason = !queueAssessment.ready
+                            ? queueAssessment.reasonText
+                            : !hasEndpoint
+                              ? t('peppol.clientNoEndpoint')
+                              : t(
+                                  'peppolPage.sendUnavailableStatus',
+                                  'Envoi indisponible pour ce statut. Utilisez les actions de suivi.'
+                                );
 
                           return (
                             <tr key={invoice.id} className="hover:bg-gray-800/50 transition-colors">
@@ -1984,6 +2131,30 @@ const PeppolPage = () => {
                                   <Badge className="bg-gray-500/20 text-gray-400 border-0">
                                     {t('peppol.status.none')}
                                   </Badge>
+                                )}
+                              </td>
+                              <td className="p-3 hidden lg:table-cell">
+                                {queueAssessment.ready ? (
+                                  <Badge className="bg-emerald-500/20 text-emerald-300 border-0 gap-1">
+                                    <CheckCircle className="w-3 h-3" />
+                                    Pret
+                                  </Badge>
+                                ) : (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span>
+                                        <Badge className="bg-amber-500/20 text-amber-300 border-0 gap-1">
+                                          <AlertTriangle className="w-3 h-3" />A corriger
+                                        </Badge>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                      side="top"
+                                      className="max-w-sm whitespace-pre-line bg-gray-900 border-gray-700 text-gray-100 text-xs"
+                                    >
+                                      {queueAssessment.reasonText}
+                                    </TooltipContent>
+                                  </Tooltip>
                                 )}
                               </td>
                               <td className="p-3 hidden lg:table-cell">
@@ -2831,6 +3002,174 @@ const PeppolPage = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* ======== PDF IMPORT TO OUTBOUND QUEUE ======== */}
+        <Dialog
+          open={pdfQueueDialogOpen}
+          onOpenChange={(open) => {
+            setPdfQueueDialogOpen(open);
+            if (!open) {
+              setDiskQueueFiles([]);
+              setSelectedGedScannableIds([]);
+            }
+          }}
+        >
+          <DialogContent className="w-full sm:max-w-2xl bg-[#0f1528] border-white/10 text-white p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-sky-400 bg-clip-text text-transparent flex items-center gap-2">
+                <Upload className="w-5 h-5 text-cyan-400" />
+                {t('peppol.importPdfToQueue', 'Importer PDF vers file d envoi Peppol')}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <p className="text-sm text-gray-400">
+                {t(
+                  'peppol.importPdfHint',
+                  'CashPilot extrait les donnees via IA, genere les factures locales et les place dans la file d envoi avec statut Pret ou A corriger.'
+                )}
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant={pdfImportSource === 'disk' ? 'default' : 'outline'}
+                  onClick={() => setPdfImportSource('disk')}
+                  className={
+                    pdfImportSource === 'disk'
+                      ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
+                      : 'border-gray-700 text-gray-300'
+                  }
+                  disabled={importingOutboundQueue}
+                >
+                  <HardDrive className="w-4 h-4 mr-2" />
+                  {t('peppol.sourceDisk', 'Disque')}
+                </Button>
+                <Button
+                  type="button"
+                  variant={pdfImportSource === 'ged' ? 'default' : 'outline'}
+                  onClick={() => setPdfImportSource('ged')}
+                  className={
+                    pdfImportSource === 'ged'
+                      ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
+                      : 'border-gray-700 text-gray-300'
+                  }
+                  disabled={importingOutboundQueue}
+                >
+                  <FolderOpen className="w-4 h-4 mr-2" />
+                  {t('nav.gedHub', 'GED HUB')}
+                </Button>
+              </div>
+
+              {pdfImportSource === 'disk' ? (
+                <div className="rounded-lg border border-gray-700 bg-gray-900/40 p-4 space-y-3">
+                  <p className="text-sm text-gray-300">
+                    {t('peppol.pickPdfFiles', 'Selectionnez un ou plusieurs fichiers (PDF/JPG/PNG/WEBP)')}
+                  </p>
+                  <Input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={(e) => setDiskQueueFiles(Array.from(e.target.files || []))}
+                    className="bg-gray-900/50 border-gray-700 text-gray-200"
+                    disabled={importingOutboundQueue}
+                  />
+                  {diskQueueFiles.length > 0 && (
+                    <div className="text-xs text-gray-400 space-y-1 max-h-24 overflow-y-auto">
+                      {diskQueueFiles.map((file) => (
+                        <p key={`${file.name}-${file.lastModified}`}>
+                          {t('common.selected', 'Selectionne')} : <span className="font-mono">{file.name}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-gray-700 bg-gray-900/40 p-4 space-y-3">
+                  <p className="text-sm text-gray-300">{t('peppol.pickGedPdf', 'Selectionnez des documents GED')}</p>
+                  {loadingGedScannableDocs ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t('common.loading', 'Chargement...')}
+                    </div>
+                  ) : gedScannableDocuments.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      {t('peppol.noGedScannableFound', 'Aucun document PDF/image trouve dans GED.')}
+                    </p>
+                  ) : (
+                    <div className="max-h-56 overflow-y-auto space-y-2">
+                      {gedScannableDocuments.map((doc) => {
+                        const checked = selectedGedScannableIds.includes(doc.id);
+                        return (
+                          <label
+                            key={doc.id}
+                            className={`flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer ${
+                              checked ? 'border-cyan-400/50 bg-cyan-500/10' : 'border-gray-700 bg-gray-900/30'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleGedScannableSelection(doc.id)}
+                              disabled={importingOutboundQueue}
+                            />
+                            <span className="text-xs text-gray-200 truncate flex-1">{doc.file_name || doc.id}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {importingOutboundQueue && (
+                <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3 text-sm text-cyan-100">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>
+                      Import en cours ({outboundImportProgress.current}/{outboundImportProgress.total})
+                    </span>
+                  </div>
+                  {outboundImportProgress.currentLabel && (
+                    <p className="text-xs text-cyan-200 mt-1">Document: {outboundImportProgress.currentLabel}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setPdfQueueDialogOpen(false)}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full sm:w-auto"
+                disabled={importingOutboundQueue}
+              >
+                {t('common.cancel', 'Annuler')}
+              </Button>
+              <Button
+                onClick={handleImportPdfToQueue}
+                disabled={
+                  importingOutboundQueue ||
+                  (pdfImportSource === 'disk' && diskQueueFiles.length === 0) ||
+                  (pdfImportSource === 'ged' && selectedGedScannableIds.length === 0)
+                }
+                className="bg-cyan-500 hover:bg-cyan-600 text-white w-full sm:w-auto"
+              >
+                {importingOutboundQueue ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {t('common.loading', 'Chargement...')}
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    {t('peppol.importToQueueAction', 'Importer vers file d envoi')}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* ======== EXTERNAL UBL IMPORT + SEND ======== */}
         <Dialog

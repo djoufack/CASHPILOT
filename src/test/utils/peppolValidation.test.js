@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateForPeppolBE } from '@/services/peppolValidation';
+import { buildPeppolQueueAssessment, validateForPeppolBE } from '@/services/peppolValidation';
 
 const validSeller = {
   company_name: 'Test Company BVBA',
@@ -136,5 +136,37 @@ describe('validateForPeppolBE', () => {
     const result = validateForPeppolBE(inv, validSeller, validBuyer, validItems);
     expect(result.isValid).toBe(false);
     expect(result.errors).toContainEqual(expect.objectContaining({ rule: 'BR-15' }));
+  });
+});
+
+describe('buildPeppolQueueAssessment', () => {
+  it('returns ready when payload is valid', () => {
+    const result = buildPeppolQueueAssessment({
+      invoice: validInvoice,
+      seller: validSeller,
+      buyer: validBuyer,
+      items: validItems,
+    });
+
+    expect(result.ready).toBe(true);
+    expect(result.queueStatus).toBe('ready');
+    expect(result.reasons).toHaveLength(0);
+  });
+
+  it('returns to_fix with reasons when payload is invalid', () => {
+    const invalidBuyer = { ...validBuyer, peppol_endpoint_id: '' };
+    const invalidInvoice = { ...validInvoice, reference: '' };
+    const result = buildPeppolQueueAssessment({
+      invoice: invalidInvoice,
+      seller: validSeller,
+      buyer: invalidBuyer,
+      items: validItems,
+    });
+
+    expect(result.ready).toBe(false);
+    expect(result.queueStatus).toBe('to_fix');
+    expect(result.reasons.length).toBeGreaterThan(0);
+    expect(result.reasonText).toContain('PEPPOL-EN16931-R002');
+    expect(result.reasonText).toContain('PEPPOL-EN16931-R003');
   });
 });

@@ -121,3 +121,25 @@ export const validateForPeppolBE = (invoice, seller, buyer, items) => {
 
   return { isValid: errors.length === 0, errors };
 };
+
+/**
+ * Build a UI-friendly readiness report for the outbound Peppol queue.
+ * @param {Object} params
+ * @param {Object} params.invoice
+ * @param {Object} params.seller
+ * @param {Object} params.buyer
+ * @param {Array} params.items
+ * @returns {{ready: boolean, queueStatus: 'ready'|'to_fix', reasons: string[], reasonText: string, validation: {isValid: boolean, errors: Array<{rule: string, message: string}>}}}
+ */
+export const buildPeppolQueueAssessment = ({ invoice, seller, buyer, items }) => {
+  const validation = validateForPeppolBE(invoice || {}, seller || {}, buyer || {}, Array.isArray(items) ? items : []);
+  const reasons = validation.errors.map((entry) => `[${entry.rule}] ${entry.message}`);
+  const ready = validation.isValid;
+  return {
+    ready,
+    queueStatus: ready ? 'ready' : 'to_fix',
+    reasons,
+    reasonText: reasons.join('\n'),
+    validation,
+  };
+};

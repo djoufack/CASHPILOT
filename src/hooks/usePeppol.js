@@ -4,6 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import { extractInvoiceData } from '@/services/invoiceExtractionService';
+import { buildPeppolQueueAssessment } from '@/services/peppolValidation';
+import { generateInvoiceNumber } from '@/utils/calculations';
 import { readFunctionErrorData } from '@/utils/supabaseFunctionErrors';
 
 const toText = (value) => String(value ?? '').trim();
@@ -11,6 +14,66 @@ const toText = (value) => String(value ?? '').trim();
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(String(value ?? '').replace(',', '.'));
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const SCANNABLE_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
+const OUTBOUND_IMPORT_NOTE_PREFIX = 'Import PDF Peppol';
+
+const sanitizeFileName = (fileName) =>
+  String(fileName || 'document')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '_');
+
+const normalizeIsoDate = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10);
+};
+
+const addDays = (isoDate, days) => {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + Number(days || 0));
+  return date.toISOString().slice(0, 10);
+};
+
+const toFiniteNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const numeric = Number(String(value).replace(',', '.'));
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const detectMimeFromName = (fileName) => {
+  const lower = String(fileName || '').toLowerCase();
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  return 'application/octet-stream';
+};
+
+const resolveUniqueInvoiceNumber = async (userId, requestedNumber) => {
+  const base = toText(requestedNumber) || `INV-${Date.now()}`;
+  let candidate = base;
+  let suffix = 1;
+
+  while (suffix < 500) {
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('invoice_number', candidate)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return candidate;
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
+  }
+
+  return `${base}-${Date.now()}`;
 };
 
 const extractTagText = (xml, tagName) => {
@@ -74,7 +137,8 @@ export function usePeppol() {
         .select(
           `
           *,
-          client:clients!fk_invoices_client_scope(id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled)
+          client:clients!fk_invoices_client_scope(id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled),
+          items:invoice_items(id, description, quantity, unit_price, total)
         `
         )
         .eq('user_id', user.id)
@@ -191,6 +255,8 @@ export function usePeppol() {
   // ─── Sync inbound (edge function) ───
   const [syncingInbound, setSyncingInbound] = useState(false);
   const [managingOutbound, setManagingOutbound] = useState(false);
+  const [importingOutboundQueue, setImportingOutboundQueue] = useState(false);
+  const [outboundImportProgress, setOutboundImportProgress] = useState({ current: 0, total: 0, currentLabel: '' });
 
   const invokeInboundAction = useCallback(
     async (action, payload = {}) => {
@@ -590,6 +656,420 @@ export function usePeppol() {
     return await data.text();
   }, []);
 
+  const listGedScannableDocuments = useCallback(async () => {
+    if (!user) return [];
+    let query = supabase
+      .from('document_hub_versions')
+      .select(
+        'id, company_id, source_table, source_id, version, file_name, mime_type, storage_bucket, storage_path, created_at'
+      )
+      .order('created_at', { ascending: false })
+      .limit(200);
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).filter((row) => {
+      const mime = String(row.mime_type || '').toLowerCase();
+      const fileName = String(row.file_name || '').toLowerCase();
+      return (
+        SCANNABLE_MIME_TYPES.has(mime) ||
+        fileName.endsWith('.pdf') ||
+        fileName.endsWith('.jpg') ||
+        fileName.endsWith('.jpeg') ||
+        fileName.endsWith('.png') ||
+        fileName.endsWith('.webp')
+      );
+    });
+  }, [applyCompanyScope, user]);
+
+  const downloadGedBinaryDocument = useCallback(async (versionRow) => {
+    if (!versionRow?.storage_bucket || !versionRow?.storage_path) {
+      throw new Error('Version GED invalide.');
+    }
+    const { data, error } = await supabase.storage.from(versionRow.storage_bucket).download(versionRow.storage_path);
+    if (error) throw error;
+    return data;
+  }, []);
+
+  const resolveOutboundQueueClient = useCallback(
+    async ({ companyId, invoiceNumber, extracted }) => {
+      if (!user?.id || !companyId) throw new Error('Aucune societe active detectee.');
+
+      const rawEndpointCandidate = toText(
+        extracted?.buyer_peppol_endpoint_id ||
+          extracted?.buyer_peppol_id ||
+          extracted?.customer_peppol_id ||
+          extracted?.receiver_peppol_id ||
+          extracted?.peppol_endpoint_id
+      );
+      const endpointParts = rawEndpointCandidate.includes(':')
+        ? rawEndpointCandidate.split(':').map((part) => toText(part))
+        : [];
+      const endpointId = toText(endpointParts.length === 2 ? endpointParts[1] : rawEndpointCandidate);
+      const endpointScheme = toText(
+        endpointParts.length === 2
+          ? endpointParts[0]
+          : extracted?.buyer_peppol_scheme_id || extracted?.customer_peppol_scheme_id || ''
+      );
+
+      const buyerNameCandidates = [
+        extracted?.customer_name,
+        extracted?.buyer_name,
+        extracted?.client_name,
+        extracted?.buyer_company_name,
+        extracted?.bill_to_name,
+        extracted?.recipient_name,
+      ]
+        .map((value) => toText(value))
+        .filter(Boolean);
+
+      const fallbackName = `Client a corriger${invoiceNumber ? ` (${invoiceNumber})` : ''}`;
+      const clientName = buyerNameCandidates[0] || fallbackName;
+
+      if (endpointId) {
+        let endpointQuery = supabase
+          .from('clients')
+          .select('id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled')
+          .eq('user_id', user.id)
+          .eq('company_id', companyId)
+          .eq('peppol_endpoint_id', endpointId)
+          .limit(1);
+        endpointQuery = applyCompanyScope(endpointQuery, { includeUnassigned: false });
+        const { data: endpointMatches, error: endpointError } = await endpointQuery;
+        if (endpointError) throw endpointError;
+        if (endpointMatches?.[0]) return endpointMatches[0];
+      }
+
+      if (clientName) {
+        let nameQuery = supabase
+          .from('clients')
+          .select('id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled')
+          .eq('user_id', user.id)
+          .eq('company_id', companyId)
+          .ilike('company_name', clientName)
+          .limit(1);
+        nameQuery = applyCompanyScope(nameQuery, { includeUnassigned: false });
+        const { data: nameMatches, error: nameError } = await nameQuery;
+        if (nameError) throw nameError;
+        if (nameMatches?.[0]) {
+          if (endpointId && !toText(nameMatches[0].peppol_endpoint_id)) {
+            const { data: updatedClient, error: updateClientError } = await supabase
+              .from('clients')
+              .update({
+                peppol_endpoint_id: endpointId,
+                peppol_scheme_id: endpointScheme || '0208',
+                electronic_invoicing_enabled: true,
+              })
+              .eq('id', nameMatches[0].id)
+              .eq('user_id', user.id)
+              .eq('company_id', companyId)
+              .select(
+                'id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled'
+              )
+              .single();
+            if (updateClientError) throw updateClientError;
+            return updatedClient;
+          }
+          return nameMatches[0];
+        }
+      }
+
+      const { data: createdClient, error: createClientError } = await supabase
+        .from('clients')
+        .insert(
+          withCompanyScope({
+            user_id: user.id,
+            company_id: companyId,
+            company_name: clientName,
+            contact_name: clientName,
+            peppol_endpoint_id: endpointId || null,
+            peppol_scheme_id: endpointId ? endpointScheme || '0208' : null,
+            electronic_invoicing_enabled: !!endpointId,
+            notes: `${OUTBOUND_IMPORT_NOTE_PREFIX} - client cree automatiquement`,
+          })
+        )
+        .select('id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled')
+        .single();
+      if (createClientError) throw createClientError;
+      return createdClient;
+    },
+    [applyCompanyScope, user?.id, withCompanyScope]
+  );
+
+  const createOutboundQueueInvoiceFromExtraction = useCallback(
+    async ({ companyId, extracted, client, sourceOrigin, sourceLabel, invoiceStoragePath }) => {
+      if (!user?.id || !companyId) throw new Error('Aucune societe active detectee.');
+
+      const today = new Date().toISOString().slice(0, 10);
+      const invoiceDate = normalizeIsoDate(extracted?.invoice_date) || today;
+      const dueDate = normalizeIsoDate(extracted?.due_date) || addDays(invoiceDate, 30);
+      const totalHT = toFiniteNumberOrNull(extracted?.total_ht) ?? 0;
+      const totalVAT = toFiniteNumberOrNull(extracted?.total_tva);
+      let totalTTC = toFiniteNumberOrNull(extracted?.total_ttc);
+      if (totalTTC == null) {
+        totalTTC = Number((totalHT + (totalVAT ?? 0)).toFixed(2));
+      }
+
+      const computedTaxRate =
+        toFiniteNumberOrNull(extracted?.tva_rate ?? extracted?.vat_rate) ??
+        (totalHT > 0 && totalVAT != null ? Number(((totalVAT / totalHT) * 100).toFixed(2)) : 0);
+
+      const requestedInvoiceNumber = toText(extracted?.invoice_number);
+      const fallbackNumber = await generateInvoiceNumber(supabase, user.id);
+      const invoiceNumber = await resolveUniqueInvoiceNumber(user.id, requestedInvoiceNumber || fallbackNumber);
+      const reference = toText(extracted?.reference || extracted?.purchase_order || invoiceNumber) || invoiceNumber;
+      const currency = toText(extracted?.currency).toUpperCase() || 'EUR';
+
+      const { data: createdInvoice, error: createInvoiceError } = await supabase
+        .from('invoices')
+        .insert(
+          withCompanyScope({
+            user_id: user.id,
+            company_id: companyId,
+            client_id: client?.id || null,
+            invoice_number: invoiceNumber,
+            date: invoiceDate,
+            due_date: dueDate,
+            total_ht: totalHT,
+            total_ttc: totalTTC,
+            tax_rate: computedTaxRate,
+            status: 'sent',
+            payment_status: 'unpaid',
+            currency,
+            reference,
+            file_url: invoiceStoragePath || null,
+            file_generated_at: invoiceStoragePath ? new Date().toISOString() : null,
+            peppol_status: 'none',
+            notes: `${OUTBOUND_IMPORT_NOTE_PREFIX} (${sourceOrigin || 'disk'}: ${sourceLabel || 'document'})`,
+          })
+        )
+        .select('*')
+        .single();
+      if (createInvoiceError || !createdInvoice) throw createInvoiceError || new Error('Creation facture impossible');
+
+      const extractedItems = Array.isArray(extracted?.line_items) ? extracted.line_items : [];
+      const invoiceItemsPayload =
+        extractedItems.length > 0
+          ? extractedItems.map((item, index) => {
+              const quantity = toFiniteNumberOrNull(item?.quantity) ?? 1;
+              const unitPrice = toFiniteNumberOrNull(item?.unit_price) ?? 0;
+              const lineTotal =
+                toFiniteNumberOrNull(item?.total) ??
+                Number((Math.max(0, quantity) * Math.max(0, unitPrice)).toFixed(2));
+              return {
+                invoice_id: createdInvoice.id,
+                description: toText(item?.description) || `Ligne ${index + 1}`,
+                quantity: Math.max(0, quantity),
+                unit_price: Math.max(0, unitPrice),
+                total: Math.max(0, lineTotal),
+                item_type: 'manual',
+              };
+            })
+          : [
+              {
+                invoice_id: createdInvoice.id,
+                description: 'Ligne importee automatiquement depuis PDF',
+                quantity: 1,
+                unit_price: Math.max(0, totalHT || totalTTC || 0),
+                total: Math.max(0, totalHT || totalTTC || 0),
+                item_type: 'manual',
+              },
+            ];
+
+      const { data: insertedItems, error: createItemsError } = await supabase
+        .from('invoice_items')
+        .insert(invoiceItemsPayload)
+        .select('id, description, quantity, unit_price, total');
+      if (createItemsError) throw createItemsError;
+
+      const assessment = buildPeppolQueueAssessment({
+        invoice: {
+          ...createdInvoice,
+          total_vat:
+            totalVAT != null
+              ? totalVAT
+              : Number((Number(createdInvoice.total_ttc || 0) - Number(createdInvoice.total_ht || 0)).toFixed(2)),
+        },
+        seller: company || {},
+        buyer: client || {},
+        items: insertedItems || [],
+      });
+
+      const { data: updatedInvoice, error: updateInvoiceError } = await supabase
+        .from('invoices')
+        .update({
+          peppol_error_message: assessment.ready ? null : assessment.reasonText,
+        })
+        .eq('id', createdInvoice.id)
+        .eq('user_id', user.id)
+        .eq('company_id', companyId)
+        .select('*')
+        .single();
+      if (updateInvoiceError) throw updateInvoiceError;
+
+      return {
+        invoice: updatedInvoice || createdInvoice,
+        items: insertedItems || [],
+        queueStatus: assessment.queueStatus,
+        reasons: assessment.reasons,
+      };
+    },
+    [company, user?.id, withCompanyScope]
+  );
+
+  // ─── Refresh all data ───
+  const refreshAll = useCallback(() => {
+    fetchOutboundInvoices();
+    fetchInboundDocuments();
+    fetchInboundSupplierInvoices();
+    fetchAllLogs();
+  }, [fetchAllLogs, fetchInboundDocuments, fetchInboundSupplierInvoices, fetchOutboundInvoices]);
+
+  const processSingleOutboundImport = useCallback(
+    async ({ fileBlob, fileName, mimeType, sourceOrigin, sourceLabel }) => {
+      if (!user?.id || !company?.id) throw new Error('Aucune societe active detectee.');
+      const safeMime = toText(mimeType).toLowerCase() || detectMimeFromName(fileName);
+      if (!SCANNABLE_MIME_TYPES.has(safeMime)) {
+        throw new Error('Format non supporte. Utilisez PDF, JPG, PNG ou WEBP.');
+      }
+
+      const safeName = sanitizeFileName(fileName || `import-${Date.now()}`);
+      const extractionPath = `${user.id}/peppol-outbound-import/${Date.now()}-${safeName}`;
+      const outboundStoragePath = `${user.id}/peppol-outbound/${Date.now()}-${safeName}`;
+
+      const { error: uploadForExtractionError } = await supabase.storage
+        .from('supplier-invoices')
+        .upload(extractionPath, fileBlob, {
+          upsert: true,
+          contentType: safeMime,
+        });
+      if (uploadForExtractionError) throw uploadForExtractionError;
+
+      const { error: uploadForInvoiceError } = await supabase.storage
+        .from('invoices')
+        .upload(outboundStoragePath, fileBlob, {
+          upsert: true,
+          contentType: safeMime,
+        });
+      if (uploadForInvoiceError) {
+        console.warn('Peppol outbound invoice upload skipped:', uploadForInvoiceError);
+      }
+
+      const { data: sessionResult, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const accessToken = sessionResult?.session?.access_token || null;
+      if (!accessToken) throw new Error('Session utilisateur indisponible.');
+
+      const extracted = await extractInvoiceData({
+        filePath: extractionPath,
+        fileType: safeMime,
+        userId: user.id,
+        accessToken,
+      });
+      if (!extracted) throw new Error('Extraction IA impossible pour ce document.');
+
+      const candidateInvoiceNumber = toText(extracted?.invoice_number);
+      const client = await resolveOutboundQueueClient({
+        companyId: company.id,
+        invoiceNumber: candidateInvoiceNumber,
+        extracted,
+      });
+
+      return await createOutboundQueueInvoiceFromExtraction({
+        companyId: company.id,
+        extracted,
+        client,
+        sourceOrigin: sourceOrigin || 'disk',
+        sourceLabel: sourceLabel || safeName,
+        invoiceStoragePath: uploadForInvoiceError ? null : outboundStoragePath,
+      });
+    },
+    [company?.id, createOutboundQueueInvoiceFromExtraction, resolveOutboundQueueClient, user?.id]
+  );
+
+  const importDiskFilesToOutboundQueue = useCallback(
+    async (files) => {
+      const queue = Array.from(files || []).filter(Boolean);
+      if (!user || !company?.id) throw new Error('Aucune societe active detectee.');
+      if (queue.length === 0) return { total: 0, imported: [], failed: [] };
+
+      setImportingOutboundQueue(true);
+      setOutboundImportProgress({ current: 0, total: queue.length, currentLabel: '' });
+      const imported = [];
+      const failed = [];
+
+      try {
+        for (let index = 0; index < queue.length; index += 1) {
+          const file = queue[index];
+          const label = toText(file?.name) || `document-${index + 1}`;
+          setOutboundImportProgress({ current: index + 1, total: queue.length, currentLabel: label });
+          try {
+            const result = await processSingleOutboundImport({
+              fileBlob: file,
+              fileName: label,
+              mimeType: file?.type,
+              sourceOrigin: 'disk',
+              sourceLabel: label,
+            });
+            imported.push(result);
+          } catch (error) {
+            failed.push({ fileName: label, message: error?.message || String(error) });
+          }
+        }
+      } finally {
+        setImportingOutboundQueue(false);
+        setOutboundImportProgress({ current: 0, total: 0, currentLabel: '' });
+        refreshAll();
+      }
+
+      return { total: queue.length, imported, failed };
+    },
+    [company?.id, processSingleOutboundImport, refreshAll, user]
+  );
+
+  const importGedDocumentsToOutboundQueue = useCallback(
+    async (versions) => {
+      const queue = Array.isArray(versions) ? versions.filter(Boolean) : [];
+      if (!user || !company?.id) throw new Error('Aucune societe active detectee.');
+      if (queue.length === 0) return { total: 0, imported: [], failed: [] };
+
+      setImportingOutboundQueue(true);
+      setOutboundImportProgress({ current: 0, total: queue.length, currentLabel: '' });
+      const imported = [];
+      const failed = [];
+
+      try {
+        for (let index = 0; index < queue.length; index += 1) {
+          const version = queue[index];
+          const label = toText(version?.file_name) || `ged-${index + 1}`;
+          setOutboundImportProgress({ current: index + 1, total: queue.length, currentLabel: label });
+
+          try {
+            const blob = await downloadGedBinaryDocument(version);
+            const mime = toText(version?.mime_type) || blob?.type || detectMimeFromName(label);
+            const result = await processSingleOutboundImport({
+              fileBlob: blob,
+              fileName: label,
+              mimeType: mime,
+              sourceOrigin: 'ged',
+              sourceLabel: `${label}${version?.id ? `#${version.id}` : ''}`,
+            });
+            imported.push(result);
+          } catch (error) {
+            failed.push({ fileName: label, message: error?.message || String(error) });
+          }
+        }
+      } finally {
+        setImportingOutboundQueue(false);
+        setOutboundImportProgress({ current: 0, total: 0, currentLabel: '' });
+        refreshAll();
+      }
+
+      return { total: queue.length, imported, failed };
+    },
+    [company?.id, downloadGedBinaryDocument, processSingleOutboundImport, refreshAll, user]
+  );
+
   const importAndSendExternalUbl = useCallback(
     async ({ ublXml, sourceOrigin, sourceLabel }) => {
       if (!user) return null;
@@ -901,14 +1381,6 @@ export function usePeppol() {
     [company?.id, setInboundDisputeStatus, user]
   );
 
-  // ─── Refresh all data ───
-  const refreshAll = useCallback(() => {
-    fetchOutboundInvoices();
-    fetchInboundDocuments();
-    fetchInboundSupplierInvoices();
-    fetchAllLogs();
-  }, [fetchAllLogs, fetchInboundDocuments, fetchInboundSupplierInvoices, fetchOutboundInvoices]);
-
   return {
     // Outbound invoices
     invoices,
@@ -944,8 +1416,14 @@ export function usePeppol() {
     warmInboundDocuments,
     sendInboundToGed,
     listGedXmlDocuments,
+    listGedScannableDocuments,
     downloadGedXmlDocument,
+    downloadGedBinaryDocument,
     importAndSendExternalUbl,
+    importDiskFilesToOutboundQueue,
+    importGedDocumentsToOutboundQueue,
+    importingOutboundQueue,
+    outboundImportProgress,
     managingOutbound,
     cancelOutboundNetwork,
     deleteOutboundLocal,
