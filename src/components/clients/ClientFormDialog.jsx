@@ -26,6 +26,30 @@ const ClientFormDialog = ({
 }) => {
   const { t: tHook } = useTranslation();
   const t = tProp || tHook;
+  const hasLookupInput = Boolean(
+    String(formData.vat_number || '').trim() || String(formData.company_name || '').trim()
+  );
+
+  const handleAutoDetectPeppol = async () => {
+    const payload = {
+      query_type: formData.vat_number ? 'vat_number' : 'company_name',
+      vat_number: formData.vat_number || '',
+      company_name: formData.company_name || '',
+      country: formData.country || '',
+    };
+    const data = await checkRegistration(payload);
+    if (data?.registered && data?.peppolId) {
+      const [scheme, endpoint] = String(data.peppolId).split(':', 2);
+      if (endpoint) {
+        setFormData({
+          ...formData,
+          peppol_endpoint_id: endpoint,
+          peppol_scheme_id: scheme || formData.peppol_scheme_id || '0208',
+          electronic_invoicing_enabled: true,
+        });
+      }
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -290,6 +314,23 @@ const ClientFormDialog = ({
                       {peppolChecking ? <Loader2 className="w-4 h-4 animate-spin" /> : t('peppol.checkPeppol')}
                     </Button>
                   </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-gray-400">Recherche auto possible via TVA ou nom de societe.</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!hasLookupInput || peppolChecking}
+                      onClick={handleAutoDetectPeppol}
+                      className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10"
+                    >
+                      {peppolChecking ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        t('peppol.autoDetect', 'Auto-detect')
+                      )}
+                    </Button>
+                  </div>
                   {peppolResult && (
                     <span
                       className={`flex items-center gap-1 text-xs ${peppolResult.registered ? 'text-emerald-400' : 'text-red-400'}`}
@@ -297,6 +338,7 @@ const ClientFormDialog = ({
                       {peppolResult.registered ? (
                         <>
                           <CheckCircle className="w-3 h-3" /> {t('peppol.checkRegistered')}
+                          {peppolResult.peppolId ? ` (${peppolResult.peppolId})` : ''}
                         </>
                       ) : (
                         <>

@@ -1817,7 +1817,7 @@ const PeppolPage = () => {
         <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-5">
           <h3 className="text-white font-medium mb-3 flex items-center gap-2">
             <Search className="w-4 h-4 text-orange-400" />
-            {t('peppol.checkPeppol')} Peppol ID
+            {t('peppol.checkPeppol')} Peppol ID / TVA / Entreprise
           </h3>
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
@@ -1826,7 +1826,7 @@ const PeppolPage = () => {
                 setPeppolIdInput(e.target.value);
                 if (checkResult) resetCheck();
               }}
-              placeholder="0208:0123456789 (BE) / 0009:12345678901234 (FR)"
+              placeholder="ID (0208:...), TVA (BE...) ou nom d'entreprise"
               className="bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500 flex-1"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCheckPeppolId();
@@ -1848,16 +1848,19 @@ const PeppolPage = () => {
               {checkResult.registered ? (
                 <>
                   <CheckCircle className="w-4 h-4" />
-                  {t('peppol.checkRegistered')} — {peppolIdInput}
+                  {t('peppol.checkRegistered')} — {checkResult.peppolId || peppolIdInput}
                   {checkResult.name && <span className="text-gray-400 ml-2">({checkResult.name})</span>}
                 </>
               ) : (
                 <>
                   <XCircle className="w-4 h-4" />
-                  {t('peppol.checkNotRegistered')} — {peppolIdInput}
+                  {t('peppol.checkNotRegistered')} — {checkResult.input || peppolIdInput}
                 </>
               )}
             </div>
+          )}
+          {checkResult?.checkedIds?.length > 1 && (
+            <p className="mt-2 text-xs text-gray-500">{checkResult.checkedIds.length} identifiants candidats testes.</p>
           )}
         </div>
 

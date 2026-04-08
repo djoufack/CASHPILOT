@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
+import { resolvePeppolCheckPayload } from '@/utils/peppolCheckQuery';
 
 export const usePeppolCheck = () => {
   const [checking, setChecking] = useState(false);
@@ -12,31 +13,40 @@ export const usePeppolCheck = () => {
   const { company } = useCompany();
 
   const checkRegistration = useCallback(
-    async (peppolId) => {
-      if (!supabase || !peppolId) return null;
+    async (searchInput) => {
+      const payload = resolvePeppolCheckPayload(searchInput);
+      if (!supabase || !payload) return null;
 
       setChecking(true);
       setResult(null);
 
       try {
         const { data, error } = await supabase.functions.invoke('peppol-check', {
-          body: { peppol_id: peppolId, company_id: company?.id || null },
+          body: { ...payload, company_id: company?.id || null },
         });
 
         if (error) throw error;
 
         setResult(data);
 
+        const resolvedDisplay =
+          data?.peppolId ||
+          data?.input ||
+          payload?.peppol_id ||
+          payload?.vat_number ||
+          payload?.company_name ||
+          payload?.query;
+
         if (data.registered) {
           toast({
             title: t('peppol.checkRegistered'),
-            description: peppolId,
+            description: resolvedDisplay,
             className: 'bg-green-600 border-none text-white',
           });
         } else {
           toast({
             title: t('peppol.checkNotRegistered'),
-            description: peppolId,
+            description: resolvedDisplay,
             variant: 'destructive',
           });
         }
