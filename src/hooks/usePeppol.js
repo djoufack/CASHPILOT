@@ -627,21 +627,10 @@ export function usePeppol() {
           doc_category: 'accounting',
           confidentiality_level: 'internal',
           notes: `Source Peppol entrant: ${doc.scrada_document_id}`,
-          tags: ['peppol', 'scrada', 'inbound', 'paid'],
+          tags: ['peppol', 'scrada', 'inbound', 'pending_payment'],
         },
         { onConflict: 'company_id,source_table,source_id' }
       );
-
-      // Mark supplier invoice as paid so accounting payment entries are generated automatically by DB triggers.
-      const { error: paymentStatusError } = await supabase
-        .from('supplier_invoices')
-        .update({
-          payment_status: 'paid',
-        })
-        .eq('id', createdInvoice.id)
-        .eq('user_id', user.id)
-        .eq('company_id', company.id);
-      if (paymentStatusError) throw paymentStatusError;
 
       // Mark inbound Peppol document as integrated in accounting workflow.
       const inboundMetadata = doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
@@ -654,7 +643,7 @@ export function usePeppol() {
             supplier_invoice_id: createdInvoice.id,
             accounting_integration_status: 'integrated',
             accounting_integrated_at: new Date().toISOString(),
-            supplier_invoice_payment_status: 'paid',
+            supplier_invoice_payment_status: 'pending',
           },
         })
         .eq('id', doc.id)
