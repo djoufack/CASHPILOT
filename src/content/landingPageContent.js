@@ -34,7 +34,7 @@ export const landingPageContent = {
         security: 'MFA & GDPR',
       },
       primaryCta: 'Démarrer gratuitement',
-      secondaryCta: 'Voir la démo',
+      secondaryCta: 'Ouvrir la démo guidée',
       discover: 'Découvrir',
       stats: [
         { number: '< 1s', label: 'Génération écritures' },
@@ -492,7 +492,7 @@ export const landingPageContent = {
         security: 'MFA & GDPR',
       },
       primaryCta: 'Start for free',
-      secondaryCta: 'See the demo',
+      secondaryCta: 'Open the guided demo',
       discover: 'Discover',
       stats: [
         { number: '< 1s', label: 'Journal entries' },
@@ -939,7 +939,7 @@ export const landingPageContent = {
         security: 'MFA & GDPR',
       },
       primaryCta: 'Gratis starten',
-      secondaryCta: 'Bekijk de demo',
+      secondaryCta: 'Bekijk de begeleide demo',
       discover: 'Ontdekken',
       stats: [
         { number: '< 1s', label: 'Boekingen' },

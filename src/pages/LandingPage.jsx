@@ -70,6 +70,7 @@ const LandingPage = () => {
   const [mobileMenuActive, setMobileMenuActive] = useState(false);
   const [navbarScrolled, setNavbarScrolled] = useState(false);
   const [demoBannerVisible, setDemoBannerVisible] = useState(!localStorage.getItem('cashpilot_demo_banner_dismissed'));
+  const demoGuideUrl = '/guide/cashpilot-demo-user-guide.html';
 
   const preloaderRef = useRef(null);
   const cursorFollowerRef = useRef(null);
@@ -840,7 +841,10 @@ const LandingPage = () => {
                 </span>
                 <span className="btn-shine"></span>
               </button>
-              <button className="btn btn-hero-secondary magnetic-btn" onClick={() => window.open('/guide/', '_blank')}>
+              <button
+                className="btn btn-hero-secondary magnetic-btn"
+                onClick={() => window.open(demoGuideUrl, '_blank')}
+              >
                 <span className="btn-text">{copy.hero.secondaryCta}</span>
                 <span className="btn-play">
                   <Play />
