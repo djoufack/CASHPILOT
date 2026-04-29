@@ -474,10 +474,13 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const supabase = createServiceClient();
+  let billingSupabase: any = supabase;
   let resolvedUserId = '';
   let creditConsumption = null;
+  let failureStage = 'startup';
 
   try {
+    failureStage = 'auth';
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization' }), {
@@ -487,6 +490,7 @@ serve(async (req) => {
     }
 
     const scopedSupabase = createAuthClient(authHeader);
+    billingSupabase = scopedSupabase;
     const authUser = await requireAuthenticatedUser(req);
     const payload = await req.json();
     const userId = payload?.userId;
@@ -523,6 +527,7 @@ serve(async (req) => {
         resolvedActiveCompanyId ? () => buildQuery(false) : null
       );
 
+    failureStage = 'canonical_queries';
     const [
       invoicesRes,
       expensesRes,
@@ -782,6 +787,7 @@ serve(async (req) => {
       );
     }
 
+    failureStage = 'system_prompt';
     const systemPrompt = `Tu es l'EXPERT-COMPTABLE & DIRECTEUR FINANCIER (CFO) DIGITAL de ${escapedCompanyName}.
 
 Tu combines l'expertise d'un cabinet comptable traditionnel ET d'un directeur financier expérimenté. Tu es responsable de:
@@ -978,6 +984,7 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
         canonical_operations: canonicalFacts.operations,
       })
     );
+    failureStage = 'gemini_cache';
     const cachedGeminiReply = readGeminiCache(geminiCacheKey);
     if (cachedGeminiReply) {
       return new Response(
@@ -990,13 +997,17 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
       );
     }
 
-    const creditCost = await resolveCreditCost(supabase as any, CHATBOT_OPERATION_CODE);
-    creditConsumption = await consumeCredits(supabase as any, resolvedUserId, creditCost, 'AI Chatbot');
+    failureStage = 'credit_cost';
+    const creditCost = await resolveCreditCost(billingSupabase, CHATBOT_OPERATION_CODE);
+    failureStage = 'credit_consumption';
+    creditConsumption = await consumeCredits(billingSupabase, resolvedUserId, creditCost, 'AI Chatbot');
 
+    failureStage = 'gemini_config';
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
     const geminiUrl = buildGeminiGenerateContentUrl(geminiKey);
+    failureStage = 'gemini_fetch';
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1018,7 +1029,6 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
           temperature: 0.5,
           maxOutputTokens: 2048,
           topP: 0.9,
-          topK: 40,
         },
       }),
     });
@@ -1026,9 +1036,11 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
     if (!geminiRes.ok) {
       const geminiError = await geminiRes.text();
       console.error('Gemini API error:', geminiRes.status, geminiError);
+      failureStage = `gemini_response_${geminiRes.status}`;
       throw new Error('Gemini API error');
     }
 
+    failureStage = 'gemini_parse';
     const result = await geminiRes.json();
     console.log('Gemini result structure:', JSON.stringify(result, null, 2));
     const reply = result.candidates?.[0]?.content?.parts?.[0]?.text || "Désolé, je n'ai pas pu répondre.";
@@ -1041,7 +1053,7 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
   } catch (error) {
     if (creditConsumption && resolvedUserId) {
       try {
-        await refundCredits(supabase as any, resolvedUserId, creditConsumption, 'AI Chatbot - error');
+        await refundCredits(billingSupabase, resolvedUserId, creditConsumption, 'AI Chatbot - error');
       } catch {
         // Ignore secondary refund/auth failures in the error path.
       }
@@ -1051,7 +1063,7 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
     console.error('AI chatbot error:', error);
     return new Response(JSON.stringify({ error: 'An error occurred' }), {
       status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-CashPilot-Error-Code': failureStage },
     });
   }
 });
