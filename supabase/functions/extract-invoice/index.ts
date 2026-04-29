@@ -2,6 +2,7 @@
 // Extracts structured data from supplier invoices using Google Gemini API
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { buildGeminiGenerateContentUrl } from '../_shared/gemini.ts';
 import {
   consumeCredits,
   createAuthClient,
@@ -147,7 +148,7 @@ serve(async (req) => {
     const base64Data = btoa(binary);
 
     // 5. Call Gemini API
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = buildGeminiGenerateContentUrl(geminiApiKey);
 
     const geminiBody = {
       contents: [

@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { buildGeminiGenerateContentUrl } from '../_shared/gemini.ts';
 import {
   consumeCredits,
   createServiceClient,
@@ -111,7 +112,7 @@ Reponds UNIQUEMENT en JSON valide:
   "summary": "string"
 }`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+    const geminiUrl = buildGeminiGenerateContentUrl(geminiKey);
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

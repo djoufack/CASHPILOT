@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { buildGeminiGenerateContentUrl } from '../_shared/gemini.ts';
 import {
   consumeCredits,
   createAuthClient,
@@ -995,7 +996,7 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+    const geminiUrl = buildGeminiGenerateContentUrl(geminiKey);
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

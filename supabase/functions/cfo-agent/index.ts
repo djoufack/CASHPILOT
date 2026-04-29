@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { buildGeminiGenerateContentUrl } from '../_shared/gemini.ts';
 import { createAuthClient, createServiceClient, HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 import { formatMoney, gatherFinancialContext } from './context.ts';
@@ -140,7 +141,7 @@ REGLES:
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new HttpError(500, 'AI service not configured');
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+    const geminiUrl = buildGeminiGenerateContentUrl(geminiKey);
 
     const contents = [
       { role: 'user', parts: [{ text: systemPrompt }] },
